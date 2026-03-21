@@ -113,7 +113,6 @@ export default function NewTrade() {
   const [fullTranscript, setFullTranscript] = useState("");
   const [livePartial, setLivePartial] = useState("");
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [sttMethod, setSttMethod] = useState<"elevenlabs" | "webspeech" | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const fullTranscriptRef = useRef("");

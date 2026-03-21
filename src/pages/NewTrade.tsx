@@ -244,16 +244,11 @@ export default function NewTrade() {
   }, []);
 
   const stopRecording = useCallback(async () => {
-    // Read from refs BEFORE disconnecting to avoid stale closures
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
     const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();
 
-    console.log("[Voice] Stopping. Full ref:", capturedFull, "Partial ref:", capturedPartial, "Final:", finalTranscript);
-
-    if (sttMethod === "elevenlabs") {
-      scribe.disconnect();
-    } else if (recognitionRef.current) {
+    if (recognitionRef.current) {
       recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -264,13 +259,6 @@ export default function NewTrade() {
     livePartialRef.current = "";
 
     if (!finalTranscript) {
-      if (sttMethod === "elevenlabs" && SpeechRecognition) {
-        setVoiceError("No speech detected from ElevenLabs. Switched to browser speech recognition fallback.");
-        toast.error("No speech detected from ElevenLabs — using browser speech fallback");
-        setSttMethod("webspeech");
-        startWebSpeech();
-        return;
-      }
       toast.error("No speech detected");
       return;
     }
@@ -312,7 +300,7 @@ export default function NewTrade() {
     } finally {
       setIsParsing(false);
     }
-  }, [scribe, sttMethod, startWebSpeech]);
+  }, []);
 
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) => prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]);

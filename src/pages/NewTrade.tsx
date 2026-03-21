@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from "react";
-import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus } from "lucide-react";
+import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus, X, MicOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +47,8 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "conflicted", label: "Conflicted" },
   { value: "detached", label: "Detached / Numb" },
   { value: "tired", label: "Tired / Fatigued" },
+  { value: "bored", label: "Bored" },
+  { value: "pressured", label: "Pressured" },
 ];
 
 const QUICK_TAGS = [
@@ -59,16 +61,27 @@ const QUICK_TAGS = [
   "Chased / FOMO",
   "Best setup",
   "Clean execution",
+  "Re-Entry",
+  "Sized Up",
+  "Sized Down",
+  "Early Entry",
+  "Late Entry",
+  "Revenge Trade",
+  "Low Conviction",
+  "High Conviction",
+  "Deviated From Plan",
 ];
 
 const SETUP_TYPES = [
-  "EMA Pullback",
-  "Breakout",
-  "Volume Spike Entry",
+  "Migrated Confirmation",
+  "Pre-Migration PVP",
+  "Re-Entry",
   "Wallet Signal",
   "Narrative Play",
-  "Dip Buy",
-  "Momentum",
+  "Breakout",
+  "Dip Buy / Pullback",
+  "Volume Spike",
+  "Momentum Chase",
   "Custom",
 ];
 
@@ -78,6 +91,12 @@ const CONFIRMATION_SIGNALS = [
   "Social / Twitter",
   "Chart Pattern",
   "Gut / Intuition",
+  "EMA Cross",
+  "RSI Holding",
+  "Migration Confirmed",
+  "Dev History",
+  "Trending / Listed",
+  "Low Supply",
   "Other",
 ];
 
@@ -94,6 +113,20 @@ const SpeechRecognition =
   typeof window !== "undefined"
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
+
+// Persistent custom tags stored in localStorage
+function getCustomTags(): string[] {
+  try {
+    return JSON.parse(localStorage.getItem("tradesnap-custom-tags") || "[]");
+  } catch { return []; }
+}
+function saveCustomTag(tag: string) {
+  const tags = getCustomTags();
+  if (!tags.includes(tag)) {
+    tags.push(tag);
+    localStorage.setItem("tradesnap-custom-tags", JSON.stringify(tags));
+  }
+}
 
 export default function NewTrade() {
   const navigate = useNavigate();
@@ -121,12 +154,23 @@ export default function NewTrade() {
   const [showIndicators, setShowIndicators] = useState(false);
   const [confirmationSignals, setConfirmationSignals] = useState<string[]>([]);
   const [confirmationSignalOther, setConfirmationSignalOther] = useState("");
+  const [customSignals, setCustomSignals] = useState<string[]>([]);
+  const [newCustomSignal, setNewCustomSignal] = useState("");
   const [sessionType, setSessionType] = useState<SessionType>("full-session");
   const [emotions, setEmotions] = useState<EmotionalState[]>([]);
   const [emotionFreeText, setEmotionFreeText] = useState("");
   const [quickTags, setQuickTags] = useState<string[]>([]);
+  const [customTags] = useState<string[]>(getCustomTags());
+  const [newCustomTag, setNewCustomTag] = useState("");
   const [rawTranscript, setRawTranscript] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
+
+  // Voice for emotion free text
+  const [isRecordingEmotion, setIsRecordingEmotion] = useState(false);
+  const emotionRecRef = useRef<any>(null);
+  // Voice for additional notes
+  const [isRecordingNotes, setIsRecordingNotes] = useState(false);
+  const notesRecRef = useRef<any>(null);
 
   const startRecording = useCallback(() => {
     setVoiceError(null);
@@ -248,6 +292,38 @@ export default function NewTrade() {
     }
   }, []);
 
+  // Generic voice helper for secondary text areas
+  const startSecondaryVoice = (
+    setRecording: (v: boolean) => void,
+    ref: React.MutableRefObject<any>,
+    setText: (fn: (prev: string) => string) => void,
+  ) => {
+    if (!SpeechRecognition) return;
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onresult = (e: any) => {
+      let text = "";
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
+      }
+      setText((prev) => (prev + " " + text).trim());
+    };
+    rec.start();
+    ref.current = rec;
+    setRecording(true);
+  };
+
+  const stopSecondaryVoice = (
+    setRecording: (v: boolean) => void,
+    ref: React.MutableRefObject<any>,
+  ) => {
+    ref.current?.stop();
+    ref.current = null;
+    setRecording(false);
+  };
+
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) => prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]);
 
@@ -256,6 +332,27 @@ export default function NewTrade() {
 
   const toggleSignal = (s: string) =>
     setConfirmationSignals((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+
+  const addCustomSignal = () => {
+    const val = newCustomSignal.trim();
+    if (!val) return;
+    setCustomSignals((prev) => [...prev, val]);
+    setConfirmationSignals((prev) => [...prev, val]);
+    setNewCustomSignal("");
+  };
+
+  const removeCustomSignal = (sig: string) => {
+    setCustomSignals((prev) => prev.filter((s) => s !== sig));
+    setConfirmationSignals((prev) => prev.filter((s) => s !== sig));
+  };
+
+  const addCustomTag = () => {
+    const val = newCustomTag.trim();
+    if (!val) return;
+    saveCustomTag(val);
+    setQuickTags((prev) => [...prev, val]);
+    setNewCustomTag("");
+  };
 
   const handleSave = () => {
     if (!tokenName.trim()) return;
@@ -292,6 +389,8 @@ export default function NewTrade() {
   };
 
   const displayTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ");
+
+  const allQuickTags = [...QUICK_TAGS, ...customTags.filter((t) => !QUICK_TAGS.includes(t))];
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
@@ -367,13 +466,14 @@ export default function NewTrade() {
                 <SelectItem value="SOL">SOL</SelectItem>
                 <SelectItem value="ETH">ETH</SelectItem>
                 <SelectItem value="BASE">BASE</SelectItem>
+                <SelectItem value="BNB">BNB / BSC</SelectItem>
                 <SelectItem value="ARB">ARB</SelectItem>
               </SelectContent>
             </Select>
           </div>
         </div>
 
-        {/* Entry MC + Size (2 cols) */}
+        {/* Entry MC + Size */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Entry MC</label>
@@ -445,6 +545,18 @@ export default function NewTrade() {
                 {sig}
               </button>
             ))}
+            {/* Custom signals */}
+            {customSignals.map((sig) => (
+              <span
+                key={sig}
+                className="inline-flex items-center gap-1 rounded-md border border-dashed border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+              >
+                {sig}
+                <button onClick={() => removeCustomSignal(sig)} className="hover:text-destructive">
+                  <X className="h-3 w-3" />
+                </button>
+              </span>
+            ))}
           </div>
           {confirmationSignals.includes("Other") && (
             <Input
@@ -454,6 +566,19 @@ export default function NewTrade() {
               className="mt-1.5 bg-card border-border"
             />
           )}
+          {/* Add custom signal input */}
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              placeholder="+ Add your own"
+              value={newCustomSignal}
+              onChange={(e) => setNewCustomSignal(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomSignal()}
+              className="h-8 bg-card border-border text-xs flex-1"
+            />
+            <Button variant="ghost" size="sm" onClick={addCustomSignal} disabled={!newCustomSignal.trim()} className="h-8 px-2 text-xs">
+              Add
+            </Button>
+          </div>
         </div>
 
         {/* Session Status */}
@@ -480,11 +605,28 @@ export default function NewTrade() {
               <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{em.label}</button>
             ))}
           </div>
+          {/* Voice for emotion description */}
+          <button
+            onClick={() =>
+              isRecordingEmotion
+                ? stopSecondaryVoice(setIsRecordingEmotion, emotionRecRef)
+                : startSecondaryVoice(setIsRecordingEmotion, emotionRecRef, setEmotionFreeText)
+            }
+            className={cn(
+              "mt-2 flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
+              isRecordingEmotion ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+            )}
+          >
+            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+          </button>
+          <p className="text-[10px] text-muted-foreground">
+            {isRecordingEmotion ? "Recording — tap to stop" : "Tap to describe by voice"}
+          </p>
           <Textarea
             placeholder="Describe your emotional state in your own words (optional)"
             value={emotionFreeText}
             onChange={(e) => setEmotionFreeText(e.target.value)}
-            className="mt-2 min-h-[60px] bg-card border-border text-xs"
+            className="min-h-[60px] bg-card border-border text-xs"
           />
         </div>
 
@@ -492,9 +634,22 @@ export default function NewTrade() {
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
-            {QUICK_TAGS.map((tag) => (
+            {allQuickTags.map((tag) => (
               <button key={tag} onClick={() => toggleTag(tag)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", quickTags.includes(tag) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{tag}</button>
             ))}
+          </div>
+          {/* Add custom tag */}
+          <div className="flex items-center gap-2 mt-1">
+            <Input
+              placeholder="+ Add custom tag"
+              value={newCustomTag}
+              onChange={(e) => setNewCustomTag(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addCustomTag()}
+              className="h-8 bg-card border-border text-xs flex-1"
+            />
+            <Button variant="ghost" size="sm" onClick={addCustomTag} disabled={!newCustomTag.trim()} className="h-8 px-2 text-xs">
+              Add
+            </Button>
           </div>
         </div>
 
@@ -511,6 +666,22 @@ export default function NewTrade() {
         {/* Additional Notes */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Additional Notes — your thoughts, context, or anything the voice missed</label>
+          <button
+            onClick={() =>
+              isRecordingNotes
+                ? stopSecondaryVoice(setIsRecordingNotes, notesRecRef)
+                : startSecondaryVoice(setIsRecordingNotes, notesRecRef, setAdditionalNotes)
+            }
+            className={cn(
+              "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
+              isRecordingNotes ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+            )}
+          >
+            {isRecordingNotes ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+          </button>
+          <p className="text-[10px] text-muted-foreground">
+            {isRecordingNotes ? "Recording — tap to stop" : "Tap to add notes by voice"}
+          </p>
           <Textarea
             placeholder="Add any extra context…"
             value={additionalNotes}

@@ -9,24 +9,13 @@ export default function Analytics() {
   const trades = useTradeStore((s) => s.trades);
   const closed = trades.filter((t) => t.status === "closed" && t.finalPnl !== undefined);
 
-  if (closed.length < 5) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-8 pb-20">
-        <Target className="h-12 w-12 text-muted-foreground" />
-        <p className="text-center text-sm text-muted-foreground leading-relaxed">
-          Log <span className="font-bold text-foreground">{5 - closed.length} more</span> trades to unlock your insights.
-        </p>
-      </div>
-    );
-  }
-
   const totalTrades = closed.length;
   const wins = closed.filter((t) => (t.finalPnl ?? 0) > 0);
   const losses = closed.filter((t) => (t.finalPnl ?? 0) < 0);
-  const winRate = Math.round((wins.length / totalTrades) * 100);
-  const avgPnl = closed.reduce((s, t) => s + (t.finalPnl ?? 0), 0) / totalTrades;
-  const biggestWin = Math.max(...closed.map((t) => t.finalPnl ?? 0));
-  const biggestLoss = Math.min(...closed.map((t) => t.finalPnl ?? 0));
+  const winRate = totalTrades > 0 ? Math.round((wins.length / totalTrades) * 100) : 0;
+  const avgPnl = totalTrades > 0 ? closed.reduce((s, t) => s + (t.finalPnl ?? 0), 0) / totalTrades : 0;
+  const biggestWin = closed.length > 0 ? Math.max(...closed.map((t) => t.finalPnl ?? 0)) : 0;
+  const biggestLoss = closed.length > 0 ? Math.min(...closed.map((t) => t.finalPnl ?? 0)) : 0;
 
   // Interruption analysis
   const interrupted = closed.filter((t) => t.interruptionStatus === "interrupted");
@@ -49,6 +38,17 @@ export default function Analytics() {
 
   const topWinEmotion = topEmotion(winEmotions);
   const topLossEmotion = topEmotion(lossEmotions);
+
+  if (totalTrades === 0) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-8 pb-20">
+        <Target className="h-12 w-12 text-muted-foreground" />
+        <p className="text-center text-sm text-muted-foreground leading-relaxed">
+          No closed trades yet. Close a trade to see your analytics.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen flex-col pb-24">
@@ -79,43 +79,47 @@ export default function Analytics() {
         </div>
 
         {/* Interruption Analysis */}
-        <div className="rounded-xl bg-card p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Interruption Impact</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-[10px] text-muted-foreground">Clean trades</p>
-              <p className="text-sm font-bold tabular-nums">{clean.length} trades</p>
-              <p className="text-xs tabular-nums text-emerald-400">Avg: {cleanAvg >= 0 ? "+" : ""}{cleanAvg.toFixed(2)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-muted-foreground">Interrupted</p>
-              <p className="text-sm font-bold tabular-nums">{interrupted.length} trades</p>
-              <p className="text-xs tabular-nums text-red-400">Avg: {intAvg >= 0 ? "+" : ""}{intAvg.toFixed(2)}</p>
+        {(interrupted.length > 0 || clean.length > 0) && (
+          <div className="rounded-xl bg-card p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">Interruption Impact</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-[10px] text-muted-foreground">Clean trades</p>
+                <p className="text-sm font-bold tabular-nums">{clean.length} trades</p>
+                <p className="text-xs tabular-nums text-emerald-400">Avg: {cleanAvg >= 0 ? "+" : ""}{cleanAvg.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-muted-foreground">Interrupted</p>
+                <p className="text-sm font-bold tabular-nums">{interrupted.length} trades</p>
+                <p className="text-xs tabular-nums text-red-400">Avg: {intAvg >= 0 ? "+" : ""}{intAvg.toFixed(2)}</p>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Emotional Intelligence */}
-        <div className="rounded-xl bg-card p-4">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            <Zap className="inline h-3 w-3 mr-1" />
-            Emotional Intelligence
-          </h3>
-          <div className="space-y-3">
-            {topWinEmotion && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Top emotion in wins</span>
-                <EmotionBadge emotion={topWinEmotion} />
-              </div>
-            )}
-            {topLossEmotion && (
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">Your edge killer</span>
-                <EmotionBadge emotion={topLossEmotion} />
-              </div>
-            )}
+        {(topWinEmotion || topLossEmotion) && (
+          <div className="rounded-xl bg-card p-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+              <Zap className="inline h-3 w-3 mr-1" />
+              Emotional Intelligence
+            </h3>
+            <div className="space-y-3">
+              {topWinEmotion && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Top emotion in wins</span>
+                  <EmotionBadge emotion={topWinEmotion} />
+                </div>
+              )}
+              {topLossEmotion && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Your edge killer</span>
+                  <EmotionBadge emotion={topLossEmotion} />
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,8 @@ export type EmotionalState =
   | "anxious" | "nervous" | "rushed" | "frustrated" | "revenge-mindset"
   | "greedy" | "fearful" | "overconfident"
   | "fomo" | "distracted" | "interrupted" | "uncertain" | "conflicted"
-  | "disciplined" | "hesitant" | "impulsive" | "euphoric" | "detached" | "sharp" | "tired";
+  | "disciplined" | "hesitant" | "impulsive" | "euphoric" | "detached" | "sharp" | "tired"
+  | "bored" | "pressured";
 
 export type TradeStatus = "open" | "closed";
 
@@ -95,7 +96,7 @@ export const SAMPLE_TRADES: Trade[] = [
     entryMarketCap: "42K",
     entryPrice: "0.000042",
     positionSize: "2.5 SOL",
-    setupType: "Volume Spike Entry",
+    setupType: "Volume Spike",
     narrativeType: "AI meme",
     confirmationSignals: ["Volume", "Wallets"],
     sessionType: "full-session",
@@ -116,8 +117,8 @@ export const SAMPLE_TRADES: Trade[] = [
     finalPnl: 4.5,
     exitMethod: "ladder",
     emotionalStateAtExit: ["calm", "patient"],
-    exitTranscript: "Exited in three clips as it hit 4.5x. Stuck to the plan perfectly. Took profits at 2x, 3x, and final bag at 4.5x.",
-    reflectionNote: "Textbook trade. Clean entry, volume confirmed, patience paid off. This is the playbook I need to follow every time.",
+    exitTranscript: "Exited in three clips as it hit 4.5x. Stuck to the plan perfectly.",
+    reflectionNote: "Textbook trade. Clean entry, volume confirmed, patience paid off.",
     reflectionLesson: "Trust the setup when all confirmations align.",
     emotionalStateAtReflection: ["confident", "calm"],
     reflectionTimestamp: new Date(Date.now() - 86400000 * 2 + 10800000).toISOString(),
@@ -132,18 +133,18 @@ export const SAMPLE_TRADES: Trade[] = [
     entryMarketCap: "180K",
     entryPrice: "0.00018",
     positionSize: "1.8 SOL",
-    setupType: "Momentum",
+    setupType: "Momentum Chase",
     narrativeType: "DAO meta",
     confirmationSignals: ["Gut / Intuition"],
     sessionType: "work-trade",
     entryTime: new Date(Date.now() - 86400000).toISOString(),
     emotionalStateAtEntry: ["rushed", "fomo"],
-    entryTranscript: "Getting into RUGDAO, it's already at 180K MC. Didn't check wallets, volume looks okay I think. I'm at work so I need to be quick. Putting in 1.8 SOL, might be chasing but whatever.",
+    entryTranscript: "Getting into RUGDAO, it's already at 180K MC. Didn't check wallets, volume looks okay I think. I'm at work so I need to be quick.",
     quickTags: ["Interrupted", "Work trade", "Chased / FOMO", "Non-compliant"],
     updates: [
       {
         id: "demo-2-u1",
-        note: "It's dumping. Shouldn't have entered this. My boss just walked by, can't even check properly.",
+        note: "It's dumping. Shouldn't have entered this.",
         emotionalState: ["anxious", "frustrated", "distracted"],
         timestamp: new Date(Date.now() - 86400000 + 1800000).toISOString(),
       },
@@ -153,8 +154,8 @@ export const SAMPLE_TRADES: Trade[] = [
     finalPnl: -1.35,
     exitMethod: "forced",
     emotionalStateAtExit: ["frustrated", "rushed"],
-    exitTranscript: "Exiting everything at 0.25x. Total loss. Got forced out because I couldn't manage the trade at work.",
-    reflectionNote: "Classic mistake. Chased a pump at work with no wallet checks, no volume confirmation. The interruption made it worse — couldn't manage the position at all.",
+    exitTranscript: "Exiting everything at 0.25x. Total loss.",
+    reflectionNote: "Classic mistake. Chased a pump at work with no wallet checks.",
     reflectionLesson: "Never enter without all confirmations. Work trades need pre-set exits.",
     emotionalStateAtReflection: ["frustrated", "calm"],
     reflectionTimestamp: new Date(Date.now() - 86400000 + 7200000).toISOString(),
@@ -175,18 +176,18 @@ export const SAMPLE_TRADES: Trade[] = [
     sessionType: "full-session",
     entryTime: new Date(Date.now() - 43200000).toISOString(),
     emotionalStateAtEntry: ["confident", "calm"],
-    entryTranscript: "Entering AISENSEI at 65K MC. AI agent narrative, volume is solid, two wallets confirmed. Clean session, feeling good. 2 SOL in.",
+    entryTranscript: "Entering AISENSEI at 65K MC. AI agent narrative, volume is solid, two wallets confirmed.",
     quickTags: ["Clean execution"],
     updates: [
       {
         id: "demo-3-u1",
-        note: "Hit 2x, took some profit. Volume is fading though, getting a bit nervous. Thinking about cutting the rest.",
+        note: "Hit 2x, took some profit. Volume is fading though.",
         emotionalState: ["nervous", "uncertain"],
         timestamp: new Date(Date.now() - 43200000 + 5400000).toISOString(),
       },
       {
         id: "demo-3-u2",
-        note: "Dropped back to 1.5x. Should have taken more at 2x. Getting greedy now wanting it to bounce back.",
+        note: "Dropped back to 1.5x. Should have taken more at 2x.",
         emotionalState: ["greedy", "conflicted"],
         timestamp: new Date(Date.now() - 43200000 + 7200000).toISOString(),
       },
@@ -196,9 +197,9 @@ export const SAMPLE_TRADES: Trade[] = [
     finalPnl: 0.6,
     exitMethod: "ladder",
     emotionalStateAtExit: ["conflicted", "calm"],
-    exitTranscript: "Exited the rest at 1.6x. Gave back a chunk from the peak. Started confident but got greedy waiting for more.",
-    reflectionNote: "The emotional shift from confident to greedy cost me at least 0.5 SOL. Next time, stick to the exit plan when volume fades.",
-    reflectionLesson: "When volume fades, exit. Don't wait for a bounce that isn't coming.",
+    exitTranscript: "Exited the rest at 1.6x. Gave back a chunk from the peak.",
+    reflectionNote: "The emotional shift from confident to greedy cost me.",
+    reflectionLesson: "When volume fades, exit. Don't wait for a bounce.",
     emotionalStateAtReflection: ["calm", "focused"],
     reflectionTimestamp: new Date(Date.now() - 43200000 + 10800000).toISOString(),
     status: "closed",

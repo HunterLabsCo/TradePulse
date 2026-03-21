@@ -71,8 +71,8 @@ export default function SettingsPage() {
         {/* Default Chain */}
         <div>
           <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Default Chain</label>
-          <div className="flex gap-2">
-            {["SOL", "ETH", "BASE", "BSC"].map((chain) => (
+          <div className="flex gap-2 flex-wrap">
+            {["SOL", "ETH", "BASE", "BNB", "ARB"].map((chain) => (
               <button
                 key={chain}
                 onClick={() => setDefaultChain(chain)}
@@ -82,7 +82,7 @@ export default function SettingsPage() {
                     : "bg-card text-muted-foreground"
                 }`}
               >
-                {chain}
+                {chain === "BNB" ? "BNB / BSC" : chain}
               </button>
             ))}
           </div>

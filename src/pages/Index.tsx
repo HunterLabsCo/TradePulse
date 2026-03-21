@@ -22,7 +22,6 @@ export default function Index() {
       : 0;
 
   const recentTrades = trades.slice(0, 10);
-  const freeRemaining = Math.max(0, FREE_LIMIT - nonDemoCount);
 
   return (
     <div className="flex min-h-screen flex-col pb-24">
@@ -30,14 +29,14 @@ export default function Index() {
       <header className="px-5 pt-safe-top">
         <div className="flex items-center justify-between py-4">
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-foreground">TradeSnap</h1>
-            <p className="text-xs text-muted-foreground">Voice trade journal</p>
+            <h1 className="font-display text-lg font-700 tracking-tight text-foreground">TradeSnap</h1>
+            <p className="font-body text-xs font-300 text-muted-foreground">Voice trade journal</p>
           </div>
           {nonDemoCount < FREE_LIMIT && (
-            <div className="rounded-lg bg-card px-3 py-1.5 text-right">
-              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Free trades</p>
-              <p className="text-sm font-bold tabular-nums text-foreground">
-                {nonDemoCount} <span className="text-muted-foreground font-normal">/ {FREE_LIMIT}</span>
+            <div className="rounded-xl bg-secondary border border-border px-3 py-1.5 text-right">
+              <p className="section-label">Free trades</p>
+              <p className="font-display text-sm font-600 tabular-nums tracking-data text-foreground">
+                {nonDemoCount} <span className="font-body font-300 text-muted-foreground">/ {FREE_LIMIT}</span>
               </p>
             </div>
           )}
@@ -47,33 +46,36 @@ export default function Index() {
       {/* Quick Stats */}
       <section className="grid grid-cols-3 gap-3 px-5 pb-4">
         {[
-          { label: "Trades", value: totalTrades.toString() },
-          { label: "Win Rate", value: `${winRate}%` },
-          { label: "Avg PnL", value: `${avgPnl >= 0 ? "+" : ""}${avgPnl.toFixed(2)}` },
-        ].map(({ label, value }) => (
-          <div key={label} className="rounded-xl bg-card p-3 text-center">
-            <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{label}</p>
-            <p className="mt-0.5 text-base font-bold tabular-nums">{value}</p>
+          { label: "Trades", value: totalTrades.toString(), highlight: false },
+          { label: "Win Rate", value: `${winRate}%`, highlight: winRate > 0 },
+          { label: "Avg PnL", value: `${avgPnl >= 0 ? "+" : ""}${avgPnl.toFixed(2)}`, highlight: avgPnl > 0 },
+        ].map(({ label, value, highlight }) => (
+          <div key={label} className="rounded-xl bg-card border border-border p-3 text-center">
+            <p className="section-label">{label}</p>
+            <p className={cn(
+              "mt-0.5 font-display text-2xl font-600 tabular-nums tracking-data",
+              highlight ? "text-primary" : "text-foreground"
+            )}>{value}</p>
           </div>
         ))}
       </section>
 
       {/* Recent Trades */}
       <section className="flex-1 px-5">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Recent Trades</h2>
+        <h2 className="section-label mb-3">Recent Trades</h2>
         <div className="space-y-2">
           {recentTrades.map((trade) => (
             <button
               key={trade.id}
               onClick={() => navigate(`/trade/${trade.id}`)}
-              className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left transition-colors active:scale-[0.98] active:bg-card/80"
+              className="flex w-full items-center gap-3 rounded-xl bg-card border border-border p-4 text-left transition-colors hover:border-[hsl(var(--border-default))] active:scale-[0.98]"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold truncate">{trade.tokenName}</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">{trade.chain}</span>
+                  <span className="font-display text-sm font-600 truncate text-foreground">{trade.tokenName}</span>
+                  <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">{trade.chain}</span>
                   {trade.isDemo && (
-                    <span className="text-[9px] rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">DEMO</span>
+                    <span className="font-body text-[9px] font-400 rounded bg-[hsl(var(--text-primary)/0.06)] px-1.5 py-0.5 text-[hsl(var(--text-muted))]">DEMO</span>
                   )}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -86,15 +88,15 @@ export default function Index() {
                 {trade.status === "closed" && trade.finalPnl !== undefined ? (
                   <PnlBadge pnl={trade.finalPnl} />
                 ) : (
-                  <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">OPEN</span>
+                  <span className="rounded-md border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[11px] font-400 text-primary">OPEN</span>
                 )}
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-[hsl(var(--text-muted))]" />
               </div>
             </button>
           ))}
           {recentTrades.length === 0 && (
-            <div className="rounded-xl bg-card p-8 text-center">
-              <p className="text-sm text-muted-foreground">No trades yet. Tap below to log your first trade.</p>
+            <div className="rounded-xl bg-card border border-border p-8 text-center">
+              <p className="font-body text-sm font-300 text-muted-foreground">No trades yet. Tap below to log your first trade.</p>
             </div>
           )}
         </div>
@@ -104,7 +106,7 @@ export default function Index() {
       <div className="fixed bottom-20 left-0 right-0 px-5">
         <button
           onClick={() => navigate("/new-trade")}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-bold text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-[0.97]"
+          className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-primary py-4 font-display text-[15px] font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] transition-all active:scale-[0.97]"
         >
           <Mic className="h-5 w-5" />
           New Trade

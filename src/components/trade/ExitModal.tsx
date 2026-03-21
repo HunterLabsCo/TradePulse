@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { EmotionBadge } from "@/components/EmotionBadge";
 import { cn } from "@/lib/utils";
 import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";
 import type { ExitType, ExitEvent, EmotionalState } from "@/lib/sample-data";
@@ -28,6 +27,11 @@ const EMOTIONS: EmotionalState[] = [
   "hesitant", "disciplined", "impulsive", "frustrated",
   "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
 ];
+
+const chipBase = "rounded-full px-3 py-2 font-body text-xs font-300 transition-colors active:scale-[0.97]";
+const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
+const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
+const chipStopLoss = "bg-red-action border border-red-action text-foreground font-400";
 
 function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
@@ -198,53 +202,49 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
   const isValid = exitType && percentClosed !== null && pnlPercent !== null && !percentError;
 
-  /* Chip styling helpers */
-  const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
-  const chipSelected = "bg-primary text-primary-foreground border border-primary";
-
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh] bg-card border-t border-border">
+      <DrawerContent className="max-h-[85vh] bg-popover border-t border-border">
         <DrawerHeader>
-          <DrawerTitle>Log Exit</DrawerTitle>
-          <DrawerDescription>Record an exit for this trade</DrawerDescription>
+          <DrawerTitle className="font-display font-600">Log Exit</DrawerTitle>
+          <DrawerDescription className="font-body font-300">Record an exit for this trade</DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-6 space-y-5">
           {/* Voice Pre-Fill */}
-          <div className="flex flex-col items-center gap-2 py-2 rounded-xl bg-card">
+          <div className="flex flex-col items-center gap-2 py-2 rounded-xl">
             <button
               onClick={isPreFilling ? stopPreFill : startPreFill}
               className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-all active:scale-[0.95]",
+                "flex h-16 w-16 items-center justify-center rounded-full transition-all active:scale-[0.95]",
                 isPreFilling
-                  ? "bg-destructive shadow-destructive/30 animate-pulse"
-                  : "bg-primary shadow-primary/30"
+                  ? "bg-destructive animate-pulse-red-glow"
+                  : "bg-primary animate-pulse-glow"
               )}
             >
               {isPreFilling ? (
-                <MicOff className="h-7 w-7 text-destructive-foreground" />
+                <MicOff className="h-7 w-7 text-foreground" />
               ) : (
                 <Mic className="h-7 w-7 text-primary-foreground" />
               )}
             </button>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-body text-xs font-300 text-muted-foreground">
               {isPreFilling ? "Listening — tap to stop" : "Tap to describe your exit by voice"}
             </p>
           </div>
 
           {/* Exit Type */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Exit Type</p>
+            <p className="section-label mb-2">Exit Type</p>
             <div className="flex flex-wrap gap-1.5">
               {EXIT_TYPES.map((t) => (
                 <button
                   key={t.value}
                   onClick={() => setExitType(t.value)}
                   className={cn(
-                    "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
+                    chipBase,
                     exitType === t.value
-                      ? (t.value === "stop-loss" ? "bg-[hsl(0,100%,60%)] text-white border border-[hsl(0,100%,60%)]" : chipSelected)
-                      : chipDefault
+                      ? (t.value === "stop-loss" ? chipStopLoss : chipOn)
+                      : chipOff
                   )}
                 >
                   {t.label}
@@ -255,27 +255,21 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
           {/* % Position Closed */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1">% Position Closed</p>
-            <p className="text-[11px] text-muted-foreground mb-2">Remaining position: {remainingPercent}%</p>
+            <p className="section-label mb-1">% Position Closed</p>
+            <p className="font-body text-[11px] font-300 text-muted-foreground mb-2">Remaining position: {remainingPercent}%</p>
             <div className="flex flex-wrap gap-1.5">
               {percentPresets.map((v) => (
                 <button
                   key={v}
                   onClick={() => { setPercentClosed(v); setShowCustomPercent(false); setCustomPercent(""); setPercentError(""); }}
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                    percentClosed === v && !showCustomPercent ? chipSelected : chipDefault
-                  )}
+                  className={cn(chipBase, percentClosed === v && !showCustomPercent ? chipOn : chipOff)}
                 >
                   {v}%
                 </button>
               ))}
               <button
                 onClick={() => { setShowCustomPercent(true); setPercentClosed(null); }}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                  showCustomPercent ? chipSelected : chipDefault
-                )}
+                className={cn(chipBase, showCustomPercent ? chipOn : chipOff)}
               >
                 Custom
               </button>
@@ -287,12 +281,12 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                   placeholder={`Max ${remainingPercent}%`}
                   value={customPercent}
                   onChange={(e) => handleCustomPercentChange(e.target.value)}
-                  className="h-9 text-sm"
+                  className="h-9 font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
                   max={remainingPercent}
                   min={1}
                 />
                 {percentError && (
-                  <p className="text-[11px] text-destructive mt-1">{percentError}</p>
+                  <p className="font-body text-[11px] font-300 text-destructive mt-1">{percentError}</p>
                 )}
               </div>
             )}
@@ -300,26 +294,20 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
           {/* P&L */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">P&L at This Exit</p>
+            <p className="section-label mb-2">P&L at This Exit</p>
             <div className="flex flex-wrap gap-1.5">
               {pnlPresets.map((v) => (
                 <button
                   key={v}
                   onClick={() => { setPnlPercent(v); setShowCustomPnl(false); setCustomPnl(""); }}
-                  className={cn(
-                    "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                    pnlPercent === v && !showCustomPnl ? chipSelected : chipDefault
-                  )}
+                  className={cn(chipBase, pnlPercent === v && !showCustomPnl ? chipOn : chipOff)}
                 >
                   {v > 0 ? `+${v}%` : `${v}%`}
                 </button>
               ))}
               <button
                 onClick={() => { setShowCustomPnl(true); setPnlPercent(null); }}
-                className={cn(
-                  "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                  showCustomPnl ? chipSelected : chipDefault
-                )}
+                className={cn(chipBase, showCustomPnl ? chipOn : chipOff)}
               >
                 Custom
               </button>
@@ -335,7 +323,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                     const num = parseFloat(e.target.value);
                     if (!isNaN(num)) setPnlPercent(num);
                   }}
-                  className="h-9 text-sm"
+                  className="h-9 font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
                 />
               </div>
             )}
@@ -343,17 +331,15 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
           {/* Emotions */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Emotional State</p>
+            <p className="section-label mb-2">Emotional State</p>
             <div className="flex flex-wrap gap-1.5">
               {EMOTIONS.map((e) => (
-                <button key={e} onClick={() => toggleEmotion(e)} className="active:scale-[0.96]">
-                  <EmotionBadge
-                    emotion={e}
-                    className={cn(
-                      "cursor-pointer transition-opacity",
-                      emotions.includes(e) ? "ring-1 ring-primary/50" : "opacity-50"
-                    )}
-                  />
+                <button
+                  key={e}
+                  onClick={() => toggleEmotion(e)}
+                  className={cn(chipBase, emotions.includes(e) ? chipOn : chipOff)}
+                >
+                  {e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ")}
                 </button>
               ))}
             </div>
@@ -361,27 +347,27 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
           {/* Quick Note */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Note</p>
+            <p className="section-label mb-2">Quick Note</p>
             <div className="flex gap-2 mb-2">
               <button
                 onClick={isRecording ? stopVoice : startVoice}
                 className={cn(
                   "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-                  isRecording ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
+                  isRecording ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
                 )}
               >
-                {isRecording ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+                {isRecording ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
               </button>
               <Button
                 variant={showTextInput ? "secondary" : "outline"}
                 size="sm"
                 onClick={() => setShowTextInput(!showTextInput)}
-                className="gap-1.5 h-11"
+                className="gap-1.5 h-11 font-body font-400"
               >
                 <PenLine className="h-4 w-4" /> Text
               </Button>
             </div>
-            <p className="text-[10px] text-muted-foreground mb-2">
+            <p className="font-body text-[10px] font-300 text-muted-foreground mb-2">
               {isRecording ? "Recording — tap to stop" : "Tap mic to add voice note"}
             </p>
             {(showTextInput || noteText) && (
@@ -389,7 +375,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Exit thoughts..."
-                className="min-h-[60px] text-sm"
+                className="min-h-[60px] font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
               />
             )}
           </div>
@@ -398,7 +384,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
           <Button
             onClick={handleSave}
             disabled={!isValid}
-            className="w-full"
+            className="w-full font-display font-600"
           >
             Save Exit
           </Button>

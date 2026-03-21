@@ -21,6 +21,10 @@ const EMOTIONS: EmotionalState[] = [
   "sharp", "detached", "tired",
 ];
 
+const chipBase = "rounded-full px-2.5 py-1 font-body text-[11px] font-300 transition-colors active:scale-[0.96]";
+const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
+const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
+
 interface UpdateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -88,10 +92,10 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh] bg-card border-t border-border">
+      <DrawerContent className="max-h-[85vh] bg-popover border-t border-border">
         <DrawerHeader>
-          <DrawerTitle>Trade Update</DrawerTitle>
-          <DrawerDescription>Record a mid-trade journal entry</DrawerDescription>
+          <DrawerTitle className="font-display font-600">Trade Update</DrawerTitle>
+          <DrawerDescription className="font-body font-300">Record a mid-trade journal entry</DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-6 space-y-5">
           {/* Voice Input */}
@@ -99,19 +103,19 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
             <button
               onClick={isRecording ? stopVoice : startVoice}
               className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-all active:scale-[0.95]",
+                "flex h-16 w-16 items-center justify-center rounded-full transition-all active:scale-[0.95]",
                 isRecording
-                  ? "bg-destructive shadow-destructive/30 animate-pulse"
-                  : "bg-primary shadow-primary/30"
+                  ? "bg-destructive animate-pulse-red-glow"
+                  : "bg-primary animate-pulse-glow"
               )}
             >
               {isRecording ? (
-                <MicOff className="h-7 w-7 text-destructive-foreground" />
+                <MicOff className="h-7 w-7 text-foreground" />
               ) : (
                 <Mic className="h-7 w-7 text-primary-foreground" />
               )}
             </button>
-            <p className="text-xs text-muted-foreground">
+            <p className="font-body text-xs font-300 text-muted-foreground">
               {isRecording ? "Recording — tap to stop" : "Tap to record your update"}
             </p>
           </div>
@@ -121,31 +125,27 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             placeholder="What's happening with this trade right now..."
-            className="min-h-[80px] text-sm"
+            className="min-h-[80px] font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
           />
 
           {/* Emotional State */}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
-              Emotional State
-            </p>
+            <p className="section-label mb-2">Emotional State</p>
             <div className="flex flex-wrap gap-1.5">
               {EMOTIONS.map((e) => (
-                <button key={e} onClick={() => toggleEmotion(e)} className="active:scale-[0.96]">
-                  <EmotionBadge
-                    emotion={e}
-                    className={cn(
-                      "cursor-pointer transition-opacity",
-                      emotions.includes(e) ? "ring-1 ring-primary/50" : "opacity-50"
-                    )}
-                  />
+                <button
+                  key={e}
+                  onClick={() => toggleEmotion(e)}
+                  className={cn(chipBase, emotions.includes(e) ? chipOn : chipOff)}
+                >
+                  {EMOTIONS.find(em => em === e) ? e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ") : e}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Save */}
-          <Button onClick={handleSave} disabled={!noteText.trim()} className="w-full">
+          <Button onClick={handleSave} disabled={!noteText.trim()} className="w-full font-display font-600">
             Save Update
           </Button>
         </div>

@@ -23,12 +23,23 @@ const EMOTION_COLORS: Record<string, string> = {
   interrupted: "bg-zinc-600/20 text-zinc-400",
   uncertain: "bg-slate-500/20 text-slate-400",
   conflicted: "bg-purple-500/20 text-purple-400",
+  // Extended
+  disciplined: "bg-emerald-600/20 text-emerald-300",
+  hesitant: "bg-slate-400/20 text-slate-400",
+  impulsive: "bg-rose-500/20 text-rose-400",
+  euphoric: "bg-pink-500/20 text-pink-400",
+  detached: "bg-zinc-400/20 text-zinc-400",
+  sharp: "bg-sky-600/20 text-sky-300",
+  tired: "bg-stone-500/20 text-stone-400",
 };
 
 const LABELS: Record<string, string> = {
   "in-the-zone": "In the Zone",
   "revenge-mindset": "Revenge",
   fomo: "FOMO",
+  detached: "Detached / Numb",
+  sharp: "Sharp / Clear",
+  tired: "Tired / Fatigued",
 };
 
 import React from "react";

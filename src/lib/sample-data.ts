@@ -9,6 +9,8 @@ export type TradeStatus = "open" | "closed";
 
 export type ExitMethod = "ladder" | "single-exit" | "stopped-out" | "forced";
 
+export type ExitType = "take-profit" | "stop-loss" | "partial-exit" | "full-exit" | "moon-bag";
+
 export type SessionType =
   | "full-session"
   | "partially-interrupted"
@@ -23,6 +25,23 @@ export interface TradeUpdate {
   emotionalState: EmotionalState[];
   tpStopNote?: string;
   timestamp: string;
+}
+
+export interface ExitEvent {
+  id: string;
+  exitType: ExitType;
+  percentClosed: number;
+  pnlPercent: number;
+  emotionalState: EmotionalState[];
+  note?: string;
+  timestamp: string;
+}
+
+export interface TradeNote {
+  id: string;
+  text: string;
+  timestamp: string;
+  duringSession: boolean;
 }
 
 export interface Trade {
@@ -52,6 +71,9 @@ export interface Trade {
   exitMethod?: ExitMethod;
   emotionalStateAtExit?: EmotionalState[];
   exitTranscript?: string;
+  exitEvents?: ExitEvent[];
+  tradeNotes?: TradeNote[];
+  closedAt?: string;
   reflectionNote?: string;
   reflectionLesson?: string;
   emotionalStateAtReflection?: EmotionalState[];

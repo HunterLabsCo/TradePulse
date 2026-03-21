@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, Trade } from "@/lib/sample-data";

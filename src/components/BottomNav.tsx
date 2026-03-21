@@ -1,9 +1,10 @@
-import { Home, BarChart3, Settings } from "lucide-react";
+import { Home, BarChart3, Settings, BookOpen } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: BookOpen, label: "Journal", path: "/journal" },
   { icon: BarChart3, label: "Analytics", path: "/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ] as const;

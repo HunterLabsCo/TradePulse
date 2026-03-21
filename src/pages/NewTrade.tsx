@@ -128,8 +128,10 @@ function saveCustomTag(tag: string) {
 }
 
 /* Chip style helpers */
-const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
-const chipSelected = "bg-primary text-primary-foreground border border-primary";
+const chipBase = "rounded-full font-body text-[11px] font-300 transition-colors active:scale-[0.96]";
+const chipDefault = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
+const chipSelected = "bg-primary text-primary-foreground border border-primary font-400";
+const chipBlue = "bg-accent text-accent-foreground border border-accent font-400";
 
 export default function NewTrade() {
   const navigate = useNavigate();

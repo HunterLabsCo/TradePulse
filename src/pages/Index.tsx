@@ -27,10 +27,10 @@ export default function Index() {
     <div className="flex min-h-screen flex-col pb-24">
       {/* Header */}
       <header className="px-5 pt-safe-top">
-        <div className="flex items-center justify-between py-4">
-          <div>
+        <div className="relative flex items-center justify-center py-4">
+          <div className="text-center">
             <h1 className="font-display text-[22px] font-bold tracking-[-0.01em] text-foreground">TradeSnap</h1>
-            <p className="font-body text-[12px] font-normal text-muted-foreground">Voice trade journal</p>
+            <p className="font-body text-[12px] font-normal text-muted-foreground">Trade. Speak. Reflect.</p>
           </div>
           {nonDemoCount < FREE_LIMIT && (
             <div className="rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-3 py-1.5 text-right">

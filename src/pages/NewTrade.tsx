@@ -212,6 +212,13 @@ export default function NewTrade() {
   }, []);
 
   const stopRecording = useCallback(async () => {
+    // Read from refs BEFORE disconnecting to avoid stale closures
+    const capturedFull = fullTranscriptRef.current;
+    const capturedPartial = livePartialRef.current;
+    const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();
+
+    console.log("[Voice] Stopping. Full ref:", capturedFull, "Partial ref:", capturedPartial, "Final:", finalTranscript);
+
     if (sttMethod === "elevenlabs") {
       scribe.disconnect();
     } else if (recognitionRef.current) {
@@ -221,9 +228,8 @@ export default function NewTrade() {
     }
 
     setIsRecording(false);
-
-    const finalTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ").trim();
     setLivePartial("");
+    livePartialRef.current = "";
 
     if (!finalTranscript) {
       toast.error("No speech detected");

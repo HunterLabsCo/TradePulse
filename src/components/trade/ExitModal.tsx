@@ -29,8 +29,6 @@ const EMOTIONS: EmotionalState[] = [
   "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
 ];
 
-// --- Improved parsing: separate position% from P&L% ---
-
 function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
   if (lower.includes("take profit") || lower.includes("taking profit")) return "take-profit";
@@ -43,50 +41,30 @@ function parseExitTypeFromText(text: string): ExitType | null {
 
 function parsePositionPercent(text: string, max: number): number | null {
   const lower = text.toLowerCase();
-
-  // "full exit", "all of it", "everything", "selling everything"
   if (/\b(full exit|all of it|everything|100%\s*exit|selling 100|closing 100)\b/.test(lower)) {
     return Math.min(100, max);
   }
-
-  // "selling X%", "closing X%", "X% exit", "exiting X%"
   const posMatch = lower.match(/(?:selling|closing|exiting)\s+(\d+)\s*(?:percent|%)/);
   if (posMatch) return Math.min(parseInt(posMatch[1]), max);
-
-  // "half" → 50%, "quarter" → 25%
   if (/\bhalf\b/.test(lower)) return Math.min(50, max);
   if (/\bquarter\b/.test(lower)) return Math.min(25, max);
-
-  // "X% exit" pattern
   const exitPctMatch = lower.match(/(\d+)\s*(?:percent|%)\s*exit/);
   if (exitPctMatch) return Math.min(parseInt(exitPctMatch[1]), max);
-
   return null;
 }
 
 function parsePnlPercent(text: string): number | null {
   const lower = text.toLowerCase();
-
-  // Explicit P&L language: "at X% profit", "X percent profit/gain/loss"
   const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain)/);
   if (profitMatch) return parseInt(profitMatch[1]);
-
   const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down)/);
   if (lossMatch) return -parseInt(lossMatch[1]);
-
-  // "up X%", "up X", "plus X%"
   const upMatch = lower.match(/(?:up|plus|gained|made)\s+(\d+)\s*(?:percent|%)?/);
   if (upMatch) return parseInt(upMatch[1]);
-
-  // "down X%", "minus X%", "lost X"
   const downMatch = lower.match(/(?:down|minus|lost|negative)\s+(\d+)\s*(?:percent|%)?/);
   if (downMatch) return -parseInt(downMatch[1]);
-
-  // "hit my stop" without number → leave unselected
-  // "Xx" multiplier
   const xMatch = lower.match(/(\d+)\s*x\b/);
   if (xMatch) return (parseInt(xMatch[1]) - 1) * 100;
-
   return null;
 }
 
@@ -114,7 +92,6 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
   const [isRecording, setIsRecording] = useState(false);
   const noteRecorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
 
-  // Voice pre-fill state
   const [isPreFilling, setIsPreFilling] = useState(false);
   const preFillRecorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
 
@@ -143,37 +120,23 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
     }
   };
 
-  // Voice pre-fill with improved parsing
   const startPreFill = () => {
     const recorder = createVoiceRecorder({
       onText: (text) => {
         const parsedType = parseExitTypeFromText(text);
         if (parsedType) setExitType(parsedType);
-
         const parsedPos = parsePositionPercent(text, remainingPercent);
-        if (parsedPos !== null) {
-          setPercentClosed(parsedPos);
-          setShowCustomPercent(false);
-        }
-
+        if (parsedPos !== null) { setPercentClosed(parsedPos); setShowCustomPercent(false); }
         const parsedPnl = parsePnlPercent(text);
-        if (parsedPnl !== null) {
-          setPnlPercent(parsedPnl);
-          setShowCustomPnl(false);
-        }
-
-        // Auto-detect emotions
+        if (parsedPnl !== null) { setPnlPercent(parsedPnl); setShowCustomPnl(false); }
         const detected = detectEmotionsFromText(text);
         if (detected.length > 0) {
           setEmotions((prev) => {
             const merged = [...prev];
-            for (const e of detected) {
-              if (!merged.includes(e)) merged.push(e);
-            }
+            for (const e of detected) { if (!merged.includes(e)) merged.push(e); }
             return merged;
           });
         }
-
         setNoteText((prev) => (prev + " " + text).trim());
         setShowTextInput(true);
       },
@@ -190,12 +153,9 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
     preFillRecorderRef.current = null;
   };
 
-  // Note-only voice
   const startVoice = () => {
     const recorder = createVoiceRecorder({
-      onText: (text) => {
-        setNoteText((prev) => (prev + " " + text).trim());
-      },
+      onText: (text) => { setNoteText((prev) => (prev + " " + text).trim()); },
       onStop: () => setIsRecording(false),
       silenceTimeoutMs: null,
     });
@@ -222,7 +182,6 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
       timestamp: new Date().toISOString(),
     };
     onSave(event);
-    // Reset
     setExitType(null);
     setPercentClosed(null);
     setCustomPercent("");
@@ -239,9 +198,13 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
   const isValid = exitType && percentClosed !== null && pnlPercent !== null && !percentError;
 
+  /* Chip styling helpers */
+  const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
+  const chipSelected = "bg-primary text-primary-foreground border border-primary";
+
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh]">
+      <DrawerContent className="max-h-[85vh] bg-card border-t border-border">
         <DrawerHeader>
           <DrawerTitle>Log Exit</DrawerTitle>
           <DrawerDescription>Record an exit for this trade</DrawerDescription>
@@ -280,8 +243,8 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                   className={cn(
                     "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
                     exitType === t.value
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:text-foreground"
+                      ? (t.value === "stop-loss" ? "bg-[hsl(0,100%,60%)] text-white border border-[hsl(0,100%,60%)]" : chipSelected)
+                      : chipDefault
                   )}
                 >
                   {t.label}
@@ -301,9 +264,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                   onClick={() => { setPercentClosed(v); setShowCustomPercent(false); setCustomPercent(""); setPercentError(""); }}
                   className={cn(
                     "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                    percentClosed === v && !showCustomPercent
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:text-foreground"
+                    percentClosed === v && !showCustomPercent ? chipSelected : chipDefault
                   )}
                 >
                   {v}%
@@ -313,9 +274,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 onClick={() => { setShowCustomPercent(true); setPercentClosed(null); }}
                 className={cn(
                   "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                  showCustomPercent
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground hover:text-foreground"
+                  showCustomPercent ? chipSelected : chipDefault
                 )}
               >
                 Custom
@@ -349,9 +308,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                   onClick={() => { setPnlPercent(v); setShowCustomPnl(false); setCustomPnl(""); }}
                   className={cn(
                     "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                    pnlPercent === v && !showCustomPnl
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card text-muted-foreground hover:text-foreground"
+                    pnlPercent === v && !showCustomPnl ? chipSelected : chipDefault
                   )}
                 >
                   {v > 0 ? `+${v}%` : `${v}%`}
@@ -361,9 +318,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 onClick={() => { setShowCustomPnl(true); setPnlPercent(null); }}
                 className={cn(
                   "rounded-lg px-3 py-2 text-xs font-medium transition-colors active:scale-[0.97]",
-                  showCustomPnl
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground hover:text-foreground"
+                  showCustomPnl ? chipSelected : chipDefault
                 )}
               >
                 Custom
@@ -396,7 +351,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                     emotion={e}
                     className={cn(
                       "cursor-pointer transition-opacity",
-                      emotions.includes(e) ? "ring-1 ring-foreground/30" : "opacity-50"
+                      emotions.includes(e) ? "ring-1 ring-primary/50" : "opacity-50"
                     )}
                   />
                 </button>

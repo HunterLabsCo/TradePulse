@@ -16,8 +16,8 @@ export const PnlBadge = React.forwardRef<
         isZero
           ? "bg-muted text-muted-foreground"
           : isPositive
-            ? "bg-emerald-500/15 text-emerald-400"
-            : "bg-red-500/15 text-red-400",
+            ? "bg-primary/15 text-primary"
+            : "bg-[hsl(0,100%,60%)]/15 text-[hsl(0,100%,60%)]",
         className
       )}
     >

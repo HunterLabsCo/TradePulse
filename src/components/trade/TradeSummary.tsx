@@ -32,7 +32,7 @@ export function TradeSummary({ exitEvents, entryTime, closedAt }: TradeSummaryPr
       <div className="flex items-center gap-3">
         <span
           className={`text-lg font-bold tabular-nums ${
-            totalPnl >= 0 ? "text-emerald-400" : "text-red-400"
+            totalPnl >= 0 ? "text-primary" : "text-[hsl(0,100%,60%)]"
           }`}
         >
           {totalPnl > 0 ? "+" : ""}{totalPnl.toFixed(1)}%

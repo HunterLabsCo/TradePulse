@@ -114,7 +114,6 @@ const SpeechRecognition =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
 
-// Persistent custom tags stored in localStorage
 function getCustomTags(): string[] {
   try {
     return JSON.parse(localStorage.getItem("tradesnap-custom-tags") || "[]");
@@ -127,6 +126,10 @@ function saveCustomTag(tag: string) {
     localStorage.setItem("tradesnap-custom-tags", JSON.stringify(tags));
   }
 }
+
+/* Chip style helpers */
+const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
+const chipSelected = "bg-primary text-primary-foreground border border-primary";
 
 export default function NewTrade() {
   const navigate = useNavigate();
@@ -142,7 +145,6 @@ export default function NewTrade() {
   const fullTranscriptRef = useRef("");
   const livePartialRef = useRef("");
 
-  // Form state
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");
   const [entryMarketCap, setEntryMarketCap] = useState("");
@@ -165,15 +167,10 @@ export default function NewTrade() {
   const [rawTranscript, setRawTranscript] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
 
-  // Voice for emotion free text
   const [isRecordingEmotion, setIsRecordingEmotion] = useState(false);
   const emotionRecRef = useRef<any>(null);
-  // Voice for additional notes
   const [isRecordingNotes, setIsRecordingNotes] = useState(false);
   const notesRecRef = useRef<any>(null);
-
-  // No silence auto-stop for entry form — manual stop only
-
 
   const startRecording = useCallback(() => {
     setVoiceError(null);
@@ -207,7 +204,6 @@ export default function NewTrade() {
         }
         setLivePartial(interim);
         livePartialRef.current = interim;
-        // No silence auto-stop for entry — manual tap-to-stop only
       };
 
       recognition.onerror = (event: any) => {
@@ -229,7 +225,6 @@ export default function NewTrade() {
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
-      // No silence auto-stop for entry — manual tap-to-stop only
     } catch (err: any) {
       setVoiceError(`Failed to start recording: ${err.message}`);
     }
@@ -418,13 +413,13 @@ export default function NewTrade() {
             disabled={isParsing}
             className={cn(
               "group relative flex h-28 w-28 items-center justify-center rounded-full transition-all active:scale-[0.93]",
-              isRecording ? "bg-red-500/20" : isParsing ? "bg-muted" : "bg-primary/15"
+              isRecording ? "bg-destructive/20" : isParsing ? "bg-muted" : "bg-primary/15"
             )}
           >
-            {isRecording && <div className="absolute inset-0 animate-ping rounded-full bg-red-500/10" />}
+            {isRecording && <div className="absolute inset-0 animate-ping rounded-full bg-destructive/10" />}
             <div className={cn(
               "flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-colors",
-              isRecording ? "bg-red-500 shadow-red-500/30" : isParsing ? "bg-muted-foreground/30" : "bg-primary shadow-primary/30"
+              isRecording ? "bg-destructive shadow-destructive/30" : isParsing ? "bg-muted-foreground/30" : "bg-primary shadow-primary/30"
             )}>
               {isParsing ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                 : isRecording ? <Square className="h-7 w-7 text-white" fill="white" />
@@ -535,8 +530,8 @@ export default function NewTrade() {
                 className={cn(
                   "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]",
                   confirmationSignals.includes(sig)
-                    ? "bg-primary/20 text-primary"
-                    : "bg-card text-muted-foreground"
+                    ? chipSelected
+                    : chipDefault
                 )}
               >
                 {confirmationSignals.includes(sig) && <Check className="mr-1 inline h-3 w-3" />}
@@ -600,7 +595,7 @@ export default function NewTrade() {
           <label className="text-xs font-medium text-muted-foreground">Emotional State</label>
           <div className="flex flex-wrap gap-1.5">
             {EMOTIONS.map((em) => (
-              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{em.label}</button>
+              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? chipSelected : chipDefault)}>{em.label}</button>
             ))}
           </div>
           {/* Voice for emotion description */}
@@ -612,10 +607,10 @@ export default function NewTrade() {
             }
             className={cn(
               "mt-2 flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingEmotion ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+              isRecordingEmotion ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
             )}
           >
-            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
           </button>
           <p className="text-[10px] text-muted-foreground">
             {isRecordingEmotion ? "Recording — tap to stop" : "Tap to describe by voice"}
@@ -633,7 +628,7 @@ export default function NewTrade() {
           <label className="text-xs font-medium text-muted-foreground">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
             {allQuickTags.map((tag) => (
-              <button key={tag} onClick={() => toggleTag(tag)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", quickTags.includes(tag) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{tag}</button>
+              <button key={tag} onClick={() => toggleTag(tag)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", quickTags.includes(tag) ? chipSelected : chipDefault)}>{tag}</button>
             ))}
           </div>
           {/* Add custom tag */}
@@ -656,7 +651,7 @@ export default function NewTrade() {
           <div className="space-y-1.5">
             <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Raw Transcript</label>
             <div className="rounded-xl bg-muted/50 border border-border p-4">
-              <p className="text-sm leading-relaxed text-muted-foreground">{rawTranscript}</p>
+              <p className="text-sm leading-relaxed text-accent">{rawTranscript}</p>
             </div>
           </div>
         )}
@@ -672,10 +667,10 @@ export default function NewTrade() {
             }
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingNotes ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+              isRecordingNotes ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
             )}
           >
-            {isRecordingNotes ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+            {isRecordingNotes ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
           </button>
           <p className="text-[10px] text-muted-foreground">
             {isRecordingNotes ? "Recording — tap to stop" : "Tap to add notes by voice"}

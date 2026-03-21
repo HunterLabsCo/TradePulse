@@ -107,8 +107,11 @@ export default function TradeDetail() {
   const navigate = useNavigate();
   const trade = useTradeStore((s) => s.getTradeById(id ?? ""));
   const updateTrade = useTradeStore((s) => s.updateTrade);
+  const deleteTrade = useTradeStore((s) => s.deleteTrade);
   const [showExitModal, setShowExitModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   if (!trade) {
     return (

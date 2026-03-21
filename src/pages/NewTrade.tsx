@@ -250,6 +250,7 @@ export default function NewTrade() {
   }, []);
 
   const stopRecording = useCallback(async () => {
+    clearSilenceTimer();
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
     const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();
@@ -312,36 +313,33 @@ export default function NewTrade() {
     }
   }, []);
 
-  // Generic voice helper for secondary text areas
+  // Secondary voice helpers with silence auto-stop using createVoiceRecorder
+  const emotionRecorderRef = useRef<ReturnType<typeof import("@/lib/voice-utils").createVoiceRecorder> | null>(null);
+  const notesRecorderRef = useRef<ReturnType<typeof import("@/lib/voice-utils").createVoiceRecorder> | null>(null);
+
   const startSecondaryVoice = (
     setRecording: (v: boolean) => void,
-    ref: React.MutableRefObject<any>,
+    recRef: React.MutableRefObject<any>,
     setText: (fn: (prev: string) => string) => void,
   ) => {
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e: any) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
-      }
-      setText((prev) => (prev + " " + text).trim());
-    };
-    rec.start();
-    ref.current = rec;
+    const { createVoiceRecorder } = require("@/lib/voice-utils");
+    const recorder = createVoiceRecorder({
+      onText: (text: string) => {
+        setText((prev: string) => (prev + " " + text).trim());
+      },
+      onStop: () => setRecording(false),
+    });
+    recRef.current = recorder;
+    recorder.start();
     setRecording(true);
   };
 
   const stopSecondaryVoice = (
     setRecording: (v: boolean) => void,
-    ref: React.MutableRefObject<any>,
+    recRef: React.MutableRefObject<any>,
   ) => {
-    ref.current?.stop();
-    ref.current = null;
-    setRecording(false);
+    recRef.current?.stop();
+    recRef.current = null;
   };
 
   const toggleEmotion = (e: EmotionalState) =>

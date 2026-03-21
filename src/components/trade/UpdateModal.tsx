@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Mic, MicOff } from "lucide-react";
 import {
   Drawer,
@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { EmotionBadge } from "@/components/EmotionBadge";
 import { cn } from "@/lib/utils";
+import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";
 import type { EmotionalState, TradeNote } from "@/lib/sample-data";
 
 const EMOTIONS: EmotionalState[] = [
@@ -19,11 +20,6 @@ const EMOTIONS: EmotionalState[] = [
   "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
   "sharp", "detached", "tired",
 ];
-
-const SpeechRecognition =
-  typeof window !== "undefined"
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    : null;
 
 interface UpdateModalProps {
   open: boolean;
@@ -35,7 +31,7 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
   const [noteText, setNoteText] = useState("");
   const [emotions, setEmotions] = useState<EmotionalState[]>([]);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
 
   const toggleEmotion = (e: EmotionalState) => {
     setEmotions((prev) =>
@@ -43,39 +39,47 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
     );
   };
 
+  const noteTextRef = useRef(noteText);
+  useEffect(() => { noteTextRef.current = noteText; }, [noteText]);
+
   const startVoice = () => {
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e: any) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
-      }
-      setNoteText((prev) => (prev + " " + text).trim());
-    };
-    rec.start();
-    recognitionRef.current = rec;
+    const recorder = createVoiceRecorder({
+      onText: (text) => {
+        const updated = (noteTextRef.current + " " + text).trim();
+        setNoteText(updated);
+        // Auto-detect emotions
+        const detected = detectEmotionsFromText(text);
+        if (detected.length > 0) {
+          setEmotions((prev) => {
+            const merged = [...prev];
+            for (const e of detected) {
+              if (!merged.includes(e)) merged.push(e);
+            }
+            return merged;
+          });
+        }
+      },
+      onStop: () => setIsRecording(false),
+    });
+    recorderRef.current = recorder;
+    recorder.start();
     setIsRecording(true);
   };
 
   const stopVoice = () => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setIsRecording(false);
+    recorderRef.current?.stop();
+    recorderRef.current = null;
   };
 
   const handleSave = () => {
     if (!noteText.trim()) return;
-    const emotionSuffix = emotions.length > 0 ? `\n[Emotions: ${emotions.join(", ")}]` : "";
     const note: TradeNote = {
       id: crypto.randomUUID(),
-      text: noteText.trim() + emotionSuffix,
+      text: noteText.trim(),
       timestamp: new Date().toISOString(),
       duringSession: true,
       noteType: "update",
+      emotions: emotions.length > 0 ? [...emotions] : undefined,
     };
     onSave(note, emotions);
     setNoteText("");

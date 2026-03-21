@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Mic, PenLine, MicOff } from "lucide-react";
 import {
   Drawer,
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmotionBadge } from "@/components/EmotionBadge";
 import { cn } from "@/lib/utils";
+import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";
 import type { ExitType, ExitEvent, EmotionalState } from "@/lib/sample-data";
 
 const EXIT_TYPES: { value: ExitType; label: string }[] = [
@@ -28,19 +29,8 @@ const EMOTIONS: EmotionalState[] = [
   "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
 ];
 
-const SpeechRecognition =
-  typeof window !== "undefined"
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    : null;
+// --- Improved parsing: separate position% from P&L% ---
 
-interface ExitModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  remainingPercent: number;
-  onSave: (event: ExitEvent) => void;
-}
-
-// Voice parsing helpers
 function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
   if (lower.includes("take profit") || lower.includes("taking profit")) return "take-profit";
@@ -51,37 +41,60 @@ function parseExitTypeFromText(text: string): ExitType | null {
   return null;
 }
 
-function parsePercentFromText(text: string, max: number): number | null {
+function parsePositionPercent(text: string, max: number): number | null {
   const lower = text.toLowerCase();
-  if (lower.includes("all of it") || lower.includes("full position") || lower.includes("everything") || lower.includes("100%") || lower.includes("100 percent")) {
+
+  // "full exit", "all of it", "everything", "selling everything"
+  if (/\b(full exit|all of it|everything|100%\s*exit|selling 100|closing 100)\b/.test(lower)) {
     return Math.min(100, max);
   }
-  if (lower.includes("half") || lower.includes("50%") || lower.includes("50 percent")) return Math.min(50, max);
-  if (lower.includes("quarter") || lower.includes("25%") || lower.includes("25 percent")) return Math.min(25, max);
-  if (lower.includes("75%") || lower.includes("75 percent") || lower.includes("three quarter")) return Math.min(75, max);
-  // Try to extract a number followed by "percent" or "%"
-  const match = lower.match(/(\d+)\s*(?:percent|%)/);
-  if (match) {
-    const val = parseInt(match[1]);
-    if (val > 0 && val <= max) return val;
-  }
+
+  // "selling X%", "closing X%", "X% exit", "exiting X%"
+  const posMatch = lower.match(/(?:selling|closing|exiting)\s+(\d+)\s*(?:percent|%)/);
+  if (posMatch) return Math.min(parseInt(posMatch[1]), max);
+
+  // "half" → 50%, "quarter" → 25%
+  if (/\bhalf\b/.test(lower)) return Math.min(50, max);
+  if (/\bquarter\b/.test(lower)) return Math.min(25, max);
+
+  // "X% exit" pattern
+  const exitPctMatch = lower.match(/(\d+)\s*(?:percent|%)\s*exit/);
+  if (exitPctMatch) return Math.min(parseInt(exitPctMatch[1]), max);
+
   return null;
 }
 
-function parsePnlFromText(text: string): number | null {
+function parsePnlPercent(text: string): number | null {
   const lower = text.toLowerCase();
-  // "up 50", "plus 25 percent", "down 30"
-  const upMatch = lower.match(/(?:up|plus|gained|made)\s*(\d+)/);
+
+  // Explicit P&L language: "at X% profit", "X percent profit/gain/loss"
+  const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain)/);
+  if (profitMatch) return parseInt(profitMatch[1]);
+
+  const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down)/);
+  if (lossMatch) return -parseInt(lossMatch[1]);
+
+  // "up X%", "up X", "plus X%"
+  const upMatch = lower.match(/(?:up|plus|gained|made)\s+(\d+)\s*(?:percent|%)?/);
   if (upMatch) return parseInt(upMatch[1]);
-  const downMatch = lower.match(/(?:down|minus|lost|negative)\s*(\d+)/);
+
+  // "down X%", "minus X%", "lost X"
+  const downMatch = lower.match(/(?:down|minus|lost|negative)\s+(\d+)\s*(?:percent|%)?/);
   if (downMatch) return -parseInt(downMatch[1]);
-  // "+50%", "-30%"
-  const pctMatch = lower.match(/([+-]?\d+)\s*(?:percent|%)/);
-  if (pctMatch) return parseInt(pctMatch[1]);
-  // "2x", "3x"
-  const xMatch = lower.match(/(\d+)\s*x/);
+
+  // "hit my stop" without number → leave unselected
+  // "Xx" multiplier
+  const xMatch = lower.match(/(\d+)\s*x\b/);
   if (xMatch) return (parseInt(xMatch[1]) - 1) * 100;
+
   return null;
+}
+
+interface ExitModalProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  remainingPercent: number;
+  onSave: (event: ExitEvent) => void;
 }
 
 export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: ExitModalProps) {
@@ -99,11 +112,14 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
   const [noteText, setNoteText] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const noteRecorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
 
   // Voice pre-fill state
   const [isPreFilling, setIsPreFilling] = useState(false);
-  const preFillRef = useRef<any>(null);
+  const preFillRecorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
+
+  const noteTextRef = useRef(noteText);
+  useEffect(() => { noteTextRef.current = noteText; }, [noteText]);
 
   const percentPresets = [25, 50, 75, 100].filter((v) => v <= remainingPercent);
   const pnlPresets = [-30, 25, 50, 100, 200];
@@ -127,76 +143,69 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
     }
   };
 
-  // Voice pre-fill — parses speech and fills fields
+  // Voice pre-fill with improved parsing
   const startPreFill = () => {
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e: any) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
-      }
-      text = text.trim();
-      if (!text) return;
+    const recorder = createVoiceRecorder({
+      onText: (text) => {
+        const parsedType = parseExitTypeFromText(text);
+        if (parsedType) setExitType(parsedType);
 
-      // Parse and pre-fill fields
-      const parsedType = parseExitTypeFromText(text);
-      if (parsedType) setExitType(parsedType);
+        const parsedPos = parsePositionPercent(text, remainingPercent);
+        if (parsedPos !== null) {
+          setPercentClosed(parsedPos);
+          setShowCustomPercent(false);
+        }
 
-      const parsedPercent = parsePercentFromText(text, remainingPercent);
-      if (parsedPercent !== null) {
-        setPercentClosed(parsedPercent);
-        setShowCustomPercent(false);
-      }
+        const parsedPnl = parsePnlPercent(text);
+        if (parsedPnl !== null) {
+          setPnlPercent(parsedPnl);
+          setShowCustomPnl(false);
+        }
 
-      const parsedPnl = parsePnlFromText(text);
-      if (parsedPnl !== null) {
-        setPnlPercent(parsedPnl);
-        setShowCustomPnl(false);
-      }
+        // Auto-detect emotions
+        const detected = detectEmotionsFromText(text);
+        if (detected.length > 0) {
+          setEmotions((prev) => {
+            const merged = [...prev];
+            for (const e of detected) {
+              if (!merged.includes(e)) merged.push(e);
+            }
+            return merged;
+          });
+        }
 
-      // Also append to note text
-      setNoteText((prev) => (prev + " " + text).trim());
-      setShowTextInput(true);
-    };
-    rec.start();
-    preFillRef.current = rec;
+        setNoteText((prev) => (prev + " " + text).trim());
+        setShowTextInput(true);
+      },
+      onStop: () => setIsPreFilling(false),
+    });
+    preFillRecorderRef.current = recorder;
+    recorder.start();
     setIsPreFilling(true);
   };
 
   const stopPreFill = () => {
-    preFillRef.current?.stop();
-    preFillRef.current = null;
-    setIsPreFilling(false);
+    preFillRecorderRef.current?.stop();
+    preFillRecorderRef.current = null;
   };
 
   // Note-only voice
   const startVoice = () => {
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e: any) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
-      }
-      setNoteText((prev) => (prev + " " + text).trim());
-    };
-    rec.start();
-    recognitionRef.current = rec;
+    const recorder = createVoiceRecorder({
+      onText: (text) => {
+        setNoteText((prev) => (prev + " " + text).trim());
+      },
+      onStop: () => setIsRecording(false),
+    });
+    noteRecorderRef.current = recorder;
+    recorder.start();
     setIsRecording(true);
     setShowTextInput(true);
   };
 
   const stopVoice = () => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setIsRecording(false);
+    noteRecorderRef.current?.stop();
+    noteRecorderRef.current = null;
   };
 
   const handleSave = () => {

@@ -1,9 +1,10 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus, X, MicOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
+import { createVoiceRecorder } from "@/lib/voice-utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -171,6 +172,16 @@ export default function NewTrade() {
   const [isRecordingNotes, setIsRecordingNotes] = useState(false);
   const notesRecRef = useRef<any>(null);
 
+  const SILENCE_TIMEOUT = 2500;
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
+
   const startRecording = useCallback(() => {
     setVoiceError(null);
     if (!SpeechRecognition) {
@@ -203,14 +214,21 @@ export default function NewTrade() {
         }
         setLivePartial(interim);
         livePartialRef.current = interim;
+        // Reset silence timer on any speech
+        clearSilenceTimer();
+        silenceTimerRef.current = setTimeout(() => {
+          stopRecording();
+        }, SILENCE_TIMEOUT);
       };
 
       recognition.onerror = (event: any) => {
+        if (event.error === "no-speech") return;
         console.error("[WebSpeech] Error:", event.error);
         setVoiceError(event.error === "not-allowed"
           ? "Microphone permission denied. Please allow mic access and try again."
           : `Speech recognition error: ${event.error}`);
         setIsRecording(false);
+        clearSilenceTimer();
       };
 
       recognition.onend = () => {
@@ -223,12 +241,17 @@ export default function NewTrade() {
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
+      // Start silence timer
+      silenceTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, SILENCE_TIMEOUT);
     } catch (err: any) {
       setVoiceError(`Failed to start recording: ${err.message}`);
     }
   }, []);
 
   const stopRecording = useCallback(async () => {
+    clearSilenceTimer();
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
     const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();
@@ -291,36 +314,28 @@ export default function NewTrade() {
     }
   }, []);
 
-  // Generic voice helper for secondary text areas
   const startSecondaryVoice = (
     setRecording: (v: boolean) => void,
-    ref: React.MutableRefObject<any>,
+    recRef: React.MutableRefObject<any>,
     setText: (fn: (prev: string) => string) => void,
   ) => {
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e: any) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
-      }
-      setText((prev) => (prev + " " + text).trim());
-    };
-    rec.start();
-    ref.current = rec;
+    const recorder = createVoiceRecorder({
+      onText: (text: string) => {
+        setText((prev: string) => (prev + " " + text).trim());
+      },
+      onStop: () => setRecording(false),
+    });
+    recRef.current = recorder;
+    recorder.start();
     setRecording(true);
   };
 
   const stopSecondaryVoice = (
     setRecording: (v: boolean) => void,
-    ref: React.MutableRefObject<any>,
+    recRef: React.MutableRefObject<any>,
   ) => {
-    ref.current?.stop();
-    ref.current = null;
-    setRecording(false);
+    recRef.current?.stop();
+    recRef.current = null;
   };
 
   const toggleEmotion = (e: EmotionalState) =>

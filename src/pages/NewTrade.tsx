@@ -92,7 +92,7 @@ export default function NewTrade() {
   // ElevenLabs Scribe hook
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",
+    commitStrategy: CommitStrategy.VAD,
     onPartialTranscript: (data) => {
       console.log("[Scribe] Partial:", data.text);
       setLivePartial(data.text);

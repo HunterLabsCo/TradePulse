@@ -178,7 +178,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         setShowTextInput(true);
       },
       onStop: () => setIsPreFilling(false),
-      silenceTimeoutMs: 3000,
+      silenceTimeoutMs: null,
     });
     preFillRecorderRef.current = recorder;
     recorder.start();

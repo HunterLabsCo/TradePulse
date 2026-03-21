@@ -370,15 +370,6 @@ export default function TradeDetail() {
         </div>
       )}
 
-      {/* Floating Exit FAB — open trades */}
-      {isOpen && (
-        <button
-          onClick={() => setShowExitModal(true)}
-          className="fixed bottom-36 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-destructive shadow-lg shadow-destructive/30 active:scale-[0.95]"
-        >
-          <LogOut className="h-5 w-5 text-destructive-foreground" />
-        </button>
-      )}
 
       {/* Exit Modal */}
       <ExitModal

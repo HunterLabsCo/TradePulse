@@ -589,13 +589,12 @@ export default function NewTrade() {
 
         {/* Emotional State */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Emotional State</label>
+          <label className="section-label">Emotional State</label>
           <div className="flex flex-wrap gap-1.5">
             {EMOTIONS.map((em) => (
-              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? chipSelected : chipDefault)}>{em.label}</button>
+              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn(chipBase, "px-2.5 py-1", emotions.includes(em.value) ? chipSelected : chipDefault)}>{em.label}</button>
             ))}
           </div>
-          {/* Voice for emotion description */}
           <button
             onClick={() =>
               isRecordingEmotion
@@ -604,19 +603,19 @@ export default function NewTrade() {
             }
             className={cn(
               "mt-2 flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingEmotion ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
+              isRecordingEmotion ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
             )}
           >
-            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
           </button>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="font-body text-[10px] font-300 text-muted-foreground">
             {isRecordingEmotion ? "Recording — tap to stop" : "Tap to describe by voice"}
           </p>
           <Textarea
             placeholder="Describe your emotional state in your own words (optional)"
             value={emotionFreeText}
             onChange={(e) => setEmotionFreeText(e.target.value)}
-            className="min-h-[60px] bg-card border-border text-xs"
+            className="min-h-[60px] bg-secondary border-border font-body text-xs font-300 focus-visible:ring-primary"
           />
         </div>
 

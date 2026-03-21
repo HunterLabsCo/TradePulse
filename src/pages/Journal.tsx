@@ -18,7 +18,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 ];
 
 const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
-const chipSelected = "bg-primary text-primary-foreground border border-primary";
+const chipSelected = "bg-primary text-primary-foreground border border-accent";
 
 export default function Journal() {
   const navigate = useNavigate();
@@ -44,7 +44,6 @@ export default function Journal() {
         </div>
       </header>
 
-      {/* Search */}
       <div className="px-5 pb-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -52,12 +51,11 @@ export default function Journal() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by token name..."
-            className="h-10 pl-9 text-sm"
+            className="h-10 pl-9 text-sm focus-visible:ring-accent"
           />
         </div>
       </div>
 
-      {/* Filter chips */}
       <div className="flex gap-1.5 px-5 pb-4 overflow-x-auto">
         {FILTERS.map((f) => (
           <button
@@ -65,9 +63,7 @@ export default function Journal() {
             onClick={() => setFilter(f.value)}
             className={cn(
               "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.97]",
-              filter === f.value
-                ? chipSelected
-                : chipDefault
+              filter === f.value ? chipSelected : chipDefault
             )}
           >
             {f.label}
@@ -75,7 +71,6 @@ export default function Journal() {
         ))}
       </div>
 
-      {/* Trade list */}
       <section className="flex-1 px-5">
         <div className="space-y-2">
           {filtered.map((trade) => (
@@ -120,9 +115,7 @@ export default function Journal() {
           {filtered.length === 0 && (
             <div className="rounded-xl bg-card p-8 text-center">
               <p className="text-sm text-muted-foreground">
-                {trades.length === 0
-                  ? "No trades logged yet. Tap New Trade to get started."
-                  : "No trades match your filters."}
+                {trades.length === 0 ? "No trades logged yet. Tap New Trade to get started." : "No trades match your filters."}
               </p>
             </div>
           )}

@@ -2,10 +2,13 @@ import { useState, useRef } from "react";
 import { Mic, PenLine, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import type { TradeNote } from "@/lib/sample-data";
 
 const SpeechRecognition =
-  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
 
 interface NotesSectionProps {
   notes: TradeNote[];
@@ -60,24 +63,28 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
     <div className="space-y-3">
       {/* Input */}
       <div className="flex gap-2">
-        <Button
-          variant={isRecording ? "destructive" : "outline"}
-          size="sm"
+        <button
           onClick={isRecording ? stopVoice : startVoice}
-          className="gap-1.5"
+          className={cn(
+            "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
+            isRecording ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+          )}
         >
-          {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-          {isRecording ? "Stop" : "Voice Note"}
-        </Button>
+          {isRecording ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+        </button>
         <Button
           variant={showTextInput ? "secondary" : "outline"}
           size="sm"
           onClick={() => setShowTextInput(!showTextInput)}
-          className="gap-1.5"
+          className="gap-1.5 h-11"
         >
-          <PenLine className="h-3.5 w-3.5" /> Text Note
+          <PenLine className="h-4 w-4" /> Text Note
         </Button>
       </div>
+      <p className="text-[10px] text-muted-foreground">
+        {isRecording ? "Recording — tap to stop" : "Tap mic to add voice note"}
+      </p>
+
       {showTextInput && (
         <div className="space-y-2">
           <Textarea

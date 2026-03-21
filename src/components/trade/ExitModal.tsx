@@ -25,11 +25,13 @@ const EXIT_TYPES: { value: ExitType; label: string }[] = [
 const EMOTIONS: EmotionalState[] = [
   "calm", "confident", "focused", "anxious", "fomo",
   "hesitant", "disciplined", "impulsive", "frustrated",
-  "rushed", "greedy", "fearful", "euphoric",
+  "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
 ];
 
 const SpeechRecognition =
-  (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+  typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
 
 interface ExitModalProps {
   open: boolean;
@@ -93,6 +95,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
     rec.start();
     recognitionRef.current = rec;
     setIsRecording(true);
+    setShowTextInput(true);
   };
 
   const stopVoice = () => {
@@ -277,24 +280,27 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Quick Note</p>
             <div className="flex gap-2 mb-2">
-              <Button
-                variant={isRecording ? "destructive" : "outline"}
-                size="sm"
+              <button
                 onClick={isRecording ? stopVoice : startVoice}
-                className="gap-1.5"
+                className={cn(
+                  "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
+                  isRecording ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+                )}
               >
-                {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
-                {isRecording ? "Stop" : "Voice"}
-              </Button>
+                {isRecording ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+              </button>
               <Button
                 variant={showTextInput ? "secondary" : "outline"}
                 size="sm"
                 onClick={() => setShowTextInput(!showTextInput)}
-                className="gap-1.5"
+                className="gap-1.5 h-11"
               >
-                <PenLine className="h-3.5 w-3.5" /> Text
+                <PenLine className="h-4 w-4" /> Text
               </Button>
             </div>
+            <p className="text-[10px] text-muted-foreground mb-2">
+              {isRecording ? "Recording — tap to stop" : "Tap mic to add voice note"}
+            </p>
             {(showTextInput || noteText) && (
               <Textarea
                 value={noteText}

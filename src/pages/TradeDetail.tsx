@@ -128,7 +128,7 @@ export default function TradeDetail() {
       </header>
 
       <div className="space-y-2 px-5">
-        {/* Part 6 — Summary (closed trades) */}
+        {/* Summary (closed trades) */}
         {isClosed && exitEvents.length > 0 && (
           <TradeSummary
             exitEvents={exitEvents}
@@ -174,12 +174,12 @@ export default function TradeDetail() {
           )}
         </Section>
 
-        {/* Part 4 — Exit History */}
+        {/* Exit History */}
         <Section title={`Exit History (${exitEvents.length})`}>
           <ExitHistory events={exitEvents} />
         </Section>
 
-        {/* Part 5 — Notes Feed */}
+        {/* Notes Feed */}
         <Section title={`Notes (${tradeNotes.length})`}>
           <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
         </Section>
@@ -250,42 +250,32 @@ export default function TradeDetail() {
         )}
       </div>
 
-      {/* Action Buttons */}
-      <div className="fixed bottom-20 left-0 right-0 flex gap-2 px-5">
-        {isOpen && (
-          <>
-            <button
-              onClick={() => navigate(`/new-trade?edit=${trade.id}`)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
-            >
-              <Plus className="h-4 w-4" /> Update
-            </button>
-            <button
-              onClick={() => setShowExitModal(true)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive/15 py-3 text-xs font-semibold text-destructive active:scale-[0.97]"
-            >
-              <LogOut className="h-4 w-4" /> Log Exit
-            </button>
-          </>
-        )}
-        {isClosed && !trade.reflectionNote && (
+      {/* Action Buttons — positioned above FAB */}
+      {isOpen && (
+        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
+          <button
+            onClick={() => navigate(`/new-trade?edit=${trade.id}`)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
+          >
+            <Plus className="h-4 w-4" /> Update
+          </button>
+          <button
+            onClick={() => setShowExitModal(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive/15 py-3 text-xs font-semibold text-destructive active:scale-[0.97]"
+          >
+            <LogOut className="h-4 w-4" /> Log Exit
+          </button>
+        </div>
+      )}
+      {isClosed && !trade.reflectionNote && (
+        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
           <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
             <MessageCircle className="h-4 w-4" /> Add Reflection
           </button>
-        )}
-      </div>
-
-      {/* Part 3 — Floating Exit FAB */}
-      {isOpen && (
-        <button
-          onClick={() => setShowExitModal(true)}
-          className="fixed bottom-24 right-5 z-40 flex h-12 items-center gap-1.5 rounded-full bg-destructive px-4 text-xs font-bold text-destructive-foreground shadow-lg active:scale-[0.95] transition-transform"
-        >
-          <LogOut className="h-4 w-4" /> Exit
-        </button>
+        </div>
       )}
 
-      {/* Part 2 — Exit Modal */}
+      {/* Exit Modal */}
       <ExitModal
         open={showExitModal}
         onOpenChange={setShowExitModal}

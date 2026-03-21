@@ -390,10 +390,10 @@ export default function NewTrade() {
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
       <header className="flex items-center gap-3 px-5 py-4 pt-safe-top">
-        <button onClick={() => navigate(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card">
+        <button onClick={() => navigate(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card text-accent">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-bold">New Trade — Entry</h1>
+        <h1 className="font-display text-base font-600">New Trade — Entry</h1>
       </header>
 
       <div className="flex flex-col gap-6 px-5">

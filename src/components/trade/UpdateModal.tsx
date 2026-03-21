@@ -60,6 +60,7 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
         }
       },
       onStop: () => setIsRecording(false),
+      silenceTimeoutMs: 3500,
     });
     recorderRef.current = recorder;
     recorder.start();

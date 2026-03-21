@@ -172,8 +172,7 @@ export default function NewTrade() {
   const [isRecordingNotes, setIsRecordingNotes] = useState(false);
   const notesRecRef = useRef<any>(null);
 
-  const SILENCE_TIMEOUT = 2500;
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // No silence auto-stop for entry form — manual stop only
 
   const clearSilenceTimer = () => {
     if (silenceTimerRef.current) {

@@ -644,16 +644,14 @@ export default function NewTrade() {
         {/* Raw Transcript */}
         {rawTranscript && (
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Raw Transcript</label>
-            <div className="rounded-xl bg-muted/50 border border-border p-4">
-              <p className="text-sm leading-relaxed text-accent">{rawTranscript}</p>
-            </div>
+            <label className="section-label">Raw Transcript</label>
+            <p className="rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">{rawTranscript}</p>
           </div>
         )}
 
         {/* Additional Notes */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Additional Notes — your thoughts, context, or anything the voice missed</label>
+          <label className="section-label">Additional Notes — your thoughts, context, or anything the voice missed</label>
           <button
             onClick={() =>
               isRecordingNotes
@@ -662,26 +660,26 @@ export default function NewTrade() {
             }
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingNotes ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
+              isRecordingNotes ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
             )}
           >
-            {isRecordingNotes ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+            {isRecordingNotes ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
           </button>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="font-body text-[10px] font-300 text-muted-foreground">
             {isRecordingNotes ? "Recording — tap to stop" : "Tap to add notes by voice"}
           </p>
           <Textarea
             placeholder="Add any extra context…"
             value={additionalNotes}
             onChange={(e) => setAdditionalNotes(e.target.value)}
-            className="min-h-[80px] bg-card border-border"
+            className="min-h-[80px] bg-secondary border-border font-body font-300 focus-visible:ring-primary"
           />
         </div>
       </div>
 
       {/* Save button */}
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
-        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground active:scale-[0.97]">
+        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-[14px] bg-primary font-display text-sm font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] active:scale-[0.97]">
           Save Entry
         </Button>
       </div>

@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Mic, Plus, LogOut, MessageCircle } from "lucide-react";
+import { ArrowLeft, Plus, LogOut, MessageCircle, ChevronDown } from "lucide-react";
 import { useTradeStore } from "@/lib/trade-store";
 import { PnlBadge } from "@/components/PnlBadge";
 import { EmotionBadge } from "@/components/EmotionBadge";
@@ -8,9 +8,13 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { ExitModal } from "@/components/trade/ExitModal";
+import { ExitHistory } from "@/components/trade/ExitHistory";
+import { NotesSection } from "@/components/trade/NotesSection";
+import { TradeSummary } from "@/components/trade/TradeSummary";
+import type { ExitEvent, TradeNote } from "@/lib/sample-data";
 
 function Section({
   title,
@@ -54,6 +58,8 @@ export default function TradeDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const trade = useTradeStore((s) => s.getTradeById(id ?? ""));
+  const updateTrade = useTradeStore((s) => s.updateTrade);
+  const [showExitModal, setShowExitModal] = useState(false);
 
   if (!trade) {
     return (
@@ -65,6 +71,27 @@ export default function TradeDetail() {
 
   const isOpen = trade.status === "open";
   const isClosed = trade.status === "closed";
+  const exitEvents = trade.exitEvents ?? [];
+  const tradeNotes = trade.tradeNotes ?? [];
+
+  const totalPercentClosed = exitEvents.reduce((s, e) => s + e.percentClosed, 0);
+  const remainingPercent = Math.max(0, 100 - totalPercentClosed);
+
+  const handleSaveExit = (event: ExitEvent) => {
+    const newExitEvents = [...exitEvents, event];
+    const updates: Record<string, any> = { exitEvents: newExitEvents };
+
+    if (event.exitType === "full-exit" || event.exitType === "moon-bag") {
+      updates.status = "closed";
+      updates.closedAt = new Date().toISOString();
+    }
+
+    updateTrade(trade.id, updates);
+  };
+
+  const handleAddNote = (note: TradeNote) => {
+    updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
+  };
 
   return (
     <div className="flex min-h-screen flex-col pb-24">
@@ -101,6 +128,15 @@ export default function TradeDetail() {
       </header>
 
       <div className="space-y-2 px-5">
+        {/* Part 6 — Summary (closed trades) */}
+        {isClosed && exitEvents.length > 0 && (
+          <TradeSummary
+            exitEvents={exitEvents}
+            entryTime={trade.entryTime}
+            closedAt={trade.closedAt}
+          />
+        )}
+
         {/* Entry */}
         <Section title="Entry" defaultOpen>
           <div className="space-y-0.5">
@@ -138,7 +174,17 @@ export default function TradeDetail() {
           )}
         </Section>
 
-        {/* Updates */}
+        {/* Part 4 — Exit History */}
+        <Section title={`Exit History (${exitEvents.length})`}>
+          <ExitHistory events={exitEvents} />
+        </Section>
+
+        {/* Part 5 — Notes Feed */}
+        <Section title={`Notes (${tradeNotes.length})`}>
+          <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
+        </Section>
+
+        {/* Updates (legacy) */}
         {trade.updates.length > 0 && (
           <Section title={`Updates (${trade.updates.length})`}>
             <div className="space-y-4">
@@ -159,7 +205,7 @@ export default function TradeDetail() {
           </Section>
         )}
 
-        {/* Exit */}
+        {/* Exit (legacy) */}
         {trade.exitTime && (
           <Section title="Exit">
             <div className="space-y-0.5">
@@ -208,10 +254,16 @@ export default function TradeDetail() {
       <div className="fixed bottom-20 left-0 right-0 flex gap-2 px-5">
         {isOpen && (
           <>
-            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
+            <button
+              onClick={() => navigate(`/new-trade?edit=${trade.id}`)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
+            >
               <Plus className="h-4 w-4" /> Update
             </button>
-            <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive/15 py-3 text-xs font-semibold text-destructive active:scale-[0.97]">
+            <button
+              onClick={() => setShowExitModal(true)}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive/15 py-3 text-xs font-semibold text-destructive active:scale-[0.97]"
+            >
               <LogOut className="h-4 w-4" /> Log Exit
             </button>
           </>
@@ -222,6 +274,24 @@ export default function TradeDetail() {
           </button>
         )}
       </div>
+
+      {/* Part 3 — Floating Exit FAB */}
+      {isOpen && (
+        <button
+          onClick={() => setShowExitModal(true)}
+          className="fixed bottom-24 right-5 z-40 flex h-12 items-center gap-1.5 rounded-full bg-destructive px-4 text-xs font-bold text-destructive-foreground shadow-lg active:scale-[0.95] transition-transform"
+        >
+          <LogOut className="h-4 w-4" /> Exit
+        </button>
+      )}
+
+      {/* Part 2 — Exit Modal */}
+      <ExitModal
+        open={showExitModal}
+        onOpenChange={setShowExitModal}
+        remainingPercent={remainingPercent}
+        onSave={handleSaveExit}
+      />
     </div>
   );
 }

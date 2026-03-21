@@ -92,13 +92,21 @@ export default function NewTrade() {
   // ElevenLabs Scribe hook
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: CommitStrategy.VAD,
+    commitStrategy: "vad",
     onPartialTranscript: (data) => {
+      console.log("[Scribe] Partial:", data.text);
       setLivePartial(data.text);
+      livePartialRef.current = data.text;
     },
     onCommittedTranscript: (data) => {
-      setFullTranscript((prev) => (prev ? `${prev} ${data.text}` : data.text));
+      console.log("[Scribe] Committed:", data.text);
+      setFullTranscript((prev) => {
+        const next = prev ? `${prev} ${data.text}` : data.text;
+        fullTranscriptRef.current = next;
+        return next;
+      });
       setLivePartial("");
+      livePartialRef.current = "";
     },
   });
 

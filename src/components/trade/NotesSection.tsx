@@ -26,7 +26,7 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
         setNoteText((prev) => (prev + " " + text).trim());
       },
       onStop: () => setIsRecording(false),
-      silenceTimeoutMs: 3000,
+      silenceTimeoutMs: null,
     });
     recorderRef.current = recorder;
     recorder.start();

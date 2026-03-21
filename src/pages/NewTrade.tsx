@@ -1,7 +1,6 @@
-import { useState, useCallback } from "react";
-import { ArrowLeft, Mic, Square, Loader2, Check } from "lucide-react";
+import { useState, useCallback, useRef } from "react";
+import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, Trade } from "@/lib/sample-data";
@@ -17,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const FREE_LIMIT = 20;
 
@@ -53,6 +53,12 @@ const QUICK_TAGS = [
   "Clean execution",
 ];
 
+// Check for Web Speech API support
+const SpeechRecognition =
+  typeof window !== "undefined"
+    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    : null;
+
 export default function NewTrade() {
   const navigate = useNavigate();
   const { addTrade, getNonDemoTradeCount } = useTradeStore();
@@ -62,6 +68,11 @@ export default function NewTrade() {
   const [isParsing, setIsParsing] = useState(false);
   const [fullTranscript, setFullTranscript] = useState("");
   const [livePartial, setLivePartial] = useState("");
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [sttMethod, setSttMethod] = useState<"elevenlabs" | "webspeech" | null>(null);
+
+  // Web Speech API ref
+  const recognitionRef = useRef<any>(null);
 
   // Form state
   const [tokenName, setTokenName] = useState("");
@@ -79,54 +90,122 @@ export default function NewTrade() {
   const [quickTags, setQuickTags] = useState<string[]>([]);
   const [transcript, setTranscript] = useState("");
 
-  // Scribe hook
-  const scribe = useScribe({
-    modelId: "scribe_v2_realtime",
-    commitStrategy: CommitStrategy.VAD,
-    onPartialTranscript: (data) => {
-      setLivePartial(data.text);
-    },
-    onCommittedTranscript: (data) => {
-      setFullTranscript((prev) => {
-        const next = prev ? `${prev} ${data.text}` : data.text;
-        return next;
-      });
-      setLivePartial("");
-    },
-  });
-
+  // ── Try ElevenLabs first, fall back to Web Speech API ──
   const startRecording = useCallback(async () => {
+    setVoiceError(null);
+
+    // Try ElevenLabs first
     try {
+      console.log("[Voice] Fetching ElevenLabs scribe token…");
       const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
-      if (error || !data?.token) {
-        toast.error("Failed to start voice recording");
-        console.error("Token error:", error);
+
+      if (error) {
+        console.error("[Voice] Supabase invoke error:", error);
+        throw new Error(`Token fetch failed: ${error.message || JSON.stringify(error)}`);
+      }
+
+      if (data?.error) {
+        console.error("[Voice] Edge function returned error:", data.error);
+        throw new Error(`ElevenLabs: ${data.error}`);
+      }
+
+      if (!data?.token) {
+        console.error("[Voice] No token in response:", data);
+        throw new Error("No token returned from edge function");
+      }
+
+      // ElevenLabs token obtained — try dynamic import of @elevenlabs/react
+      console.log("[Voice] Token obtained, connecting ElevenLabs Scribe…");
+      // Since useScribe is a hook, we can't dynamically use it here.
+      // Fall through to Web Speech API for now since ElevenLabs API key lacks STT permission.
+      throw new Error("ElevenLabs STT permission issue — using browser fallback");
+    } catch (elevenLabsErr: any) {
+      console.warn("[Voice] ElevenLabs unavailable:", elevenLabsErr.message);
+
+      // Fall back to Web Speech API
+      if (!SpeechRecognition) {
+        const msg = `ElevenLabs failed: ${elevenLabsErr.message}. Browser Speech API also unavailable.`;
+        setVoiceError(msg);
+        toast.error("Voice recording unavailable");
         return;
       }
 
+      console.log("[Voice] Falling back to Web Speech API…");
+      setSttMethod("webspeech");
+      startWebSpeech();
+    }
+  }, []);
+
+  const startWebSpeech = useCallback(() => {
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+      recognitionRef.current = recognition;
+
+      let committed = "";
+
+      recognition.onresult = (event: any) => {
+        let interim = "";
+        let final = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            final += t;
+          } else {
+            interim += t;
+          }
+        }
+
+        if (final) {
+          committed = committed ? `${committed} ${final}` : final;
+          setFullTranscript(committed);
+        }
+        setLivePartial(interim);
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("[WebSpeech] Error:", event.error);
+        if (event.error === "not-allowed") {
+          setVoiceError("Microphone permission denied. Please allow mic access and try again.");
+        } else {
+          setVoiceError(`Speech recognition error: ${event.error}`);
+        }
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        // If still recording, restart (Web Speech API can stop unexpectedly)
+        if (recognitionRef.current && isRecording) {
+          try {
+            recognition.start();
+          } catch {}
+        }
+      };
+
+      recognition.start();
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
-
-      await scribe.connect({
-        token: data.token,
-        microphone: {
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
-    } catch (err) {
-      console.error("Recording error:", err);
-      toast.error("Microphone access required");
-      setIsRecording(false);
+      console.log("[WebSpeech] Recording started");
+    } catch (err: any) {
+      console.error("[WebSpeech] Start error:", err);
+      setVoiceError(`Failed to start recording: ${err.message}`);
     }
-  }, [scribe]);
+  }, [isRecording]);
 
   const stopRecording = useCallback(async () => {
-    scribe.disconnect();
+    // Stop Web Speech API
+    if (recognitionRef.current) {
+      recognitionRef.current.onend = null; // prevent auto-restart
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+
     setIsRecording(false);
 
-    // Combine committed + any remaining partial
     const finalTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ").trim();
     setLivePartial("");
 
@@ -139,13 +218,14 @@ export default function NewTrade() {
     setIsParsing(true);
 
     try {
+      console.log("[Parse] Sending transcript to AI parser…");
       const { data, error } = await supabase.functions.invoke("parse-trade-transcript", {
         body: { transcript: finalTranscript },
       });
 
       if (error || !data?.parsed) {
+        console.error("[Parse] Error:", error, data);
         toast.error("AI parsing failed — fill in fields manually");
-        console.error("Parse error:", error, data);
         setIsParsing(false);
         return;
       }
@@ -166,13 +246,13 @@ export default function NewTrade() {
       if (p.quickTags?.length) setQuickTags(p.quickTags);
 
       toast.success("Trade parsed — review & save");
-    } catch (err) {
-      console.error("Parse error:", err);
+    } catch (err: any) {
+      console.error("[Parse] Error:", err);
       toast.error("AI parsing failed");
     } finally {
       setIsParsing(false);
     }
-  }, [scribe, fullTranscript, livePartial]);
+  }, [fullTranscript, livePartial]);
 
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) =>
@@ -235,8 +315,21 @@ export default function NewTrade() {
       </header>
 
       <div className="flex flex-col gap-6 px-5">
-        {/* ──────── VOICE SECTION (dominant) ──────── */}
+        {/* ──────── VOICE SECTION ──────── */}
         <div className="flex flex-col items-center gap-4 rounded-2xl bg-card p-6">
+          {/* Error display */}
+          {voiceError && (
+            <Alert variant="destructive" className="w-full">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertDescription className="text-xs">{voiceError}</AlertDescription>
+            </Alert>
+          )}
+
+          {/* STT method indicator */}
+          {isRecording && sttMethod === "webspeech" && (
+            <p className="text-[10px] text-muted-foreground">Using browser speech recognition</p>
+          )}
+
           {/* Mic button */}
           <button
             onClick={isRecording ? stopRecording : startRecording}
@@ -288,15 +381,12 @@ export default function NewTrade() {
                 {displayTranscript || (
                   <span className="text-muted-foreground italic">Waiting for speech…</span>
                 )}
-                {isRecording && livePartial && (
-                  <span className="text-muted-foreground"> {livePartial}</span>
-                )}
               </p>
             </div>
           )}
         </div>
 
-        {/* ──────── PARSED FORM (secondary) ──────── */}
+        {/* ──────── PARSED FORM ──────── */}
         {(tokenName || transcript) && (
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Review & correct

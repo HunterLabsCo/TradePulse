@@ -9,12 +9,15 @@ const corsHeaders = {
 const SYSTEM_PROMPT = `You are a trade journal parser for crypto/memecoin traders. Given a raw voice transcript from a trader logging a trade entry, extract structured data using the parse_trade_entry tool.
 
 Rules:
-- Token names are crypto tokens (e.g., BONK, PEPE, WIF, MULERUN). They may be misspelled by voice recognition — infer the correct name.
+- **Token name**: Extract ONLY the token ticker or short name (1-4 words max). It is typically the first proper noun spoken after words like "entering", "entered", "bought", "buying", "getting into", "aping". Examples: "BONK", "PEPE", "WIF", "MULERUN", "PEPEKING". Do NOT include surrounding phrases like "platform pump fund" — only the ticker itself.
 - Chain defaults to "SOL" unless the trader mentions Ethereum/ETH/Base/Arbitrum.
 - Market cap may be stated as "68K MC" or "eighty point seven K market cap" — normalize to a string like "68K" or "80.7K".
 - Position size is usually stated in SOL or ETH (e.g., "1.4 SOL").
-- Emotional states must be chosen from this exact list: confident, calm, focused, patient, in-the-zone, anxious, nervous, rushed, frustrated, revenge-mindset, greedy, fearful, overconfident, fomo, distracted, interrupted, uncertain, conflicted.
-- Detect emotional language even if implicit (e.g., "took this at work" → rushed/interrupted, "feeling good" → confident, "I just went for it" → fomo).
+- Setup type should match one of: "EMA Pullback", "Breakout", "Volume Spike Entry", "Wallet Signal", "Narrative Play", "Dip Buy", "Momentum". If none fit, use "Custom" and put the description in setupType.
+- Confirmation signals: detect mentions of volume, wallet tracking, social/twitter signals, chart patterns, gut feeling. Return as an array of matching signals from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "Other".
+- Session type: detect from context. Options: "full-session" (uninterrupted), "partially-interrupted" (brief interruptions), "intermittently-interrupted" (frequent interruptions), "work-trade" (trading at work), "mobile-only" (phone trading), "forced-exit-risk" (known interruption coming).
+- Emotional states must be chosen from this exact list: confident, calm, focused, patient, in-the-zone, anxious, nervous, rushed, frustrated, revenge-mindset, greedy, fearful, overconfident, fomo, distracted, interrupted, uncertain, conflicted, disciplined, hesitant, impulsive, euphoric, detached, sharp, tired.
+- Detect emotional language even if implicit (e.g., "took this at work" → rushed/interrupted, "feeling good" → confident, "I just went for it" → fomo/impulsive, "I'm exhausted" → tired).
 - Quick tags to detect: Interrupted, Work trade, Full session, Pre-set orders, Above MC ceiling, Non-compliant, Chased / FOMO, Best setup, Clean execution.
 - If a field is not mentioned, omit it (return null or empty).`;
 
@@ -56,17 +59,25 @@ serve(async (req) => {
               parameters: {
                 type: "object",
                 properties: {
-                  tokenName: { type: "string", description: "Token/coin name" },
+                  tokenName: { type: "string", description: "Token ticker/name only (1-4 words max)" },
                   chain: { type: "string", enum: ["SOL", "ETH", "BASE", "ARB"] },
                   entryMarketCap: { type: "string", description: "Market cap at entry, e.g. 80.7K" },
-                  entryPrice: { type: "string", description: "Entry price if mentioned" },
                   positionSize: { type: "string", description: "Position size, e.g. 1.4 SOL" },
-                  setupType: { type: "string", description: "Setup type if mentioned" },
+                  setupType: { type: "string", description: "Setup type: EMA Pullback, Breakout, Volume Spike Entry, Wallet Signal, Narrative Play, Dip Buy, Momentum, or Custom" },
                   narrativeType: { type: "string", description: "Narrative category if mentioned" },
-                  volumeConfirmed: { type: "boolean", description: "Whether volume was confirmed" },
-                  walletConfirmed: { type: "boolean", description: "Whether wallet tracking was confirmed" },
-                  interruptionStatus: { type: "string", enum: ["interrupted", "clean"] },
-                  sessionType: { type: "string", enum: ["work-trade", "full-session"] },
+                  confirmationSignals: {
+                    type: "array",
+                    items: {
+                      type: "string",
+                      enum: ["Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "Other"],
+                    },
+                    description: "Detected confirmation signals",
+                  },
+                  sessionType: {
+                    type: "string",
+                    enum: ["full-session", "partially-interrupted", "intermittently-interrupted", "work-trade", "mobile-only", "forced-exit-risk"],
+                    description: "Session status",
+                  },
                   emotionalStates: {
                     type: "array",
                     items: {
@@ -76,6 +87,7 @@ serve(async (req) => {
                         "anxious", "nervous", "rushed", "frustrated", "revenge-mindset",
                         "greedy", "fearful", "overconfident",
                         "fomo", "distracted", "interrupted", "uncertain", "conflicted",
+                        "disciplined", "hesitant", "impulsive", "euphoric", "detached", "sharp", "tired",
                       ],
                     },
                     description: "Detected emotional states",

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus, X, MicOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";

@@ -182,8 +182,10 @@ export default function NewTrade() {
         if (final) {
           committed = committed ? `${committed} ${final}` : final;
           setFullTranscript(committed);
+          fullTranscriptRef.current = committed;
         }
         setLivePartial(interim);
+        livePartialRef.current = interim;
       };
 
       recognition.onerror = (event: any) => {

@@ -148,8 +148,9 @@ export default function NewTrade() {
 
       await scribe.connect({
         token: data.token,
-        microphone: { echoCancellation: true, noiseSuppression: true },
+        microphone: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
+      console.log("[Voice] scribe.connect() resolved. isConnected:", scribe.isConnected);
     } catch (elevenLabsErr: any) {
       console.warn("[Voice] ElevenLabs unavailable:", elevenLabsErr.message);
 

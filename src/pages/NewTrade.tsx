@@ -398,16 +398,16 @@ export default function NewTrade() {
 
       <div className="flex flex-col gap-6 px-5">
         {/* Voice section */}
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-card p-6">
+        <div className="flex flex-col items-center gap-4 rounded-2xl bg-card border border-border p-6">
           {voiceError && (
             <Alert variant="destructive" className="w-full">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-xs">{voiceError}</AlertDescription>
+              <AlertDescription className="font-body text-xs font-300">{voiceError}</AlertDescription>
             </Alert>
           )}
 
           {isRecording && (
-            <p className="text-[10px] text-muted-foreground">Using browser speech recognition</p>
+            <p className="font-body text-[10px] font-300 text-muted-foreground">Using browser speech recognition</p>
           )}
 
           <button
@@ -415,28 +415,27 @@ export default function NewTrade() {
             disabled={isParsing}
             className={cn(
               "group relative flex h-28 w-28 items-center justify-center rounded-full transition-all active:scale-[0.93]",
-              isRecording ? "bg-destructive/20" : isParsing ? "bg-muted" : "bg-primary/15"
+              isRecording ? "bg-[hsl(var(--red-action)/0.15)]" : isParsing ? "bg-muted" : "bg-[hsl(var(--green-primary)/0.1)]"
             )}
           >
-            {isRecording && <div className="absolute inset-0 animate-ping rounded-full bg-destructive/10" />}
             <div className={cn(
-              "flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-colors",
-              isRecording ? "bg-destructive shadow-destructive/30" : isParsing ? "bg-muted-foreground/30" : "bg-primary shadow-primary/30"
+              "flex h-20 w-20 items-center justify-center rounded-full transition-colors",
+              isRecording ? "bg-destructive animate-pulse-red-glow" : isParsing ? "bg-muted-foreground/30" : "bg-primary animate-pulse-glow"
             )}>
               {isParsing ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                : isRecording ? <Square className="h-7 w-7 text-white" fill="white" />
+                : isRecording ? <Square className="h-7 w-7 text-foreground" fill="currentColor" />
                 : <Mic className="h-8 w-8 text-primary-foreground" />}
             </div>
           </button>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="font-body text-xs font-300 text-muted-foreground">
             {isParsing ? "Parsing your trade…" : isRecording ? "Listening — tap to stop" : "Tap to record your trade entry"}
           </p>
 
           {(isRecording || displayTranscript) && (
-            <div className="w-full rounded-xl bg-background/50 p-4">
-              <p className="text-sm leading-relaxed text-foreground">
-                {displayTranscript || <span className="text-muted-foreground italic">Waiting for speech…</span>}
+            <div className="w-full rounded-xl bg-secondary border border-border p-4">
+              <p className="font-body text-sm font-300 leading-relaxed text-foreground">
+                {displayTranscript || <span className="text-[hsl(var(--text-muted))] italic">Waiting for speech…</span>}
               </p>
             </div>
           )}

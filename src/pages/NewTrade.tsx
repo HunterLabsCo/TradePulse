@@ -132,6 +132,8 @@ export default function NewTrade() {
       }
 
       console.log("[Voice] Token obtained, connecting ElevenLabs Scribe…");
+      fullTranscriptRef.current = "";
+      livePartialRef.current = "";
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);

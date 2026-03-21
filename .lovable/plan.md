@@ -1,33 +1,37 @@
 
 
-# Fix: New Trade Page — Save Trades to Store
+# Fix: "No speech detected" after recording
 
 ## Problem
-The New Trade page is a UI stub with no functionality. The mic button does nothing — no recording, no transcription, no saving. Trades entered here never reach the Zustand store, so nothing appears on the Home dashboard.
 
-## Solution
-Build a functional New Trade flow that saves trades to the store. Since ElevenLabs and AI parsing (Phases 3-4) aren't connected yet, we'll build a **manual entry form** alongside the mic button placeholder, so trades can actually be created and appear on the dashboard.
+The token fetch succeeds (confirmed: 200 response with valid token), ElevenLabs connects, but when the user taps stop, `fullTranscript` is empty so "No speech detected" fires. Two likely causes:
 
-## Changes
+1. **Stale closure in `stopRecording`**: Even though `fullTranscript` is in the dependency array, there's a timing gap — `scribe.disconnect()` may trigger re-renders that race with reading state values.
+2. **`CommitStrategy.VAD` enum vs string**: The docs show `commitStrategy: "vad"` as a string literal. If the enum export is undefined, the scribe may not be configured properly.
 
-### 1. Rebuild `src/pages/NewTrade.tsx`
-- Add a full entry form with all trade fields: token name, chain, entry market cap, entry price, position size, setup type, narrative type, volume/wallet confirmed toggles, session type, interruption status
-- Add emotional state selector (multi-select from the emotion taxonomy)
-- Add quick tag toggle chips (Interrupted, Work trade, Full session, Pre-set orders, Above MC ceiling, Non-compliant, Chased/FOMO, Best setup, Clean execution)
-- Add a transcript textarea for manual paste (placeholder for future voice input)
-- On save: create a `Trade` object, call `addTrade()` from the Zustand store, navigate to the new trade's detail page
-- Keep the mic button visible but show a "Coming soon" indicator until voice is wired up
+## Fix
 
-### 2. Add paywall guard
-- Before allowing save, check `getNonDemoTradeCount() >= 20` — if so, redirect to `/paywall`
+### 1. Use refs to accumulate transcript (eliminates closure issues)
 
-### 3. Fix console warnings
-- Add `React.forwardRef` to `EmotionBadge` and `PnlBadge` components to resolve the ref warnings
+Add `fullTranscriptRef` and `livePartialRef` that mirror their state counterparts. Update them in the scribe callbacks and Web Speech handlers. Read from refs in `stopRecording` instead of state.
 
-## Technical Details
-- Generate trade ID with `crypto.randomUUID()`
-- Set `userId: "local"`, `status: "open"`, `isDemo: false`
-- Entry time auto-filled to `new Date().toISOString()`
-- Form uses controlled inputs with React state
-- Chain defaults to "SOL" with dropdown for ETH/BASE/ARB
+### 2. Use string literal for commitStrategy
+
+Change `CommitStrategy.VAD` to the string `"vad"` to avoid potential enum import issues.
+
+### 3. Add debug logging to scribe callbacks
+
+Log when `onPartialTranscript` and `onCommittedTranscript` fire so we can confirm ElevenLabs is actually sending data. Also log the connection state after `scribe.connect()`.
+
+### 4. Read transcript before disconnecting
+
+Move `scribe.disconnect()` after reading the transcript values from refs, so disconnection cleanup can't interfere.
+
+### Changes — `src/pages/NewTrade.tsx`
+
+- Add `useRef` mirrors for `fullTranscript` and `livePartial`
+- Update refs in `onPartialTranscript`, `onCommittedTranscript`, and Web Speech callbacks
+- In `stopRecording`: read from refs first, then disconnect
+- Change `CommitStrategy.VAD` to `"vad"` string
+- Add `console.log` in scribe callbacks for debugging
 

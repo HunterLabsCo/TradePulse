@@ -29,8 +29,20 @@ export default function Index() {
       <header className="px-5 pt-safe-top">
         <div className="relative flex items-center justify-center py-4">
           <div className="text-center">
-            <h1 className="font-display text-[22px] font-bold tracking-[-0.01em] text-foreground">TradeSnap</h1>
-            <p className="font-body text-[12px] font-normal text-muted-foreground">Trade. Speak. Reflect.</p>
+            <h1
+              className="font-display text-[32px] font-[800] tracking-[-0.01em]"
+              style={{
+                background: 'linear-gradient(to right, #FFFFFF, #39FF14)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                color: 'transparent',
+              }}
+            >
+              TradeSnap
+            </h1>
+            <p className="mx-auto max-w-[300px] font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
+              Built for active traders. Log your trades on the go — no typing, no friction.
+            </p>
           </div>
           {nonDemoCount < FREE_LIMIT && (
             <div className="absolute right-0 top-1/2 -translate-y-1/2 rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-3 py-1.5 text-right">

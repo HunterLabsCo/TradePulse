@@ -1,9 +1,9 @@
 import { useState, useCallback, useRef } from "react";
-import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
-import type { EmotionalState, Trade } from "@/lib/sample-data";
+import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -26,6 +27,8 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "focused", label: "Focused" },
   { value: "patient", label: "Patient" },
   { value: "in-the-zone", label: "In the Zone" },
+  { value: "disciplined", label: "Disciplined" },
+  { value: "sharp", label: "Sharp / Clear-headed" },
   { value: "anxious", label: "Anxious" },
   { value: "nervous", label: "Nervous" },
   { value: "rushed", label: "Rushed" },
@@ -34,11 +37,16 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "greedy", label: "Greedy" },
   { value: "fearful", label: "Fearful" },
   { value: "overconfident", label: "Overconfident" },
+  { value: "hesitant", label: "Hesitant" },
+  { value: "impulsive", label: "Impulsive" },
+  { value: "euphoric", label: "Euphoric" },
   { value: "fomo", label: "FOMO" },
   { value: "distracted", label: "Distracted" },
   { value: "interrupted", label: "Interrupted" },
   { value: "uncertain", label: "Uncertain" },
   { value: "conflicted", label: "Conflicted" },
+  { value: "detached", label: "Detached / Numb" },
+  { value: "tired", label: "Tired / Fatigued" },
 ];
 
 const QUICK_TAGS = [
@@ -53,56 +61,39 @@ const QUICK_TAGS = [
   "Clean execution",
 ];
 
+const SETUP_TYPES = [
+  "EMA Pullback",
+  "Breakout",
+  "Volume Spike Entry",
+  "Wallet Signal",
+  "Narrative Play",
+  "Dip Buy",
+  "Momentum",
+  "Custom",
+];
+
+const CONFIRMATION_SIGNALS = [
+  "Volume",
+  "Wallets",
+  "Social / Twitter",
+  "Chart Pattern",
+  "Gut / Intuition",
+  "Other",
+];
+
+const SESSION_STATUSES: { value: SessionType; label: string; desc: string }[] = [
+  { value: "full-session", label: "Full session", desc: "Full attention, uninterrupted" },
+  { value: "partially-interrupted", label: "Partially interrupted", desc: "Brief interruptions, mostly focused" },
+  { value: "intermittently-interrupted", label: "Intermittently interrupted", desc: "Frequent interruptions" },
+  { value: "work-trade", label: "Work trade", desc: "Trading during work" },
+  { value: "mobile-only", label: "Mobile only", desc: "Phone trading, limited screen" },
+  { value: "forced-exit-risk", label: "Forced exit risk", desc: "Known interruption coming" },
+];
+
 const SpeechRecognition =
   typeof window !== "undefined"
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
-
-const formatVoiceError = (error: unknown): string => {
-  if (!error) return "Unknown error";
-  if (typeof error === "string") return error;
-  if (error instanceof Error) return error.message || error.name;
-
-  if (typeof error === "object") {
-    const e = error as Record<string, unknown> & {
-      error?: { message?: string };
-      cause?: { message?: string };
-    };
-
-    const candidates = [
-      e.message,
-      e.error,
-      e.reason,
-      e.type,
-      e.code,
-      e.details,
-      e.error?.message,
-      e.cause?.message,
-    ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
-
-    if (candidates.length > 0) return candidates.join(" · ");
-
-    try {
-      const ownProps = Object.getOwnPropertyNames(error as object);
-      if (ownProps.length > 0) {
-        const serialized = Object.fromEntries(
-          ownProps.map((key) => [key, (error as Record<string, unknown>)[key]])
-        );
-        return JSON.stringify(serialized);
-      }
-    } catch {
-      // no-op
-    }
-
-    try {
-      return JSON.stringify(error);
-    } catch {
-      return "Unknown object error";
-    }
-  }
-
-  return String(error);
-};
 
 export default function NewTrade() {
   const navigate = useNavigate();
@@ -118,37 +109,38 @@ export default function NewTrade() {
   const fullTranscriptRef = useRef("");
   const livePartialRef = useRef("");
 
+  // Form state
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");
   const [entryMarketCap, setEntryMarketCap] = useState("");
-  const [entryPrice, setEntryPrice] = useState("");
   const [positionSize, setPositionSize] = useState("");
   const [setupType, setSetupType] = useState("");
+  const [customSetupType, setCustomSetupType] = useState("");
   const [narrativeType, setNarrativeType] = useState("");
-  const [volumeConfirmed, setVolumeConfirmed] = useState(false);
-  const [walletConfirmed, setWalletConfirmed] = useState(false);
-  const [interruptionStatus, setInterruptionStatus] = useState<"interrupted" | "clean">("clean");
-  const [sessionType, setSessionType] = useState<"work-trade" | "full-session">("full-session");
+  const [indicatorsUsed, setIndicatorsUsed] = useState("");
+  const [showIndicators, setShowIndicators] = useState(false);
+  const [confirmationSignals, setConfirmationSignals] = useState<string[]>([]);
+  const [confirmationSignalOther, setConfirmationSignalOther] = useState("");
+  const [sessionType, setSessionType] = useState<SessionType>("full-session");
   const [emotions, setEmotions] = useState<EmotionalState[]>([]);
+  const [emotionFreeText, setEmotionFreeText] = useState("");
   const [quickTags, setQuickTags] = useState<string[]>([]);
-  const [transcript, setTranscript] = useState("");
+  const [rawTranscript, setRawTranscript] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
 
   const startRecording = useCallback(() => {
     setVoiceError(null);
-
     if (!SpeechRecognition) {
       setVoiceError("Speech recognition is not supported in this browser. Please use Chrome.");
       toast.error("Voice recording unavailable");
       return;
     }
-
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.lang = "en-US";
       recognitionRef.current = recognition;
-
       let committed = "";
       fullTranscriptRef.current = "";
       livePartialRef.current = "";
@@ -193,8 +185,6 @@ export default function NewTrade() {
     }
   }, []);
 
-
-
   const stopRecording = useCallback(async () => {
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
@@ -215,7 +205,7 @@ export default function NewTrade() {
       return;
     }
 
-    setTranscript(finalTranscript);
+    setRawTranscript(finalTranscript);
     setIsParsing(true);
 
     try {
@@ -234,13 +224,17 @@ export default function NewTrade() {
       if (p.tokenName) setTokenName(p.tokenName);
       if (p.chain) setChain(p.chain);
       if (p.entryMarketCap) setEntryMarketCap(p.entryMarketCap);
-      if (p.entryPrice) setEntryPrice(p.entryPrice);
       if (p.positionSize) setPositionSize(p.positionSize);
-      if (p.setupType) setSetupType(p.setupType);
+      if (p.setupType) {
+        if (SETUP_TYPES.includes(p.setupType)) {
+          setSetupType(p.setupType);
+        } else {
+          setSetupType("Custom");
+          setCustomSetupType(p.setupType);
+        }
+      }
       if (p.narrativeType) setNarrativeType(p.narrativeType);
-      if (p.volumeConfirmed != null) setVolumeConfirmed(p.volumeConfirmed);
-      if (p.walletConfirmed != null) setWalletConfirmed(p.walletConfirmed);
-      if (p.interruptionStatus) setInterruptionStatus(p.interruptionStatus);
+      if (p.confirmationSignals?.length) setConfirmationSignals(p.confirmationSignals);
       if (p.sessionType) setSessionType(p.sessionType);
       if (p.emotionalStates?.length) setEmotions(p.emotionalStates);
       if (p.quickTags?.length) setQuickTags(p.quickTags);
@@ -260,9 +254,14 @@ export default function NewTrade() {
   const toggleTag = (t: string) =>
     setQuickTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
+  const toggleSignal = (s: string) =>
+    setConfirmationSignals((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
+
   const handleSave = () => {
     if (!tokenName.trim()) return;
     if (getNonDemoTradeCount() >= FREE_LIMIT) { navigate("/paywall"); return; }
+
+    const finalSetup = setupType === "Custom" ? (customSetupType || "Custom") : setupType;
 
     const trade: Trade = {
       id: crypto.randomUUID(),
@@ -270,17 +269,18 @@ export default function NewTrade() {
       tokenName: tokenName.trim(),
       chain,
       entryMarketCap: entryMarketCap || undefined,
-      entryPrice: entryPrice || undefined,
       positionSize: positionSize || undefined,
-      setupType: setupType || undefined,
+      setupType: finalSetup || undefined,
       narrativeType: narrativeType || undefined,
-      volumeConfirmed,
-      walletConfirmed,
-      interruptionStatus,
+      confirmationSignals: confirmationSignals.length ? confirmationSignals : undefined,
+      confirmationSignalOther: confirmationSignals.includes("Other") ? confirmationSignalOther || undefined : undefined,
+      indicatorsUsed: indicatorsUsed || undefined,
       sessionType,
       entryTime: new Date().toISOString(),
       emotionalStateAtEntry: emotions,
-      entryTranscript: transcript || undefined,
+      emotionFreeText: emotionFreeText || undefined,
+      entryTranscript: rawTranscript || undefined,
+      additionalNotes: additionalNotes || undefined,
       quickTags,
       updates: [],
       status: "open",
@@ -349,10 +349,11 @@ export default function NewTrade() {
         </div>
 
         {/* Form fields */}
-        {(tokenName || transcript) && (
+        {(tokenName || rawTranscript) && (
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Review & correct</p>
         )}
 
+        {/* Token + Chain */}
         <div className="grid grid-cols-[1fr_100px] gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Token *</label>
@@ -372,14 +373,11 @@ export default function NewTrade() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        {/* Entry MC + Size (2 cols) */}
+        <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Entry MC</label>
             <Input placeholder="80.7K" value={entryMarketCap} onChange={(e) => setEntryMarketCap(e.target.value)} className="bg-card border-border" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Entry Price</label>
-            <Input placeholder="0.0012" value={entryPrice} onChange={(e) => setEntryPrice(e.target.value)} className="bg-card border-border" />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Size</label>
@@ -387,10 +385,21 @@ export default function NewTrade() {
           </div>
         </div>
 
+        {/* Setup Type dropdown + Narrative */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Setup Type</label>
-            <Input placeholder="Breakout" value={setupType} onChange={(e) => setSetupType(e.target.value)} className="bg-card border-border" />
+            <Select value={setupType} onValueChange={setSetupType}>
+              <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Select setup" /></SelectTrigger>
+              <SelectContent>
+                {SETUP_TYPES.map((st) => (
+                  <SelectItem key={st} value={st}>{st}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {setupType === "Custom" && (
+              <Input placeholder="Describe setup…" value={customSetupType} onChange={(e) => setCustomSetupType(e.target.value)} className="mt-1.5 bg-card border-border" />
+            )}
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Narrative</label>
@@ -398,31 +407,72 @@ export default function NewTrade() {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {[
-            { label: "Volume ✓", active: volumeConfirmed, toggle: () => setVolumeConfirmed(!volumeConfirmed) },
-            { label: "Wallets ✓", active: walletConfirmed, toggle: () => setWalletConfirmed(!walletConfirmed) },
-          ].map((item) => (
-            <button key={item.label} onClick={item.toggle} className={cn("flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors active:scale-[0.96]", item.active ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>
-              {item.active && <Check className="h-3 w-3" />}{item.label}
+        {/* Collapsible Indicators */}
+        <Collapsible open={showIndicators} onOpenChange={setShowIndicators}>
+          <CollapsibleTrigger asChild>
+            <button className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+              <Plus className={cn("h-3.5 w-3.5 transition-transform", showIndicators && "rotate-45")} />
+              Add indicators
+              <span className="text-[10px] text-muted-foreground/60">— optional</span>
             </button>
-          ))}
-          <Select value={interruptionStatus} onValueChange={(v) => setInterruptionStatus(v as "interrupted" | "clean")}>
-            <SelectTrigger className="h-9 w-auto gap-1.5 rounded-lg bg-card border-border text-xs"><SelectValue /></SelectTrigger>
+          </CollapsibleTrigger>
+          <CollapsibleContent className="mt-2">
+            <Input
+              placeholder="e.g. RSI, MACD, VWAP…"
+              value={indicatorsUsed}
+              onChange={(e) => setIndicatorsUsed(e.target.value)}
+              className="bg-card border-border"
+            />
+          </CollapsibleContent>
+        </Collapsible>
+
+        {/* Confirmation Signals */}
+        <div className="space-y-2">
+          <label className="text-xs font-medium text-muted-foreground">Confirmation Signals</label>
+          <div className="flex flex-wrap gap-1.5">
+            {CONFIRMATION_SIGNALS.map((sig) => (
+              <button
+                key={sig}
+                onClick={() => toggleSignal(sig)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]",
+                  confirmationSignals.includes(sig)
+                    ? "bg-primary/20 text-primary"
+                    : "bg-card text-muted-foreground"
+                )}
+              >
+                {confirmationSignals.includes(sig) && <Check className="mr-1 inline h-3 w-3" />}
+                {sig}
+              </button>
+            ))}
+          </div>
+          {confirmationSignals.includes("Other") && (
+            <Input
+              placeholder="Describe signal…"
+              value={confirmationSignalOther}
+              onChange={(e) => setConfirmationSignalOther(e.target.value)}
+              className="mt-1.5 bg-card border-border"
+            />
+          )}
+        </div>
+
+        {/* Session Status */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-muted-foreground">Session Status</label>
+          <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
+            <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="clean">Clean session</SelectItem>
-              <SelectItem value="interrupted">Interrupted</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={sessionType} onValueChange={(v) => setSessionType(v as "work-trade" | "full-session")}>
-            <SelectTrigger className="h-9 w-auto gap-1.5 rounded-lg bg-card border-border text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="full-session">Full session</SelectItem>
-              <SelectItem value="work-trade">Work trade</SelectItem>
+              {SESSION_STATUSES.map((s) => (
+                <SelectItem key={s.value} value={s.value}>
+                  <span>{s.label}</span>
+                  <span className="ml-1.5 text-[10px] text-muted-foreground">— {s.desc}</span>
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
 
+        {/* Emotional State */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Emotional State</label>
           <div className="flex flex-wrap gap-1.5">
@@ -430,8 +480,15 @@ export default function NewTrade() {
               <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{em.label}</button>
             ))}
           </div>
+          <Textarea
+            placeholder="Describe your emotional state in your own words (optional)"
+            value={emotionFreeText}
+            onChange={(e) => setEmotionFreeText(e.target.value)}
+            className="mt-2 min-h-[60px] bg-card border-border text-xs"
+          />
         </div>
 
+        {/* Quick Tags */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
@@ -441,12 +498,29 @@ export default function NewTrade() {
           </div>
         </div>
 
+        {/* Raw Transcript */}
+        {rawTranscript && (
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Raw Transcript</label>
+            <div className="rounded-xl bg-muted/50 border border-border p-4">
+              <p className="text-sm leading-relaxed text-muted-foreground">{rawTranscript}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Additional Notes */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Entry Notes / Transcript</label>
-          <Textarea placeholder="Your voice transcript appears here, or type notes…" value={transcript} onChange={(e) => setTranscript(e.target.value)} className="min-h-[80px] bg-card border-border" />
+          <label className="text-xs font-medium text-muted-foreground">Additional Notes — your thoughts, context, or anything the voice missed</label>
+          <Textarea
+            placeholder="Add any extra context…"
+            value={additionalNotes}
+            onChange={(e) => setAdditionalNotes(e.target.value)}
+            className="min-h-[80px] bg-card border-border"
+          />
         </div>
       </div>
 
+      {/* Save button */}
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
         <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground active:scale-[0.97]">
           Save Entry

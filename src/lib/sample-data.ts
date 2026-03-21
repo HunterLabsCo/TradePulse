@@ -2,11 +2,20 @@ export type EmotionalState =
   | "confident" | "calm" | "focused" | "patient" | "in-the-zone"
   | "anxious" | "nervous" | "rushed" | "frustrated" | "revenge-mindset"
   | "greedy" | "fearful" | "overconfident"
-  | "fomo" | "distracted" | "interrupted" | "uncertain" | "conflicted";
+  | "fomo" | "distracted" | "interrupted" | "uncertain" | "conflicted"
+  | "disciplined" | "hesitant" | "impulsive" | "euphoric" | "detached" | "sharp" | "tired";
 
 export type TradeStatus = "open" | "closed";
 
 export type ExitMethod = "ladder" | "single-exit" | "stopped-out" | "forced";
+
+export type SessionType =
+  | "full-session"
+  | "partially-interrupted"
+  | "intermittently-interrupted"
+  | "work-trade"
+  | "mobile-only"
+  | "forced-exit-risk";
 
 export interface TradeUpdate {
   id: string;
@@ -26,13 +35,15 @@ export interface Trade {
   positionSize?: string;
   setupType?: string;
   narrativeType?: string;
-  volumeConfirmed?: boolean;
-  walletConfirmed?: boolean;
-  interruptionStatus?: "interrupted" | "clean";
-  sessionType?: "work-trade" | "full-session";
+  confirmationSignals?: string[];
+  confirmationSignalOther?: string;
+  indicatorsUsed?: string;
+  sessionType?: SessionType;
   entryTime: string;
   emotionalStateAtEntry: EmotionalState[];
+  emotionFreeText?: string;
   entryTranscript?: string;
+  additionalNotes?: string;
   quickTags: string[];
   updates: TradeUpdate[];
   exitTime?: string;
@@ -47,6 +58,10 @@ export interface Trade {
   reflectionTimestamp?: string;
   status: TradeStatus;
   isDemo?: boolean;
+  // legacy fields kept for backward compat
+  volumeConfirmed?: boolean;
+  walletConfirmed?: boolean;
+  interruptionStatus?: "interrupted" | "clean";
 }
 
 export const SAMPLE_TRADES: Trade[] = [
@@ -58,11 +73,9 @@ export const SAMPLE_TRADES: Trade[] = [
     entryMarketCap: "42K",
     entryPrice: "0.000042",
     positionSize: "2.5 SOL",
-    setupType: "Volume breakout",
+    setupType: "Volume Spike Entry",
     narrativeType: "AI meme",
-    volumeConfirmed: true,
-    walletConfirmed: true,
-    interruptionStatus: "clean",
+    confirmationSignals: ["Volume", "Wallets"],
     sessionType: "full-session",
     entryTime: new Date(Date.now() - 86400000 * 2).toISOString(),
     emotionalStateAtEntry: ["confident", "focused"],
@@ -97,11 +110,9 @@ export const SAMPLE_TRADES: Trade[] = [
     entryMarketCap: "180K",
     entryPrice: "0.00018",
     positionSize: "1.8 SOL",
-    setupType: "FOMO chase",
+    setupType: "Momentum",
     narrativeType: "DAO meta",
-    volumeConfirmed: false,
-    walletConfirmed: false,
-    interruptionStatus: "interrupted",
+    confirmationSignals: ["Gut / Intuition"],
     sessionType: "work-trade",
     entryTime: new Date(Date.now() - 86400000).toISOString(),
     emotionalStateAtEntry: ["rushed", "fomo"],
@@ -136,11 +147,9 @@ export const SAMPLE_TRADES: Trade[] = [
     entryMarketCap: "65K",
     entryPrice: "0.000065",
     positionSize: "2 SOL",
-    setupType: "Narrative play",
+    setupType: "Narrative Play",
     narrativeType: "AI agent",
-    volumeConfirmed: true,
-    walletConfirmed: true,
-    interruptionStatus: "clean",
+    confirmationSignals: ["Volume", "Wallets"],
     sessionType: "full-session",
     entryTime: new Date(Date.now() - 43200000).toISOString(),
     emotionalStateAtEntry: ["confident", "calm"],

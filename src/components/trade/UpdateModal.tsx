@@ -69,11 +69,13 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
 
   const handleSave = () => {
     if (!noteText.trim()) return;
+    const emotionSuffix = emotions.length > 0 ? `\n[Emotions: ${emotions.join(", ")}]` : "";
     const note: TradeNote = {
       id: crypto.randomUUID(),
-      text: noteText.trim(),
+      text: noteText.trim() + emotionSuffix,
       timestamp: new Date().toISOString(),
       duringSession: true,
+      noteType: "update",
     };
     onSave(note, emotions);
     setNoteText("");

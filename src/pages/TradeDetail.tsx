@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Plus, LogOut, MessageCircle, ChevronDown } from "lucide-react";
+import { toast } from "sonner";
 import { useTradeStore } from "@/lib/trade-store";
 import { PnlBadge } from "@/components/PnlBadge";
 import { EmotionBadge } from "@/components/EmotionBadge";
@@ -89,20 +90,17 @@ export default function TradeDetail() {
     }
 
     updateTrade(trade.id, updates);
+    setShowExitModal(false);
+    toast.success("Exit logged ✓", { duration: 2000 });
   };
 
   const handleAddNote = (note: TradeNote) => {
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
-  const handleSaveUpdate = (note: TradeNote, emotions: EmotionalState[]) => {
-    // Add emotional state info to the note text if emotions were selected
-    const emotionSuffix = emotions.length > 0 ? `\n[Emotions: ${emotions.join(", ")}]` : "";
-    const enrichedNote: TradeNote = {
-      ...note,
-      text: note.text + emotionSuffix,
-    };
-    updateTrade(trade.id, { tradeNotes: [...tradeNotes, enrichedNote] });
+  const handleSaveUpdate = (note: TradeNote, _emotions: EmotionalState[]) => {
+    // UpdateModal already enriches the note text with emotions
+    updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
   // Format confirmation signals for display
@@ -157,7 +155,7 @@ export default function TradeDetail() {
         <Section title="Entry" defaultOpen>
           <div className="space-y-0.5">
             <Field label="Market Cap" value={trade.entryMarketCap} />
-            <Field label="Price" value={trade.entryPrice} />
+            <Field label="Entry Price" value={trade.entryPrice} />
             <Field label="Size" value={trade.positionSize} />
             <Field label="Setup" value={trade.setupType} />
             <Field label="Narrative" value={trade.narrativeType} />
@@ -306,7 +304,7 @@ export default function TradeDetail() {
 
       {/* Action Buttons — OPEN trades only */}
       {isOpen && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
+        <div className="fixed bottom-6 left-0 right-0 z-30 flex gap-2 px-5">
           <button
             onClick={() => setShowUpdateModal(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
@@ -322,7 +320,7 @@ export default function TradeDetail() {
         </div>
       )}
       {isClosed && !trade.reflectionNote && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
+        <div className="fixed bottom-6 left-0 right-0 z-30 flex gap-2 px-5">
           <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
             <MessageCircle className="h-4 w-4" /> Add Reflection
           </button>

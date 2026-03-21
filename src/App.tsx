@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import NewTrade from "./pages/NewTrade";
 import TradeDetail from "./pages/TradeDetail";
 import Analytics from "./pages/Analytics";
+import Journal from "./pages/Journal";
 import SettingsPage from "./pages/SettingsPage";
 import Paywall from "./pages/Paywall";
 import NotFound from "./pages/NotFound";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/new-trade" element={<NewTrade />} />
           <Route path="/trade/:id" element={<TradeDetail />} />
           <Route path="/analytics" element={<Analytics />} />
+          <Route path="/journal" element={<Journal />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/paywall" element={<Paywall />} />
           <Route path="*" element={<NotFound />} />

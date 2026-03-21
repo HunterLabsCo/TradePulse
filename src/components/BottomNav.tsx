@@ -1,9 +1,10 @@
-import { Home, BarChart3, Settings } from "lucide-react";
+import { Home, BarChart3, Settings, BookOpen } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
   { icon: Home, label: "Home", path: "/" },
+  { icon: BookOpen, label: "Journal", path: "/journal" },
   { icon: BarChart3, label: "Analytics", path: "/analytics" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ] as const;
@@ -13,7 +14,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   // Hide nav on certain pages
-  if (["/new-trade", "/paywall"].includes(location.pathname)) return null;
+  if (["/new-trade", "/paywall"].includes(location.pathname) || location.pathname.startsWith("/trade/")) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm safe-area-bottom">

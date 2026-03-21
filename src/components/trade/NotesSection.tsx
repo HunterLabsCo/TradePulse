@@ -54,6 +54,7 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
       text: noteText.trim(),
       timestamp: new Date().toISOString(),
       duringSession: isOpen,
+      noteType: "note",
     });
     setNoteText("");
     setShowTextInput(false);
@@ -106,7 +107,14 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
         <div className="space-y-2">
           {[...notes].reverse().map((n) => (
             <div key={n.id} className="rounded-lg bg-background p-3 border border-border/50">
-              <p className="text-xs leading-relaxed">{n.text}</p>
+              <div className="mb-1">
+                {n.noteType === "update" ? (
+                  <span className="text-[10px] font-semibold text-primary">⚡ Trade Update</span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-muted-foreground">📝 Note</span>
+                )}
+              </div>
+              <p className="text-xs leading-relaxed whitespace-pre-line">{n.text}</p>
               <div className="mt-1.5 flex items-center gap-2">
                 <span className="text-[10px] text-muted-foreground tabular-nums">
                   {new Date(n.timestamp).toLocaleString()}
@@ -118,7 +126,7 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {n.duringSession ? "During session" : "Post-session"}
+                  {n.duringSession ? (n.noteType === "update" ? "Mid-trade update" : "During session") : "Post-session"}
                 </span>
               </div>
             </div>

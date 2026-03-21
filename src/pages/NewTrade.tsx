@@ -133,86 +133,65 @@ export default function NewTrade() {
   const [quickTags, setQuickTags] = useState<string[]>([]);
   const [transcript, setTranscript] = useState("");
 
-  // ElevenLabs Scribe hook
-  const scribe = useScribe({
-    modelId: "scribe_v2_realtime",
-    commitStrategy: CommitStrategy.VAD,
-    onPartialTranscript: (data) => {
-      console.log("[Scribe] Partial:", JSON.stringify(data));
-      setLivePartial(data.text);
-      livePartialRef.current = data.text;
-    },
-    onCommittedTranscript: (data) => {
-      console.log("[Scribe] Committed:", JSON.stringify(data));
-      setFullTranscript((prev) => {
-        const next = prev ? `${prev} ${data.text}` : data.text;
-        fullTranscriptRef.current = next;
-        return next;
-      });
-      setLivePartial("");
-      livePartialRef.current = "";
-    },
-    onError: (error) => {
-      const formattedError = formatVoiceError(error);
-      console.error("[Scribe] Error event:", error, { formattedError });
-      setVoiceError(`Scribe error: ${formattedError}`);
-    },
-    onDisconnect: () => {
-      console.log("[Scribe] Disconnected. Transcript ref:", fullTranscriptRef.current);
-    },
-  });
-
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(() => {
     setVoiceError(null);
 
-    // Try ElevenLabs first
+    if (!SpeechRecognition) {
+      setVoiceError("Speech recognition is not supported in this browser. Please use Chrome.");
+      toast.error("Voice recording unavailable");
+      return;
+    }
+
     try {
-      console.log("[Voice] Fetching ElevenLabs scribe token…");
-      const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+      recognitionRef.current = recognition;
 
-      if (error) {
-        console.error("[Voice] Supabase invoke error:", error);
-        throw new Error(`Token fetch failed: ${error.message || JSON.stringify(error)}`);
-      }
-      if (data?.error) {
-        console.error("[Voice] Edge function returned error:", data.error);
-        throw new Error(`ElevenLabs: ${data.error}`);
-      }
-      if (!data?.token) {
-        console.error("[Voice] No token in response:", data);
-        throw new Error("No token returned from edge function");
-      }
-
-      console.log("[Voice] Token obtained, connecting ElevenLabs Scribe…");
+      let committed = "";
       fullTranscriptRef.current = "";
       livePartialRef.current = "";
+
+      recognition.onresult = (event: any) => {
+        let interim = "";
+        let final = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const t = event.results[i][0].transcript;
+          if (event.results[i].isFinal) final += t;
+          else interim += t;
+        }
+        if (final) {
+          committed = committed ? `${committed} ${final}` : final;
+          setFullTranscript(committed);
+          fullTranscriptRef.current = committed;
+        }
+        setLivePartial(interim);
+        livePartialRef.current = interim;
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("[WebSpeech] Error:", event.error);
+        setVoiceError(event.error === "not-allowed"
+          ? "Microphone permission denied. Please allow mic access and try again."
+          : `Speech recognition error: ${event.error}`);
+        setIsRecording(false);
+      };
+
+      recognition.onend = () => {
+        if (recognitionRef.current) {
+          try { recognition.start(); } catch {}
+        }
+      };
+
+      recognition.start();
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
-      setSttMethod("elevenlabs");
-
-      await scribe.connect({
-        token: data.token,
-        microphone: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-      console.log("[Voice] scribe.connect() resolved. isConnected:", scribe.isConnected);
-    } catch (elevenLabsErr: any) {
-      console.warn("[Voice] ElevenLabs unavailable:", elevenLabsErr.message);
-
-      // Fall back to Web Speech API
-      if (!SpeechRecognition) {
-        setVoiceError(`ElevenLabs failed: ${elevenLabsErr.message}. Browser Speech API also unavailable.`);
-        toast.error("Voice recording unavailable");
-        return;
-      }
-
-      console.log("[Voice] Falling back to Web Speech API…");
-      setSttMethod("webspeech");
-      startWebSpeech();
+    } catch (err: any) {
+      setVoiceError(`Failed to start recording: ${err.message}`);
     }
-  }, [scribe]);
-
-  const startWebSpeech = useCallback(() => {
+  }, []);
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;

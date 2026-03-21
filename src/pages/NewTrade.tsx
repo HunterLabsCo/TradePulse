@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, Trade } from "@/lib/sample-data";
@@ -53,7 +54,6 @@ const QUICK_TAGS = [
   "Clean execution",
 ];
 
-// Check for Web Speech API support
 const SpeechRecognition =
   typeof window !== "undefined"
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -63,7 +63,6 @@ export default function NewTrade() {
   const navigate = useNavigate();
   const { addTrade, getNonDemoTradeCount } = useTradeStore();
 
-  // Voice state
   const [isRecording, setIsRecording] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [fullTranscript, setFullTranscript] = useState("");
@@ -71,10 +70,8 @@ export default function NewTrade() {
   const [voiceError, setVoiceError] = useState<string | null>(null);
   const [sttMethod, setSttMethod] = useState<"elevenlabs" | "webspeech" | null>(null);
 
-  // Web Speech API ref
   const recognitionRef = useRef<any>(null);
 
-  // Form state
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");
   const [entryMarketCap, setEntryMarketCap] = useState("");
@@ -90,7 +87,19 @@ export default function NewTrade() {
   const [quickTags, setQuickTags] = useState<string[]>([]);
   const [transcript, setTranscript] = useState("");
 
-  // ── Try ElevenLabs first, fall back to Web Speech API ──
+  // ElevenLabs Scribe hook
+  const scribe = useScribe({
+    modelId: "scribe_v2_realtime",
+    commitStrategy: CommitStrategy.VAD,
+    onPartialTranscript: (data) => {
+      setLivePartial(data.text);
+    },
+    onCommittedTranscript: (data) => {
+      setFullTranscript((prev) => (prev ? `${prev} ${data.text}` : data.text));
+      setLivePartial("");
+    },
+  });
+
   const startRecording = useCallback(async () => {
     setVoiceError(null);
 
@@ -103,29 +112,31 @@ export default function NewTrade() {
         console.error("[Voice] Supabase invoke error:", error);
         throw new Error(`Token fetch failed: ${error.message || JSON.stringify(error)}`);
       }
-
       if (data?.error) {
         console.error("[Voice] Edge function returned error:", data.error);
         throw new Error(`ElevenLabs: ${data.error}`);
       }
-
       if (!data?.token) {
         console.error("[Voice] No token in response:", data);
         throw new Error("No token returned from edge function");
       }
 
-      // ElevenLabs token obtained — try dynamic import of @elevenlabs/react
       console.log("[Voice] Token obtained, connecting ElevenLabs Scribe…");
-      // Since useScribe is a hook, we can't dynamically use it here.
-      // Fall through to Web Speech API for now since ElevenLabs API key lacks STT permission.
-      throw new Error("ElevenLabs STT permission issue — using browser fallback");
+      setFullTranscript("");
+      setLivePartial("");
+      setIsRecording(true);
+      setSttMethod("elevenlabs");
+
+      await scribe.connect({
+        token: data.token,
+        microphone: { echoCancellation: true, noiseSuppression: true },
+      });
     } catch (elevenLabsErr: any) {
       console.warn("[Voice] ElevenLabs unavailable:", elevenLabsErr.message);
 
       // Fall back to Web Speech API
       if (!SpeechRecognition) {
-        const msg = `ElevenLabs failed: ${elevenLabsErr.message}. Browser Speech API also unavailable.`;
-        setVoiceError(msg);
+        setVoiceError(`ElevenLabs failed: ${elevenLabsErr.message}. Browser Speech API also unavailable.`);
         toast.error("Voice recording unavailable");
         return;
       }
@@ -134,7 +145,7 @@ export default function NewTrade() {
       setSttMethod("webspeech");
       startWebSpeech();
     }
-  }, []);
+  }, [scribe]);
 
   const startWebSpeech = useCallback(() => {
     try {
@@ -149,16 +160,11 @@ export default function NewTrade() {
       recognition.onresult = (event: any) => {
         let interim = "";
         let final = "";
-
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const t = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            final += t;
-          } else {
-            interim += t;
-          }
+          if (event.results[i].isFinal) final += t;
+          else interim += t;
         }
-
         if (final) {
           committed = committed ? `${committed} ${final}` : final;
           setFullTranscript(committed);
@@ -168,20 +174,15 @@ export default function NewTrade() {
 
       recognition.onerror = (event: any) => {
         console.error("[WebSpeech] Error:", event.error);
-        if (event.error === "not-allowed") {
-          setVoiceError("Microphone permission denied. Please allow mic access and try again.");
-        } else {
-          setVoiceError(`Speech recognition error: ${event.error}`);
-        }
+        setVoiceError(event.error === "not-allowed"
+          ? "Microphone permission denied. Please allow mic access and try again."
+          : `Speech recognition error: ${event.error}`);
         setIsRecording(false);
       };
 
       recognition.onend = () => {
-        // If still recording, restart (Web Speech API can stop unexpectedly)
-        if (recognitionRef.current && isRecording) {
-          try {
-            recognition.start();
-          } catch {}
+        if (recognitionRef.current) {
+          try { recognition.start(); } catch {}
         }
       };
 
@@ -189,17 +190,16 @@ export default function NewTrade() {
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
-      console.log("[WebSpeech] Recording started");
     } catch (err: any) {
-      console.error("[WebSpeech] Start error:", err);
       setVoiceError(`Failed to start recording: ${err.message}`);
     }
-  }, [isRecording]);
+  }, []);
 
   const stopRecording = useCallback(async () => {
-    // Stop Web Speech API
-    if (recognitionRef.current) {
-      recognitionRef.current.onend = null; // prevent auto-restart
+    if (sttMethod === "elevenlabs") {
+      scribe.disconnect();
+    } else if (recognitionRef.current) {
+      recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
@@ -218,7 +218,6 @@ export default function NewTrade() {
     setIsParsing(true);
 
     try {
-      console.log("[Parse] Sending transcript to AI parser…");
       const { data, error } = await supabase.functions.invoke("parse-trade-transcript", {
         body: { transcript: finalTranscript },
       });
@@ -252,25 +251,17 @@ export default function NewTrade() {
     } finally {
       setIsParsing(false);
     }
-  }, [fullTranscript, livePartial]);
+  }, [scribe, sttMethod, fullTranscript, livePartial]);
 
   const toggleEmotion = (e: EmotionalState) =>
-    setEmotions((prev) =>
-      prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
-    );
+    setEmotions((prev) => prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]);
 
   const toggleTag = (t: string) =>
-    setQuickTags((prev) =>
-      prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]
-    );
+    setQuickTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
 
   const handleSave = () => {
     if (!tokenName.trim()) return;
-
-    if (getNonDemoTradeCount() >= FREE_LIMIT) {
-      navigate("/paywall");
-      return;
-    }
+    if (getNonDemoTradeCount() >= FREE_LIMIT) { navigate("/paywall"); return; }
 
     const trade: Trade = {
       id: crypto.randomUUID(),
@@ -303,21 +294,16 @@ export default function NewTrade() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
-      {/* Header */}
       <header className="flex items-center gap-3 px-5 py-4 pt-safe-top">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card"
-        >
+        <button onClick={() => navigate(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card">
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-base font-bold">New Trade — Entry</h1>
       </header>
 
       <div className="flex flex-col gap-6 px-5">
-        {/* ──────── VOICE SECTION ──────── */}
+        {/* Voice section */}
         <div className="flex flex-col items-center gap-4 rounded-2xl bg-card p-6">
-          {/* Error display */}
           {voiceError && (
             <Alert variant="destructive" className="w-full">
               <AlertTriangle className="h-4 w-4" />
@@ -325,91 +311,56 @@ export default function NewTrade() {
             </Alert>
           )}
 
-          {/* STT method indicator */}
           {isRecording && sttMethod === "webspeech" && (
             <p className="text-[10px] text-muted-foreground">Using browser speech recognition</p>
           )}
 
-          {/* Mic button */}
           <button
             onClick={isRecording ? stopRecording : startRecording}
             disabled={isParsing}
             className={cn(
               "group relative flex h-28 w-28 items-center justify-center rounded-full transition-all active:scale-[0.93]",
-              isRecording
-                ? "bg-red-500/20"
-                : isParsing
-                  ? "bg-muted"
-                  : "bg-primary/15"
+              isRecording ? "bg-red-500/20" : isParsing ? "bg-muted" : "bg-primary/15"
             )}
           >
-            {isRecording && (
-              <div className="absolute inset-0 animate-ping rounded-full bg-red-500/10" />
-            )}
-            <div
-              className={cn(
-                "flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-colors",
-                isRecording
-                  ? "bg-red-500 shadow-red-500/30"
-                  : isParsing
-                    ? "bg-muted-foreground/30"
-                    : "bg-primary shadow-primary/30"
-              )}
-            >
-              {isParsing ? (
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              ) : isRecording ? (
-                <Square className="h-7 w-7 text-white" fill="white" />
-              ) : (
-                <Mic className="h-8 w-8 text-primary-foreground" />
-              )}
+            {isRecording && <div className="absolute inset-0 animate-ping rounded-full bg-red-500/10" />}
+            <div className={cn(
+              "flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-colors",
+              isRecording ? "bg-red-500 shadow-red-500/30" : isParsing ? "bg-muted-foreground/30" : "bg-primary shadow-primary/30"
+            )}>
+              {isParsing ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                : isRecording ? <Square className="h-7 w-7 text-white" fill="white" />
+                : <Mic className="h-8 w-8 text-primary-foreground" />}
             </div>
           </button>
 
           <p className="text-xs text-muted-foreground">
-            {isParsing
-              ? "Parsing your trade…"
-              : isRecording
-                ? "Listening — tap to stop"
-                : "Tap to record your trade entry"}
+            {isParsing ? "Parsing your trade…" : isRecording ? "Listening — tap to stop" : "Tap to record your trade entry"}
           </p>
 
-          {/* Live transcript */}
           {(isRecording || displayTranscript) && (
             <div className="w-full rounded-xl bg-background/50 p-4">
               <p className="text-sm leading-relaxed text-foreground">
-                {displayTranscript || (
-                  <span className="text-muted-foreground italic">Waiting for speech…</span>
-                )}
+                {displayTranscript || <span className="text-muted-foreground italic">Waiting for speech…</span>}
               </p>
             </div>
           )}
         </div>
 
-        {/* ──────── PARSED FORM ──────── */}
+        {/* Form fields */}
         {(tokenName || transcript) && (
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Review & correct
-          </p>
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Review & correct</p>
         )}
 
-        {/* Token + Chain */}
         <div className="grid grid-cols-[1fr_100px] gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Token *</label>
-            <Input
-              placeholder="e.g. BONK"
-              value={tokenName}
-              onChange={(e) => setTokenName(e.target.value)}
-              className="bg-card border-border"
-            />
+            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-card border-border" />
           </div>
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Chain</label>
             <Select value={chain} onValueChange={setChain}>
-              <SelectTrigger className="bg-card border-border">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="SOL">SOL</SelectItem>
                 <SelectItem value="ETH">ETH</SelectItem>
@@ -420,7 +371,6 @@ export default function NewTrade() {
           </div>
         </div>
 
-        {/* Market cap + Price + Size */}
         <div className="grid grid-cols-3 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Entry MC</label>
@@ -436,7 +386,6 @@ export default function NewTrade() {
           </div>
         </div>
 
-        {/* Setup + Narrative */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-muted-foreground">Setup Type</label>
@@ -448,41 +397,24 @@ export default function NewTrade() {
           </div>
         </div>
 
-        {/* Toggles row */}
         <div className="flex flex-wrap gap-2">
           {[
             { label: "Volume ✓", active: volumeConfirmed, toggle: () => setVolumeConfirmed(!volumeConfirmed) },
             { label: "Wallets ✓", active: walletConfirmed, toggle: () => setWalletConfirmed(!walletConfirmed) },
           ].map((item) => (
-            <button
-              key={item.label}
-              onClick={item.toggle}
-              className={cn(
-                "flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors active:scale-[0.96]",
-                item.active
-                  ? "bg-primary/20 text-primary"
-                  : "bg-card text-muted-foreground"
-              )}
-            >
-              {item.active && <Check className="h-3 w-3" />}
-              {item.label}
+            <button key={item.label} onClick={item.toggle} className={cn("flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-medium transition-colors active:scale-[0.96]", item.active ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>
+              {item.active && <Check className="h-3 w-3" />}{item.label}
             </button>
           ))}
-
           <Select value={interruptionStatus} onValueChange={(v) => setInterruptionStatus(v as "interrupted" | "clean")}>
-            <SelectTrigger className="h-9 w-auto gap-1.5 rounded-lg bg-card border-border text-xs">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-9 w-auto gap-1.5 rounded-lg bg-card border-border text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="clean">Clean session</SelectItem>
               <SelectItem value="interrupted">Interrupted</SelectItem>
             </SelectContent>
           </Select>
-
           <Select value={sessionType} onValueChange={(v) => setSessionType(v as "work-trade" | "full-session")}>
-            <SelectTrigger className="h-9 w-auto gap-1.5 rounded-lg bg-card border-border text-xs">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="h-9 w-auto gap-1.5 rounded-lg bg-card border-border text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="full-session">Full session</SelectItem>
               <SelectItem value="work-trade">Work trade</SelectItem>
@@ -490,67 +422,32 @@ export default function NewTrade() {
           </Select>
         </div>
 
-        {/* Emotional state */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Emotional State</label>
           <div className="flex flex-wrap gap-1.5">
             {EMOTIONS.map((em) => (
-              <button
-                key={em.value}
-                onClick={() => toggleEmotion(em.value)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]",
-                  emotions.includes(em.value)
-                    ? "bg-primary/20 text-primary"
-                    : "bg-card text-muted-foreground"
-                )}
-              >
-                {em.label}
-              </button>
+              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{em.label}</button>
             ))}
           </div>
         </div>
 
-        {/* Quick tags */}
         <div className="space-y-2">
           <label className="text-xs font-medium text-muted-foreground">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
             {QUICK_TAGS.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
-                className={cn(
-                  "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]",
-                  quickTags.includes(tag)
-                    ? "bg-primary/20 text-primary"
-                    : "bg-card text-muted-foreground"
-                )}
-              >
-                {tag}
-              </button>
+              <button key={tag} onClick={() => toggleTag(tag)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", quickTags.includes(tag) ? "bg-primary/20 text-primary" : "bg-card text-muted-foreground")}>{tag}</button>
             ))}
           </div>
         </div>
 
-        {/* Transcript */}
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Entry Notes / Transcript</label>
-          <Textarea
-            placeholder="Your voice transcript appears here, or type notes…"
-            value={transcript}
-            onChange={(e) => setTranscript(e.target.value)}
-            className="min-h-[80px] bg-card border-border"
-          />
+          <Textarea placeholder="Your voice transcript appears here, or type notes…" value={transcript} onChange={(e) => setTranscript(e.target.value)} className="min-h-[80px] bg-card border-border" />
         </div>
       </div>
 
-      {/* Save button */}
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
-        <Button
-          onClick={handleSave}
-          disabled={!tokenName.trim() || isParsing}
-          className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground active:scale-[0.97]"
-        >
+        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground active:scale-[0.97]">
           Save Entry
         </Button>
       </div>

@@ -320,7 +320,7 @@ export default function TradeDetail() {
         </div>
       )}
       {isClosed && !trade.reflectionNote && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
+        <div className="fixed bottom-6 left-0 right-0 z-30 flex gap-2 px-5">
           <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
             <MessageCircle className="h-4 w-4" /> Add Reflection
           </button>

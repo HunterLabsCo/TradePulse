@@ -397,8 +397,46 @@ export default function TradeDetail() {
       <UpdateModal
         open={showUpdateModal}
         onOpenChange={setShowUpdateModal}
-        onSave={handleSaveUpdate}
-      />
+      {/* Delete Confirmation Modal */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete this trade?</DialogTitle>
+            <DialogDescription>
+              This will permanently delete this trade and all its exits, updates, and notes. This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1.5">Type <span className="font-bold text-foreground">DELETE</span> to confirm</p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="h-9 text-sm font-mono"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                className="flex-1"
+                disabled={deleteConfirmText !== "DELETE"}
+                onClick={() => {
+                  deleteTrade(trade.id);
+                  setShowDeleteModal(false);
+                  toast.success("Trade deleted");
+                  navigate("/journal");
+                }}
+              >
+                Delete Trade
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

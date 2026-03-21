@@ -20,10 +20,12 @@ import type { ExitEvent, TradeNote, EmotionalState } from "@/lib/sample-data";
 
 function Section({
   title,
+  icon,
   children,
   defaultOpen = false,
 }: {
   title: string;
+  icon?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
@@ -31,7 +33,9 @@ function Section({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left active:scale-[0.98]">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{title}</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          {icon && <span className="mr-1">{icon}</span>}{title}
+        </span>
         <ChevronDown
           className={cn(
             "h-4 w-4 text-muted-foreground transition-transform",
@@ -52,6 +56,39 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
       <span className="text-xs font-medium text-foreground text-right">
         {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
       </span>
+    </div>
+  );
+}
+
+function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
+  if (updates.length === 0) {
+    return <p className="text-xs text-muted-foreground italic">No updates logged yet.</p>;
+  }
+  return (
+    <div className="space-y-2">
+      {[...updates].reverse().map((n) => (
+        <div key={n.id} className="rounded-lg bg-background p-3 border border-border/50">
+          <div className="mb-1">
+            <span className="text-[10px] font-semibold text-primary">⚡ Trade Update</span>
+          </div>
+          <p className="text-xs leading-relaxed whitespace-pre-line">{n.text}</p>
+          {n.emotions && n.emotions.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-1">
+              {n.emotions.map((e) => (
+                <EmotionBadge key={e} emotion={e} />
+              ))}
+            </div>
+          )}
+          <div className="mt-1.5 flex items-center gap-2">
+            <span className="text-[10px] text-muted-foreground tabular-nums">
+              {new Date(n.timestamp).toLocaleString()}
+            </span>
+            <span className="text-[9px] rounded px-1.5 py-0.5 font-medium bg-primary/10 text-primary">
+              Mid-trade update
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -77,6 +114,9 @@ export default function TradeDetail() {
   const exitEvents = trade.exitEvents ?? [];
   const tradeNotes = trade.tradeNotes ?? [];
 
+  const updateNotes = tradeNotes.filter((n) => n.noteType === "update");
+  const directNotes = tradeNotes.filter((n) => n.noteType !== "update");
+
   const totalPercentClosed = exitEvents.reduce((s, e) => s + e.percentClosed, 0);
   const remainingPercent = Math.max(0, 100 - totalPercentClosed);
 
@@ -99,11 +139,9 @@ export default function TradeDetail() {
   };
 
   const handleSaveUpdate = (note: TradeNote, _emotions: EmotionalState[]) => {
-    // UpdateModal already enriches the note text with emotions
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
-  // Format confirmation signals for display
   const confirmationSignals = trade.confirmationSignals ?? [];
   const confirmationOther = trade.confirmationSignalOther;
 
@@ -231,14 +269,19 @@ export default function TradeDetail() {
           <ExitHistory events={exitEvents} />
         </Section>
 
-        {/* Notes Feed */}
-        <Section title={`Notes (${tradeNotes.length})`}>
+        {/* Updates — separate section */}
+        <Section title={`Updates (${updateNotes.length})`} icon="⚡">
+          <UpdatesFeed updates={updateNotes} />
+        </Section>
+
+        {/* Notes — separate section */}
+        <Section title={`Notes (${directNotes.length})`} icon="📝">
           <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
         </Section>
 
         {/* Updates (legacy) */}
         {trade.updates.length > 0 && (
-          <Section title={`Updates (${trade.updates.length})`}>
+          <Section title={`Legacy Updates (${trade.updates.length})`}>
             <div className="space-y-4">
               {trade.updates.map((u) => (
                 <div key={u.id} className="border-l-2 border-border pl-3">
@@ -304,7 +347,7 @@ export default function TradeDetail() {
 
       {/* Action Buttons — OPEN trades only */}
       {isOpen && (
-        <div className="fixed bottom-6 left-0 right-0 z-30 flex gap-2 px-5">
+        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
           <button
             onClick={() => setShowUpdateModal(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
@@ -320,11 +363,21 @@ export default function TradeDetail() {
         </div>
       )}
       {isClosed && !trade.reflectionNote && (
-        <div className="fixed bottom-6 left-0 right-0 z-30 flex gap-2 px-5">
+        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
           <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
             <MessageCircle className="h-4 w-4" /> Add Reflection
           </button>
         </div>
+      )}
+
+      {/* Floating Exit FAB — open trades */}
+      {isOpen && (
+        <button
+          onClick={() => setShowExitModal(true)}
+          className="fixed bottom-36 right-5 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-destructive shadow-lg shadow-destructive/30 active:scale-[0.95]"
+        >
+          <LogOut className="h-5 w-5 text-destructive-foreground" />
+        </button>
       )}
 
       {/* Exit Modal */}

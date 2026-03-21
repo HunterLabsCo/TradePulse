@@ -44,6 +44,7 @@ export interface TradeNote {
   timestamp: string;
   duringSession: boolean;
   noteType?: "update" | "note";
+  emotions?: EmotionalState[];
 }
 
 export interface Trade {

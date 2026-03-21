@@ -29,14 +29,14 @@ export default function Index() {
       <header className="px-5 pt-safe-top">
         <div className="flex items-center justify-between py-4">
           <div>
-            <h1 className="font-display text-lg font-700 tracking-tight text-foreground">TradeSnap</h1>
-            <p className="font-body text-xs font-300 text-muted-foreground">Voice trade journal</p>
+            <h1 className="font-display text-[22px] font-bold tracking-[-0.01em] text-foreground">TradeSnap</h1>
+            <p className="font-body text-[12px] font-normal text-muted-foreground">Voice trade journal</p>
           </div>
           {nonDemoCount < FREE_LIMIT && (
-            <div className="rounded-xl bg-secondary border border-border px-3 py-1.5 text-right">
+            <div className="rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-3 py-1.5 text-right">
               <p className="section-label">Free trades</p>
-              <p className="font-display text-sm font-600 tabular-nums tracking-data text-foreground">
-                {nonDemoCount} <span className="font-body font-300 text-muted-foreground">/ {FREE_LIMIT}</span>
+              <p className="font-display text-[18px] font-semibold tabular-nums tracking-data text-foreground">
+                {nonDemoCount} <span className="font-body font-light text-muted-foreground">/ {FREE_LIMIT}</span>
               </p>
             </div>
           )}
@@ -53,7 +53,7 @@ export default function Index() {
           <div key={label} className="rounded-xl bg-card border border-border p-3 text-center">
             <p className="section-label">{label}</p>
             <p className={cn(
-              "mt-0.5 font-display text-2xl font-600 tabular-nums tracking-data",
+              "mt-0.5 font-display text-[28px] font-bold tabular-nums leading-none tracking-data",
               highlight ? "text-primary" : "text-foreground"
             )}>{value}</p>
           </div>
@@ -72,10 +72,10 @@ export default function Index() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-display text-sm font-600 truncate text-foreground">{trade.tokenName}</span>
-                  <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">{trade.chain}</span>
+                  <span className="font-display text-[15px] font-semibold truncate text-foreground">{trade.tokenName}</span>
+                  <span className="rounded-full border border-[hsl(0_0%_20%)] px-[7px] py-[2px] font-body text-[10px] font-medium tracking-[0.05em] text-[hsl(var(--text-secondary))]">{trade.chain}</span>
                   {trade.isDemo && (
-                    <span className="font-body text-[9px] font-400 rounded bg-[hsl(var(--text-primary)/0.06)] px-1.5 py-0.5 text-[hsl(var(--text-muted))]">DEMO</span>
+                    <span className="rounded-full border border-[hsl(0_0%_20%)] px-[7px] py-[2px] font-body text-[10px] font-medium tracking-[0.05em] text-[hsl(var(--text-secondary))]">DEMO</span>
                   )}
                 </div>
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -88,7 +88,7 @@ export default function Index() {
                 {trade.status === "closed" && trade.finalPnl !== undefined ? (
                   <PnlBadge pnl={trade.finalPnl} />
                 ) : (
-                  <span className="rounded-md border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[11px] font-400 text-primary">OPEN</span>
+                  <span className="rounded-full border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-primary">OPEN</span>
                 )}
                 <ChevronRight className="h-4 w-4 text-[hsl(var(--text-muted))]" />
               </div>
@@ -96,7 +96,7 @@ export default function Index() {
           ))}
           {recentTrades.length === 0 && (
             <div className="rounded-xl bg-card border border-border p-8 text-center">
-              <p className="font-body text-sm font-300 text-muted-foreground">No trades yet. Tap below to log your first trade.</p>
+              <p className="font-body text-sm font-light text-muted-foreground">No trades yet. Tap below to log your first trade.</p>
             </div>
           )}
         </div>
@@ -106,7 +106,7 @@ export default function Index() {
       <div className="fixed bottom-20 left-0 right-0 px-5">
         <button
           onClick={() => navigate("/new-trade")}
-          className="flex w-full items-center justify-center gap-2 rounded-[14px] bg-primary py-4 font-display text-[15px] font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] transition-all active:scale-[0.97]"
+          className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-primary py-4 font-display text-[16px] font-bold text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] transition-all active:scale-[0.97]"
         >
           <Mic className="h-5 w-5" />
           New Trade

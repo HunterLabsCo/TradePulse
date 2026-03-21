@@ -30,11 +30,15 @@ export function createVoiceRecorder(options: {
     }
   };
 
+  const silenceTimeout = options.silenceTimeoutMs;
+  const autoStopEnabled = silenceTimeout !== null && silenceTimeout !== undefined;
+
   const resetSilenceTimer = () => {
     clearSilenceTimer();
+    if (!autoStopEnabled) return;
     silenceTimer = setTimeout(() => {
       stop();
-    }, SILENCE_TIMEOUT_MS);
+    }, silenceTimeout);
   };
 
   const stop = () => {

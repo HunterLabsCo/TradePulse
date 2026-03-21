@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, LogOut, MessageCircle, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, LogOut, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { useTradeStore } from "@/lib/trade-store";
 import { PnlBadge } from "@/components/PnlBadge";
@@ -132,6 +132,7 @@ export default function TradeDetail() {
     updateTrade(trade.id, updates);
     setShowExitModal(false);
     toast.success("Exit logged ✓", { duration: 2000 });
+    navigate("/journal");
   };
 
   const handleAddNote = (note: TradeNote) => {
@@ -146,11 +147,11 @@ export default function TradeDetail() {
   const confirmationOther = trade.confirmationSignalOther;
 
   return (
-    <div className="flex min-h-screen flex-col pb-24">
+    <div className="flex min-h-screen flex-col pb-40">
       {/* Header */}
       <header className="px-5 py-4 pt-safe-top">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
           className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card mb-3"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -359,13 +360,6 @@ export default function TradeDetail() {
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive/15 py-3 text-xs font-semibold text-destructive active:scale-[0.97]"
           >
             <LogOut className="h-4 w-4" /> Log Exit
-          </button>
-        </div>
-      )}
-      {isClosed && !trade.reflectionNote && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
-          <button className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
-            <MessageCircle className="h-4 w-4" /> Add Reflection
           </button>
         </div>
       )}

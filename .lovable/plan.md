@@ -1,58 +1,73 @@
 
 
-# New Trade Entry Page — 9-Point Update
+# Rebuild Exit Logging + Live Trade Notes
 
 ## Summary
 
-Nine targeted changes to the New Trade form: remove entry price, fix token parsing, upgrade setup type to dropdown, add indicators field, replace volume/wallet toggles with multi-select confirmation signals, expand session status, expand emotional state grid with free text, split transcript from notes, and general cleanup.
+Six parts: fix broken buttons, Quick Exit Modal with remaining-position tracking, floating exit FAB, exit history, live notes feed, and closed-trade summary with unaccounted-position warning.
 
-## Changes
+## File Changes
 
-### 1. Update `src/lib/sample-data.ts` — Expand Types
+### 1. `src/lib/sample-data.ts` — New Types
 
-- Add new `EmotionalState` values: `"disciplined"`, `"hesitant"`, `"impulsive"`, `"euphoric"`, `"detached"`, `"sharp"`, `"tired"`
-- Expand `Trade.sessionType` union to include all 6 new statuses: `"full-session"`, `"partially-interrupted"`, `"intermittently-interrupted"`, `"work-trade"`, `"mobile-only"`, `"forced-exit-risk"`
-- Remove `interruptionStatus` field (replaced by expanded `sessionType`)
-- Add new optional fields to `Trade`: `confirmationSignals: string[]`, `confirmationSignalOther?: string`, `indicatorsUsed?: string`, `emotionFreeText?: string`, `additionalNotes?: string`
-- Keep `entryPrice` in the type (other pages may use it) but remove from the form
+Add:
+```typescript
+export type ExitType = "take-profit" | "stop-loss" | "partial-exit" | "full-exit" | "moon-bag";
 
-### 2. Update `supabase/functions/parse-trade-transcript/index.ts` — Fix Parser
+export interface ExitEvent {
+  id: string;
+  exitType: ExitType;
+  percentClosed: number;
+  pnlPercent: number;
+  emotionalState: EmotionalState[];
+  note?: string;
+  timestamp: string;
+}
 
-- **Token name fix**: Update system prompt to instruct AI to extract only the ticker symbol (1-4 words max, typically the first proper noun after "entering/entered/bought")
-- Add the new emotional states to the enum list
-- Update `sessionType` enum to match new values
-- Replace `volumeConfirmed`/`walletConfirmed` with `confirmationSignals` array
-- Remove `entryPrice` from tool schema
-- Add `interruptionStatus` → `sessionType` mapping in prompt
+export interface TradeNote {
+  id: string;
+  text: string;
+  timestamp: string;
+  duringSession: boolean;
+}
+```
 
-### 3. Rebuild `src/pages/NewTrade.tsx` — All 9 Form Changes
+Add to `Trade`: `exitEvents?: ExitEvent[]`, `tradeNotes?: TradeNote[]`, `closedAt?: string`.
 
-**State changes:**
-- Remove `entryPrice` state
-- Remove `volumeConfirmed`, `walletConfirmed`, `interruptionStatus` states
-- Add: `confirmationSignals: string[]`, `confirmationSignalOther: string`, `indicatorsUsed: string`, `showIndicators: boolean`, `emotionFreeText: string`, `additionalNotes: string`, `customSetupType: string`
-- Change `sessionType` to use new expanded union
-- Change `setupType` to use dropdown values
+### 2. `src/components/EmotionBadge.tsx` — Missing Colors
 
-**Form layout (top to bottom):**
-1. Voice recorder section (unchanged)
-2. Token + Chain row (unchanged, minus entry price)
-3. Entry MC + Size row (2 columns instead of 3)
-4. Setup Type dropdown + Narrative row — Setup Type becomes a `<Select>` with 8 options; "Custom" shows a text input
-5. Collapsible "Add indicators" section with free text input
-6. "Confirmation Signals" multi-select chips: Volume, Wallets, Social/Twitter, Chart Pattern, Gut/Intuition, Other (Other shows free text)
-7. "Session Status" single `<Select>` with 6 options (replaces both old dropdowns)
-8. Emotional State grid — add 7 new tags + free text field below
-9. Quick Tags (unchanged)
-10. "Raw Transcript" section — darker bg, read-only display
-11. "Additional Notes" section — editable textarea below transcript
+Add mappings for `disciplined`, `hesitant`, `impulsive`, `euphoric`, `detached`, `sharp`, `tired`.
 
-**Save handler:** Map new fields to the Trade object. Pass `confirmationSignals`, `indicatorsUsed`, `emotionFreeText`, `additionalNotes` through.
+### 3. `src/pages/TradeDetail.tsx` — Full Rebuild
 
-**Parser response handling:** Map new parsed fields (`confirmationSignals`, expanded `sessionType`, new emotions) to form state.
+**Part 1 — Fix Buttons**: Add `onClick` handlers. Update opens inline edit mode (toggle state). Log Exit opens exit drawer.
+
+**Part 2 — Quick Exit Modal** (Drawer):
+- Exit Type: tap buttons (Take Profit, Stop Loss, Partial Exit, Full Exit, Moon Bag)
+- % Position Closed:
+  - Compute `remainingPercent = 100 - Σ(exitEvents.percentClosed)`
+  - Display **"Remaining position: X%"** label
+  - Only show preset chips (25/50/75/100) where value ≤ remainingPercent
+  - Custom input enforces max = remainingPercent with error if exceeded
+- P&L %: preset chips (-30/+25/+50/+100/+200) + Custom
+- Emotional State: multi-select chips
+- Quick Note: mic button (Web Speech) + text toggle
+- Save: push ExitEvent to `trade.exitEvents[]`. If type is `full-exit` or `moon-bag`, set `status: "closed"` and `closedAt`.
+
+**Part 3 — Floating Exit FAB**: Fixed bottom-24 right-5, LogOut icon, open trades only. Opens exit drawer.
+
+**Part 4 — Exit History Section**: Collapsible section after Entry. Cards show type, %, P&L, timestamp, note, emotion tags. Empty state: "No exits logged yet."
+
+**Part 5 — Live Notes Feed**: Section after Exit History. Voice Note (mic/Web Speech) + Text Note (textarea). Each card: text, timestamp, "During session" / "Post-session" label. Stored in `trade.tradeNotes[]`.
+
+**Part 6 — Summary Row** (closed trades only): Card above Entry showing:
+- Total realized P&L: `Σ(pnlPercent × percentClosed / 100)`
+- **Warning**: If `Σ(percentClosed) ≠ 100`, display "⚠️ Position not fully accounted for"
+- Number of exits
+- Duration: entryTime → closedAt
 
 ### Files Modified
 - `src/lib/sample-data.ts`
-- `src/pages/NewTrade.tsx`
-- `supabase/functions/parse-trade-transcript/index.ts`
+- `src/components/EmotionBadge.tsx`
+- `src/pages/TradeDetail.tsx`
 

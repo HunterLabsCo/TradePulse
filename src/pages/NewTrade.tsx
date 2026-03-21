@@ -71,6 +71,8 @@ export default function NewTrade() {
   const [sttMethod, setSttMethod] = useState<"elevenlabs" | "webspeech" | null>(null);
 
   const recognitionRef = useRef<any>(null);
+  const fullTranscriptRef = useRef("");
+  const livePartialRef = useRef("");
 
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");
@@ -92,11 +94,19 @@ export default function NewTrade() {
     modelId: "scribe_v2_realtime",
     commitStrategy: CommitStrategy.VAD,
     onPartialTranscript: (data) => {
+      console.log("[Scribe] Partial:", data.text);
       setLivePartial(data.text);
+      livePartialRef.current = data.text;
     },
     onCommittedTranscript: (data) => {
-      setFullTranscript((prev) => (prev ? `${prev} ${data.text}` : data.text));
+      console.log("[Scribe] Committed:", data.text);
+      setFullTranscript((prev) => {
+        const next = prev ? `${prev} ${data.text}` : data.text;
+        fullTranscriptRef.current = next;
+        return next;
+      });
       setLivePartial("");
+      livePartialRef.current = "";
     },
   });
 
@@ -122,6 +132,8 @@ export default function NewTrade() {
       }
 
       console.log("[Voice] Token obtained, connecting ElevenLabs Scribe…");
+      fullTranscriptRef.current = "";
+      livePartialRef.current = "";
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
@@ -156,6 +168,8 @@ export default function NewTrade() {
       recognitionRef.current = recognition;
 
       let committed = "";
+      fullTranscriptRef.current = "";
+      livePartialRef.current = "";
 
       recognition.onresult = (event: any) => {
         let interim = "";
@@ -168,8 +182,10 @@ export default function NewTrade() {
         if (final) {
           committed = committed ? `${committed} ${final}` : final;
           setFullTranscript(committed);
+          fullTranscriptRef.current = committed;
         }
         setLivePartial(interim);
+        livePartialRef.current = interim;
       };
 
       recognition.onerror = (event: any) => {
@@ -196,6 +212,13 @@ export default function NewTrade() {
   }, []);
 
   const stopRecording = useCallback(async () => {
+    // Read from refs BEFORE disconnecting to avoid stale closures
+    const capturedFull = fullTranscriptRef.current;
+    const capturedPartial = livePartialRef.current;
+    const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();
+
+    console.log("[Voice] Stopping. Full ref:", capturedFull, "Partial ref:", capturedPartial, "Final:", finalTranscript);
+
     if (sttMethod === "elevenlabs") {
       scribe.disconnect();
     } else if (recognitionRef.current) {
@@ -205,9 +228,8 @@ export default function NewTrade() {
     }
 
     setIsRecording(false);
-
-    const finalTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ").trim();
     setLivePartial("");
+    livePartialRef.current = "";
 
     if (!finalTranscript) {
       toast.error("No speech detected");

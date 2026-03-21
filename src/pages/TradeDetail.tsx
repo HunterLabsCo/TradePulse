@@ -90,6 +90,8 @@ export default function TradeDetail() {
     }
 
     updateTrade(trade.id, updates);
+    setShowExitModal(false);
+    toast.success("Exit logged ✓", { duration: 2000 });
   };
 
   const handleAddNote = (note: TradeNote) => {

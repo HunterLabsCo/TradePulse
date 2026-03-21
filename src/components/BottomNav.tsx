@@ -14,7 +14,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   // Hide nav on certain pages
-  if (["/new-trade", "/paywall"].includes(location.pathname)) return null;
+  if (["/new-trade", "/paywall"].includes(location.pathname) || location.pathname.startsWith("/trade/")) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 backdrop-blur-sm safe-area-bottom">

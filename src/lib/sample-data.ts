@@ -43,6 +43,7 @@ export interface TradeNote {
   text: string;
   timestamp: string;
   duringSession: boolean;
+  noteType?: "update" | "note";
 }
 
 export interface Trade {

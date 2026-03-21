@@ -98,14 +98,9 @@ export default function TradeDetail() {
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
-  const handleSaveUpdate = (note: TradeNote, emotions: EmotionalState[]) => {
-    // Add emotional state info to the note text if emotions were selected
-    const emotionSuffix = emotions.length > 0 ? `\n[Emotions: ${emotions.join(", ")}]` : "";
-    const enrichedNote: TradeNote = {
-      ...note,
-      text: note.text + emotionSuffix,
-    };
-    updateTrade(trade.id, { tradeNotes: [...tradeNotes, enrichedNote] });
+  const handleSaveUpdate = (note: TradeNote, _emotions: EmotionalState[]) => {
+    // UpdateModal already enriches the note text with emotions
+    updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
   // Format confirmation signals for display

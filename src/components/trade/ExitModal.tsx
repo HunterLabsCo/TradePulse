@@ -178,6 +178,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         setShowTextInput(true);
       },
       onStop: () => setIsPreFilling(false),
+      silenceTimeoutMs: 3000,
     });
     preFillRecorderRef.current = recorder;
     recorder.start();
@@ -196,6 +197,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         setNoteText((prev) => (prev + " " + text).trim());
       },
       onStop: () => setIsRecording(false),
+      silenceTimeoutMs: 3000,
     });
     noteRecorderRef.current = recorder;
     recorder.start();

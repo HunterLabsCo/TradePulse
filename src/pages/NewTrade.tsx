@@ -172,15 +172,8 @@ export default function NewTrade() {
   const [isRecordingNotes, setIsRecordingNotes] = useState(false);
   const notesRecRef = useRef<any>(null);
 
-  const SILENCE_TIMEOUT = 2500;
-  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // No silence auto-stop for entry form — manual stop only
 
-  const clearSilenceTimer = () => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-  };
 
   const startRecording = useCallback(() => {
     setVoiceError(null);
@@ -214,11 +207,7 @@ export default function NewTrade() {
         }
         setLivePartial(interim);
         livePartialRef.current = interim;
-        // Reset silence timer on any speech
-        clearSilenceTimer();
-        silenceTimerRef.current = setTimeout(() => {
-          stopRecording();
-        }, SILENCE_TIMEOUT);
+        // No silence auto-stop for entry — manual tap-to-stop only
       };
 
       recognition.onerror = (event: any) => {
@@ -228,7 +217,6 @@ export default function NewTrade() {
           ? "Microphone permission denied. Please allow mic access and try again."
           : `Speech recognition error: ${event.error}`);
         setIsRecording(false);
-        clearSilenceTimer();
       };
 
       recognition.onend = () => {
@@ -241,17 +229,13 @@ export default function NewTrade() {
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
-      // Start silence timer
-      silenceTimerRef.current = setTimeout(() => {
-        stopRecording();
-      }, SILENCE_TIMEOUT);
+      // No silence auto-stop for entry — manual tap-to-stop only
     } catch (err: any) {
       setVoiceError(`Failed to start recording: ${err.message}`);
     }
   }, []);
 
   const stopRecording = useCallback(async () => {
-    clearSilenceTimer();
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
     const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();

@@ -5,10 +5,11 @@ const SpeechRecognition =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
 
-const SILENCE_TIMEOUT_MS = 2500;
+const DEFAULT_SILENCE_TIMEOUT_MS = 2500;
 
 /**
- * Creates a speech recognition instance with 2.5s silence auto-stop.
+ * Creates a speech recognition instance with configurable silence auto-stop.
+ * Pass silenceTimeoutMs: null to disable auto-stop (manual only).
  * Always appends to existing text (never clears).
  * Returns control functions.
  */
@@ -16,6 +17,7 @@ export function createVoiceRecorder(options: {
   onText: (append: string) => void;
   onStop: () => void;
   onError?: (error: string) => void;
+  silenceTimeoutMs?: number | null;
 }): { start: () => void; stop: () => void; isSupported: boolean } {
   let recognition: any = null;
   let silenceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -28,11 +30,15 @@ export function createVoiceRecorder(options: {
     }
   };
 
+  const silenceTimeout = options.silenceTimeoutMs === undefined ? DEFAULT_SILENCE_TIMEOUT_MS : options.silenceTimeoutMs;
+  const autoStopEnabled = silenceTimeout !== null;
+
   const resetSilenceTimer = () => {
     clearSilenceTimer();
+    if (!autoStopEnabled) return;
     silenceTimer = setTimeout(() => {
       stop();
-    }, SILENCE_TIMEOUT_MS);
+    }, silenceTimeout);
   };
 
   const stop = () => {

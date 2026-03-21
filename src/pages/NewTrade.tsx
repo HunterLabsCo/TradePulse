@@ -449,13 +449,13 @@ export default function NewTrade() {
         {/* Token + Chain */}
         <div className="grid grid-cols-[1fr_100px] gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Token *</label>
-            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-card border-border" />
+            <label className="section-label">Token *</label>
+            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary focus-visible:border-primary" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Chain</label>
+            <label className="section-label">Chain</label>
             <Select value={chain} onValueChange={setChain}>
-              <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="SOL">SOL</SelectItem>
                 <SelectItem value="ETH">ETH</SelectItem>

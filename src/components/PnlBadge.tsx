@@ -12,12 +12,12 @@ export const PnlBadge = React.forwardRef<
     <span
       ref={ref}
       className={cn(
-        "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-bold tabular-nums tracking-tight",
+        "inline-flex items-center rounded-md px-2 py-0.5 font-body text-xs font-300 tracking-data tabular-nums",
         isZero
           ? "bg-muted text-muted-foreground"
           : isPositive
-            ? "bg-primary/15 text-primary"
-            : "bg-[hsl(0,100%,60%)]/15 text-[hsl(0,100%,60%)]",
+            ? "text-primary"
+            : "text-red-action",
         className
       )}
     >

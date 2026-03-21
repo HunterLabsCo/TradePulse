@@ -27,24 +27,24 @@ export function TradeSummary({ exitEvents, entryTime, closedAt }: TradeSummaryPr
   }
 
   return (
-    <div className="rounded-xl bg-card p-4 space-y-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Summary</p>
+    <div className="rounded-xl bg-card border border-border p-4 space-y-2">
+      <p className="section-label">Summary</p>
       <div className="flex items-center gap-3">
         <span
-          className={`text-lg font-bold tabular-nums ${
-            totalPnl >= 0 ? "text-primary" : "text-[hsl(0,100%,60%)]"
+          className={`font-display text-lg font-600 tabular-nums tracking-data ${
+            totalPnl >= 0 ? "text-primary" : "text-red-action"
           }`}
         >
           {totalPnl > 0 ? "+" : ""}{totalPnl.toFixed(1)}%
         </span>
         {!fullyAccounted && (
-          <span className="flex items-center gap-1 text-[10px] text-amber-400 font-medium">
+          <span className="flex items-center gap-1 font-body text-[10px] font-400 text-amber-400">
             <AlertTriangle className="h-3 w-3" />
             Position not fully accounted for
           </span>
         )}
       </div>
-      <div className="flex gap-4 text-[11px] text-muted-foreground">
+      <div className="flex gap-4 font-body text-[11px] font-300 text-muted-foreground">
         <span>{exitEvents.length} exit{exitEvents.length !== 1 ? "s" : ""}</span>
         {duration && <span>{duration}</span>}
       </div>

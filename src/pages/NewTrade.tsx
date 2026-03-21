@@ -128,8 +128,10 @@ function saveCustomTag(tag: string) {
 }
 
 /* Chip style helpers */
-const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
-const chipSelected = "bg-primary text-primary-foreground border border-primary";
+const chipBase = "rounded-full font-body text-[11px] font-300 transition-colors active:scale-[0.96]";
+const chipDefault = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
+const chipSelected = "bg-primary text-primary-foreground border border-primary font-400";
+const chipBlue = "bg-accent text-accent-foreground border border-accent font-400";
 
 export default function NewTrade() {
   const navigate = useNavigate();
@@ -388,24 +390,24 @@ export default function NewTrade() {
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
       <header className="flex items-center gap-3 px-5 py-4 pt-safe-top">
-        <button onClick={() => navigate(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card">
+        <button onClick={() => navigate(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card text-accent">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-bold">New Trade — Entry</h1>
+        <h1 className="font-display text-base font-600">New Trade — Entry</h1>
       </header>
 
       <div className="flex flex-col gap-6 px-5">
         {/* Voice section */}
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-card p-6">
+        <div className="flex flex-col items-center gap-4 rounded-2xl bg-card border border-border p-6">
           {voiceError && (
             <Alert variant="destructive" className="w-full">
               <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="text-xs">{voiceError}</AlertDescription>
+              <AlertDescription className="font-body text-xs font-300">{voiceError}</AlertDescription>
             </Alert>
           )}
 
           {isRecording && (
-            <p className="text-[10px] text-muted-foreground">Using browser speech recognition</p>
+            <p className="font-body text-[10px] font-300 text-muted-foreground">Using browser speech recognition</p>
           )}
 
           <button
@@ -413,28 +415,27 @@ export default function NewTrade() {
             disabled={isParsing}
             className={cn(
               "group relative flex h-28 w-28 items-center justify-center rounded-full transition-all active:scale-[0.93]",
-              isRecording ? "bg-destructive/20" : isParsing ? "bg-muted" : "bg-primary/15"
+              isRecording ? "bg-[hsl(var(--red-action)/0.15)]" : isParsing ? "bg-muted" : "bg-[hsl(var(--green-primary)/0.1)]"
             )}
           >
-            {isRecording && <div className="absolute inset-0 animate-ping rounded-full bg-destructive/10" />}
             <div className={cn(
-              "flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-colors",
-              isRecording ? "bg-destructive shadow-destructive/30" : isParsing ? "bg-muted-foreground/30" : "bg-primary shadow-primary/30"
+              "flex h-20 w-20 items-center justify-center rounded-full transition-colors",
+              isRecording ? "bg-destructive animate-pulse-red-glow" : isParsing ? "bg-muted-foreground/30" : "bg-primary animate-pulse-glow"
             )}>
               {isParsing ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                : isRecording ? <Square className="h-7 w-7 text-white" fill="white" />
+                : isRecording ? <Square className="h-7 w-7 text-foreground" fill="currentColor" />
                 : <Mic className="h-8 w-8 text-primary-foreground" />}
             </div>
           </button>
 
-          <p className="text-xs text-muted-foreground">
+          <p className="font-body text-xs font-300 text-muted-foreground">
             {isParsing ? "Parsing your trade…" : isRecording ? "Listening — tap to stop" : "Tap to record your trade entry"}
           </p>
 
           {(isRecording || displayTranscript) && (
-            <div className="w-full rounded-xl bg-background/50 p-4">
-              <p className="text-sm leading-relaxed text-foreground">
-                {displayTranscript || <span className="text-muted-foreground italic">Waiting for speech…</span>}
+            <div className="w-full rounded-xl bg-secondary border border-border p-4">
+              <p className="font-body text-sm font-300 leading-relaxed text-foreground">
+                {displayTranscript || <span className="text-[hsl(var(--text-muted))] italic">Waiting for speech…</span>}
               </p>
             </div>
           )}
@@ -442,19 +443,19 @@ export default function NewTrade() {
 
         {/* Form fields */}
         {(tokenName || rawTranscript) && (
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Review & correct</p>
+          <p className="section-label">Review & correct</p>
         )}
 
         {/* Token + Chain */}
         <div className="grid grid-cols-[1fr_100px] gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Token *</label>
-            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-card border-border" />
+            <label className="section-label">Token *</label>
+            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary focus-visible:border-primary" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Chain</label>
+            <label className="section-label">Chain</label>
             <Select value={chain} onValueChange={setChain}>
-              <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="SOL">SOL</SelectItem>
                 <SelectItem value="ETH">ETH</SelectItem>
@@ -469,21 +470,21 @@ export default function NewTrade() {
         {/* Entry MC + Size */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Entry MC</label>
-            <Input placeholder="80.7K" value={entryMarketCap} onChange={(e) => setEntryMarketCap(e.target.value)} className="bg-card border-border" />
+            <label className="section-label">Entry MC</label>
+            <Input placeholder="80.7K" value={entryMarketCap} onChange={(e) => setEntryMarketCap(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Size</label>
-            <Input placeholder="1.4 SOL" value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-card border-border" />
+            <label className="section-label">Size</label>
+            <Input placeholder="1.4 SOL" value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
           </div>
         </div>
 
         {/* Setup Type dropdown + Narrative */}
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Setup Type</label>
+            <label className="section-label">Setup Type</label>
             <Select value={setupType} onValueChange={setSetupType}>
-              <SelectTrigger className="bg-card border-border"><SelectValue placeholder="Select setup" /></SelectTrigger>
+              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue placeholder="Select setup" /></SelectTrigger>
               <SelectContent>
                 {SETUP_TYPES.map((st) => (
                   <SelectItem key={st} value={st}>{st}</SelectItem>
@@ -491,22 +492,22 @@ export default function NewTrade() {
               </SelectContent>
             </Select>
             {setupType === "Custom" && (
-              <Input placeholder="Describe setup…" value={customSetupType} onChange={(e) => setCustomSetupType(e.target.value)} className="mt-1.5 bg-card border-border" />
+              <Input placeholder="Describe setup…" value={customSetupType} onChange={(e) => setCustomSetupType(e.target.value)} className="mt-1.5 bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
             )}
           </div>
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">Narrative</label>
-            <Input placeholder="AI" value={narrativeType} onChange={(e) => setNarrativeType(e.target.value)} className="bg-card border-border" />
+            <label className="section-label">Narrative</label>
+            <Input placeholder="AI" value={narrativeType} onChange={(e) => setNarrativeType(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
           </div>
         </div>
 
         {/* Collapsible Indicators */}
         <Collapsible open={showIndicators} onOpenChange={setShowIndicators}>
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <button className="flex items-center gap-1.5 font-body text-xs font-300 text-muted-foreground hover:text-foreground transition-colors">
               <Plus className={cn("h-3.5 w-3.5 transition-transform", showIndicators && "rotate-45")} />
               Add indicators
-              <span className="text-[10px] text-muted-foreground/60">— optional</span>
+              <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">— optional</span>
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2">
@@ -514,35 +515,32 @@ export default function NewTrade() {
               placeholder="e.g. RSI, MACD, VWAP…"
               value={indicatorsUsed}
               onChange={(e) => setIndicatorsUsed(e.target.value)}
-              className="bg-card border-border"
+              className="bg-secondary border-border font-body font-300 focus-visible:ring-primary"
             />
           </CollapsibleContent>
         </Collapsible>
 
         {/* Confirmation Signals */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Confirmation Signals</label>
+          <label className="section-label">Confirmation Signals</label>
           <div className="flex flex-wrap gap-1.5">
             {CONFIRMATION_SIGNALS.map((sig) => (
               <button
                 key={sig}
                 onClick={() => toggleSignal(sig)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]",
-                  confirmationSignals.includes(sig)
-                    ? chipSelected
-                    : chipDefault
+                  chipBase, "px-2.5 py-1",
+                  confirmationSignals.includes(sig) ? chipSelected : chipDefault
                 )}
               >
                 {confirmationSignals.includes(sig) && <Check className="mr-1 inline h-3 w-3" />}
                 {sig}
               </button>
             ))}
-            {/* Custom signals */}
             {customSignals.map((sig) => (
               <span
                 key={sig}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-[hsl(var(--green-primary)/0.4)] bg-[hsl(var(--green-primary)/0.1)] px-2.5 py-1 font-body text-[11px] font-300 text-primary"
               >
                 {sig}
                 <button onClick={() => removeCustomSignal(sig)} className="hover:text-destructive">
@@ -556,19 +554,18 @@ export default function NewTrade() {
               placeholder="Describe signal…"
               value={confirmationSignalOther}
               onChange={(e) => setConfirmationSignalOther(e.target.value)}
-              className="mt-1.5 bg-card border-border"
+              className="mt-1.5 bg-secondary border-border font-body font-300 focus-visible:ring-primary"
             />
           )}
-          {/* Add custom signal input */}
           <div className="flex items-center gap-2 mt-1">
             <Input
               placeholder="+ Add your own"
               value={newCustomSignal}
               onChange={(e) => setNewCustomSignal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCustomSignal()}
-              className="h-8 bg-card border-border text-xs flex-1"
+              className="h-8 bg-secondary border-border font-body text-xs font-300 flex-1 focus-visible:ring-primary"
             />
-            <Button variant="ghost" size="sm" onClick={addCustomSignal} disabled={!newCustomSignal.trim()} className="h-8 px-2 text-xs">
+            <Button variant="ghost" size="sm" onClick={addCustomSignal} disabled={!newCustomSignal.trim()} className="h-8 px-2 font-body text-xs font-400">
               Add
             </Button>
           </div>
@@ -576,14 +573,14 @@ export default function NewTrade() {
 
         {/* Session Status */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Session Status</label>
+          <label className="section-label">Session Status</label>
           <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
-            <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
             <SelectContent>
               {SESSION_STATUSES.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
-                  <span>{s.label}</span>
-                  <span className="ml-1.5 text-[10px] text-muted-foreground">— {s.desc}</span>
+                  <span className="font-body font-400">{s.label}</span>
+                  <span className="ml-1.5 font-body text-[10px] font-300 text-muted-foreground">— {s.desc}</span>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -592,13 +589,12 @@ export default function NewTrade() {
 
         {/* Emotional State */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Emotional State</label>
+          <label className="section-label">Emotional State</label>
           <div className="flex flex-wrap gap-1.5">
             {EMOTIONS.map((em) => (
-              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", emotions.includes(em.value) ? chipSelected : chipDefault)}>{em.label}</button>
+              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn(chipBase, "px-2.5 py-1", emotions.includes(em.value) ? chipSelected : chipDefault)}>{em.label}</button>
             ))}
           </div>
-          {/* Voice for emotion description */}
           <button
             onClick={() =>
               isRecordingEmotion
@@ -607,40 +603,39 @@ export default function NewTrade() {
             }
             className={cn(
               "mt-2 flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingEmotion ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
+              isRecordingEmotion ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
             )}
           >
-            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
           </button>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="font-body text-[10px] font-300 text-muted-foreground">
             {isRecordingEmotion ? "Recording — tap to stop" : "Tap to describe by voice"}
           </p>
           <Textarea
             placeholder="Describe your emotional state in your own words (optional)"
             value={emotionFreeText}
             onChange={(e) => setEmotionFreeText(e.target.value)}
-            className="min-h-[60px] bg-card border-border text-xs"
+            className="min-h-[60px] bg-secondary border-border font-body text-xs font-300 focus-visible:ring-primary"
           />
         </div>
 
         {/* Quick Tags */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Quick Tags</label>
+          <label className="section-label">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
             {allQuickTags.map((tag) => (
-              <button key={tag} onClick={() => toggleTag(tag)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", quickTags.includes(tag) ? chipSelected : chipDefault)}>{tag}</button>
+              <button key={tag} onClick={() => toggleTag(tag)} className={cn(chipBase, "px-2.5 py-1", quickTags.includes(tag) ? chipBlue : chipDefault)}>{tag}</button>
             ))}
           </div>
-          {/* Add custom tag */}
           <div className="flex items-center gap-2 mt-1">
             <Input
               placeholder="+ Add custom tag"
               value={newCustomTag}
               onChange={(e) => setNewCustomTag(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCustomTag()}
-              className="h-8 bg-card border-border text-xs flex-1"
+              className="h-8 bg-secondary border-border font-body text-xs font-300 flex-1 focus-visible:ring-primary"
             />
-            <Button variant="ghost" size="sm" onClick={addCustomTag} disabled={!newCustomTag.trim()} className="h-8 px-2 text-xs">
+            <Button variant="ghost" size="sm" onClick={addCustomTag} disabled={!newCustomTag.trim()} className="h-8 px-2 font-body text-xs font-400">
               Add
             </Button>
           </div>
@@ -649,16 +644,14 @@ export default function NewTrade() {
         {/* Raw Transcript */}
         {rawTranscript && (
           <div className="space-y-1.5">
-            <label className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Raw Transcript</label>
-            <div className="rounded-xl bg-muted/50 border border-border p-4">
-              <p className="text-sm leading-relaxed text-accent">{rawTranscript}</p>
-            </div>
+            <label className="section-label">Raw Transcript</label>
+            <p className="rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">{rawTranscript}</p>
           </div>
         )}
 
         {/* Additional Notes */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Additional Notes — your thoughts, context, or anything the voice missed</label>
+          <label className="section-label">Additional Notes — your thoughts, context, or anything the voice missed</label>
           <button
             onClick={() =>
               isRecordingNotes
@@ -667,26 +660,26 @@ export default function NewTrade() {
             }
             className={cn(
               "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingNotes ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
+              isRecordingNotes ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
             )}
           >
-            {isRecordingNotes ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+            {isRecordingNotes ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
           </button>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="font-body text-[10px] font-300 text-muted-foreground">
             {isRecordingNotes ? "Recording — tap to stop" : "Tap to add notes by voice"}
           </p>
           <Textarea
             placeholder="Add any extra context…"
             value={additionalNotes}
             onChange={(e) => setAdditionalNotes(e.target.value)}
-            className="min-h-[80px] bg-card border-border"
+            className="min-h-[80px] bg-secondary border-border font-body font-300 focus-visible:ring-primary"
           />
         </div>
       </div>
 
       {/* Save button */}
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
-        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground active:scale-[0.97]">
+        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-[14px] bg-primary font-display text-sm font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] active:scale-[0.97]">
           Save Entry
         </Button>
       </div>

@@ -11,29 +11,29 @@ const EXIT_TYPE_LABELS: Record<string, string> = {
 
 export function ExitHistory({ events }: { events: ExitEvent[] }) {
   if (events.length === 0) {
-    return <p className="text-xs text-muted-foreground italic">No exits logged yet.</p>;
+    return <p className="font-body text-xs font-300 text-muted-foreground italic">No exits logged yet.</p>;
   }
 
   return (
     <div className="space-y-3">
       {events.map((ev) => (
-        <div key={ev.id} className="rounded-lg bg-card p-3 border border-border/50">
+        <div key={ev.id} className="rounded-xl bg-card border border-border p-3">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-semibold">{EXIT_TYPE_LABELS[ev.exitType] ?? ev.exitType}</span>
+            <span className="font-body text-xs font-400 text-foreground">{EXIT_TYPE_LABELS[ev.exitType] ?? ev.exitType}</span>
             <span
-              className={`text-xs font-bold tabular-nums ${
-                ev.pnlPercent >= 0 ? "text-primary" : "text-[hsl(0,100%,60%)]"
+              className={`font-body text-xs font-300 tabular-nums tracking-data ${
+                ev.pnlPercent >= 0 ? "text-primary" : "text-red-action"
               }`}
             >
               {ev.pnlPercent > 0 ? "+" : ""}{ev.pnlPercent}%
             </span>
           </div>
-          <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+          <div className="flex items-center gap-3 font-body text-[10px] font-300 text-muted-foreground">
             <span>{ev.percentClosed}% closed</span>
-            <span className="tabular-nums text-accent">{new Date(ev.timestamp).toLocaleString()}</span>
+            <span className="tabular-nums tracking-data text-accent">{new Date(ev.timestamp).toLocaleString()}</span>
           </div>
           {ev.note && (
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground italic">"{ev.note}"</p>
+            <p className="mt-2 font-body text-xs font-300 leading-relaxed text-muted-foreground italic">"{ev.note}"</p>
           )}
           {ev.emotionalState.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">

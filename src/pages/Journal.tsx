@@ -17,8 +17,9 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "losses", label: "Losses" },
 ];
 
-const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
-const chipSelected = "bg-primary text-primary-foreground border border-accent";
+const chipBase = "rounded-full px-3 py-1.5 font-body text-xs font-300 transition-colors active:scale-[0.97]";
+const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
+const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
 
 export default function Journal() {
   const navigate = useNavigate();
@@ -39,19 +40,19 @@ export default function Journal() {
     <div className="flex min-h-screen flex-col pb-24">
       <header className="px-5 pt-safe-top">
         <div className="py-4">
-          <h1 className="text-lg font-bold tracking-tight text-foreground">Journal</h1>
-          <p className="text-xs text-muted-foreground">Full trade history</p>
+          <h1 className="font-display text-lg font-600 tracking-tight text-foreground">Journal</h1>
+          <p className="font-body text-xs font-300 text-muted-foreground">Full trade history</p>
         </div>
       </header>
 
       <div className="px-5 pb-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--text-muted))]" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by token name..."
-            className="h-10 pl-9 text-sm focus-visible:ring-accent"
+            className="h-10 pl-9 font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary focus-visible:border-primary"
           />
         </div>
       </div>
@@ -61,10 +62,7 @@ export default function Journal() {
           <button
             key={f.value}
             onClick={() => setFilter(f.value)}
-            className={cn(
-              "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.97]",
-              filter === f.value ? chipSelected : chipDefault
-            )}
+            className={cn(chipBase, filter === f.value ? chipOn : chipOff)}
           >
             {f.label}
           </button>
@@ -77,21 +75,21 @@ export default function Journal() {
             <button
               key={trade.id}
               onClick={() => navigate(`/trade/${trade.id}`)}
-              className="flex w-full items-center gap-3 rounded-xl bg-card p-4 text-left transition-colors active:scale-[0.98] active:bg-card/80"
+              className="flex w-full items-center gap-3 rounded-xl bg-card border border-border p-4 text-left transition-colors hover:border-[hsl(var(--border-default))] active:scale-[0.98]"
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold truncate">{trade.tokenName}</span>
-                  <span className="text-[10px] text-muted-foreground font-medium">{trade.chain}</span>
+                  <span className="font-display text-sm font-600 truncate text-foreground">{trade.tokenName}</span>
+                  <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">{trade.chain}</span>
                   {trade.isDemo && (
-                    <span className="text-[9px] rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">DEMO</span>
+                    <span className="font-body text-[9px] font-400 rounded bg-[hsl(var(--text-primary)/0.06)] px-1.5 py-0.5 text-[hsl(var(--text-muted))]">DEMO</span>
                   )}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground">
+                <div className="mt-1 flex items-center gap-2 font-body text-[10px] font-300 text-muted-foreground">
                   {trade.entryMarketCap && <span>MC: {trade.entryMarketCap}</span>}
                   {trade.setupType && <span>• {trade.setupType}</span>}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[10px] text-accent tabular-nums">
+                <div className="mt-1 flex items-center gap-2 font-body text-[10px] font-300 text-accent tabular-nums tracking-data">
                   <span>{new Date(trade.entryTime).toLocaleDateString()}</span>
                 </div>
                 {trade.emotionalStateAtEntry.length > 0 && (
@@ -106,15 +104,15 @@ export default function Journal() {
                 {trade.status === "closed" && trade.finalPnl !== undefined ? (
                   <PnlBadge pnl={trade.finalPnl} />
                 ) : (
-                  <span className="rounded-md bg-primary/15 px-2 py-0.5 text-[11px] font-semibold text-primary">OPEN</span>
+                  <span className="rounded-md border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[11px] font-400 text-primary">OPEN</span>
                 )}
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <ChevronRight className="h-4 w-4 text-[hsl(var(--text-muted))]" />
               </div>
             </button>
           ))}
           {filtered.length === 0 && (
-            <div className="rounded-xl bg-card p-8 text-center">
-              <p className="text-sm text-muted-foreground">
+            <div className="rounded-xl bg-card border border-border p-8 text-center">
+              <p className="font-body text-sm font-300 text-muted-foreground">
                 {trades.length === 0 ? "No trades logged yet. Tap New Trade to get started." : "No trades match your filters."}
               </p>
             </div>

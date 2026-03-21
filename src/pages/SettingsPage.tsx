@@ -14,8 +14,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
-const chipSelected = "bg-primary text-primary-foreground border border-primary";
+const chipBase = "rounded-full px-4 py-2.5 font-body text-xs font-300 transition-colors active:scale-[0.96]";
+const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
+const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -51,39 +52,35 @@ export default function SettingsPage() {
       <header className="flex items-center gap-3 px-5 py-4 pt-safe-top">
         <button
           onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl active:scale-[0.96] hover:bg-card"
+          className="flex h-10 w-10 items-center justify-center rounded-xl active:scale-[0.96] hover:bg-card text-accent"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="text-base font-bold">Settings</h1>
+        <h1 className="font-display text-base font-600">Settings</h1>
       </header>
 
       <div className="space-y-6 px-5">
         {/* Display Name */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Display Name</label>
+          <label className="section-label mb-1.5 block">Display Name</label>
           <input
             type="text"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Anon Trader"
-            className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground placeholder:text-[hsl(0,0%,27%)] outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-sm font-300 text-foreground placeholder:text-[hsl(var(--text-muted))] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
 
         {/* Default Chain */}
         <div>
-          <label className="mb-1.5 block text-xs font-medium text-muted-foreground">Default Chain</label>
+          <label className="section-label mb-1.5 block">Default Chain</label>
           <div className="flex gap-2 flex-wrap">
             {["SOL", "ETH", "BASE", "BNB", "ARB"].map((chain) => (
               <button
                 key={chain}
                 onClick={() => setDefaultChain(chain)}
-                className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors active:scale-[0.96] ${
-                  defaultChain === chain
-                    ? chipSelected
-                    : chipDefault
-                }`}
+                className={`${chipBase} ${defaultChain === chain ? chipOn : chipOff}`}
               >
                 {chain === "BNB" ? "BNB / BSC" : chain}
               </button>
@@ -92,25 +89,25 @@ export default function SettingsPage() {
         </div>
 
         {/* Subscription Status */}
-        <div className="rounded-xl bg-card p-4">
-          <p className="text-xs font-medium text-muted-foreground">Subscription</p>
-          <p className="mt-1 text-sm font-bold">Free Tier</p>
-          <p className="text-[10px] text-muted-foreground">Connect a wallet to subscribe</p>
+        <div className="rounded-xl bg-card border border-border p-4">
+          <p className="section-label">Subscription</p>
+          <p className="mt-1 font-display text-sm font-600 text-foreground">Free Tier</p>
+          <p className="font-body text-[10px] font-300 text-muted-foreground">Connect a wallet to subscribe</p>
         </div>
 
         {/* Export */}
         <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Export Data</p>
+          <p className="section-label mb-2">Export Data</p>
           <div className="flex gap-2">
             <button
               onClick={exportCSV}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-400 text-foreground active:scale-[0.97]"
             >
               <Download className="h-4 w-4" /> CSV
             </button>
             <button
               onClick={exportJSON}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-400 text-foreground active:scale-[0.97]"
             >
               <Download className="h-4 w-4" /> JSON
             </button>
@@ -120,22 +117,22 @@ export default function SettingsPage() {
         {/* Delete All */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[hsl(0,80%,40%)]/10 py-3 text-xs font-semibold text-[hsl(0,80%,40%)] active:scale-[0.97]">
+            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--red-destroy)/0.1)] border border-[hsl(var(--red-destroy)/0.3)] py-3 font-body text-xs font-400 text-red-destroy active:scale-[0.97]">
               <Trash2 className="h-4 w-4" /> Delete All Data
             </button>
           </AlertDialogTrigger>
-          <AlertDialogContent className="bg-card border-border max-w-sm">
+          <AlertDialogContent className="bg-popover border-border max-w-sm">
             <AlertDialogHeader>
-              <AlertDialogTitle>Delete everything?</AlertDialogTitle>
-              <AlertDialogDescription>
+              <AlertDialogTitle className="font-display font-600">Delete everything?</AlertDialogTitle>
+              <AlertDialogDescription className="font-body font-300">
                 This will permanently delete all your trades and data. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-muted text-foreground border-0">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="bg-secondary text-foreground border-border font-body font-400">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={deleteAllTrades}
-                className="bg-[hsl(0,80%,40%)] text-white hover:bg-[hsl(0,80%,35%)]"
+                className="bg-red-destroy text-foreground hover:bg-[hsl(var(--red-destroy)/0.8)] font-body font-400"
               >
                 Delete
               </AlertDialogAction>

@@ -41,13 +41,13 @@ function Section({
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left active:scale-[0.98]">
-        <span className="text-xs font-semibold uppercase tracking-wider text-accent">
+      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-card border border-border px-4 py-3 text-left active:scale-[0.98]">
+        <span className="section-label">
           {icon && <span className="mr-1">{icon}</span>}{title}
         </span>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-muted-foreground transition-transform",
+            "h-4 w-4 text-[hsl(var(--text-muted))] transition-transform",
             open && "rotate-180"
           )}
         />
@@ -61,8 +61,8 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
   if (value === undefined || value === null) return null;
   return (
     <div className="flex items-start justify-between gap-4 py-1.5">
-      <span className="text-xs text-muted-foreground whitespace-nowrap">{label}</span>
-      <span className="text-xs font-medium text-foreground text-right">
+      <span className="font-body text-xs font-300 text-muted-foreground whitespace-nowrap">{label}</span>
+      <span className="font-body text-xs font-400 text-foreground text-right tracking-data">
         {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
       </span>
     </div>
@@ -71,16 +71,16 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
 
 function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
   if (updates.length === 0) {
-    return <p className="text-xs text-muted-foreground italic">No updates logged yet.</p>;
+    return <p className="font-body text-xs font-300 text-muted-foreground italic">No updates logged yet.</p>;
   }
   return (
     <div className="space-y-2">
       {[...updates].reverse().map((n) => (
-        <div key={n.id} className="rounded-lg bg-card p-3 border border-border/50">
+        <div key={n.id} className="rounded-xl bg-card border-l-2 border-l-primary border border-border p-3">
           <div className="mb-1">
-            <span className="text-[10px] font-semibold text-accent">⚡ Trade Update</span>
+            <span className="font-body text-[11px] font-500 text-primary">⚡ Trade Update</span>
           </div>
-          <p className="text-xs leading-relaxed whitespace-pre-line">{n.text}</p>
+          <p className="font-body text-xs font-300 leading-relaxed whitespace-pre-line text-foreground">{n.text}</p>
           {n.emotions && n.emotions.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
               {n.emotions.map((e) => (
@@ -89,10 +89,10 @@ function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
             </div>
           )}
           <div className="mt-1.5 flex items-center gap-2">
-            <span className="text-[10px] text-accent tabular-nums">
+            <span className="font-body text-[10px] font-300 text-accent tabular-nums tracking-data">
               {new Date(n.timestamp).toLocaleString()}
             </span>
-            <span className="text-[9px] rounded px-1.5 py-0.5 font-medium bg-accent/15 text-accent">
+            <span className="font-body text-[9px] font-400 rounded-full px-1.5 py-0.5 bg-[hsl(var(--blue-accent)/0.1)] text-accent border border-[hsl(var(--blue-accent)/0.25)]">
               Mid-trade update
             </span>
           </div>
@@ -116,7 +116,7 @@ export default function TradeDetail() {
   if (!trade) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">Trade not found.</p>
+        <p className="font-body text-sm font-300 text-muted-foreground">Trade not found.</p>
       </div>
     );
   }
@@ -169,16 +169,18 @@ export default function TradeDetail() {
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold">{trade.tokenName}</h1>
-              <span className="text-xs text-muted-foreground font-medium">{trade.chain}</span>
+              <h1 className="font-display text-xl font-600 text-foreground">{trade.tokenName}</h1>
+              <span className="font-body text-xs font-300 text-[hsl(var(--text-muted))]">{trade.chain}</span>
               {trade.isDemo && (
-                <span className="text-[9px] rounded bg-muted px-1.5 py-0.5 font-medium text-muted-foreground">DEMO</span>
+                <span className="font-body text-[9px] font-400 rounded bg-[hsl(var(--text-primary)/0.06)] px-1.5 py-0.5 text-[hsl(var(--text-muted))]">DEMO</span>
               )}
             </div>
             <span
               className={cn(
-                "mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold",
-                isOpen ? "bg-primary/15 text-primary" : "bg-[hsl(0,80%,60%)]/15 text-[hsl(0,80%,45%)]"
+                "mt-1 inline-flex rounded-md px-2 py-0.5 font-body text-[11px] font-400",
+                isOpen
+                  ? "border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] text-primary"
+                  : "border border-[hsl(var(--red-action)/0.3)] bg-[hsl(var(--red-action)/0.1)] text-red-action"
               )}
             >
               {isOpen ? "OPEN" : "CLOSED"}
@@ -190,7 +192,7 @@ export default function TradeDetail() {
             )}
             <button
               onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(""); }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[hsl(0,80%,40%)]/50 hover:text-[hsl(0,80%,40%)] hover:bg-[hsl(0,80%,40%)]/10 transition-colors active:scale-[0.95]"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[hsl(var(--text-muted))] hover:text-red-destroy transition-colors active:scale-[0.95]"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -216,13 +218,13 @@ export default function TradeDetail() {
 
           {(confirmationSignals.length > 0 || confirmationOther) && (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Confirmation Signals</p>
+              <p className="section-label mb-1">Confirmation Signals</p>
               <div className="flex flex-wrap gap-1">
                 {confirmationSignals.map((sig) => (
-                  <span key={sig} className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{sig}</span>
+                  <span key={sig} className="rounded-full bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[10px] font-400 text-primary">{sig}</span>
                 ))}
                 {confirmationOther && (
-                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary border border-dashed border-primary/30">{confirmationOther}</span>
+                  <span className="rounded-full bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[10px] font-400 text-primary border border-dashed border-[hsl(var(--green-primary)/0.3)]">{confirmationOther}</span>
                 )}
               </div>
             </div>
@@ -230,7 +232,7 @@ export default function TradeDetail() {
 
           {trade.emotionalStateAtEntry.length > 0 && (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Emotional State</p>
+              <p className="section-label mb-1">Emotional State</p>
               <div className="flex flex-wrap gap-1">
                 {trade.emotionalStateAtEntry.map((e) => (
                   <EmotionBadge key={e} emotion={e} />
@@ -242,22 +244,22 @@ export default function TradeDetail() {
           {trade.quickTags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {trade.quickTags.map((tag) => (
-                <span key={tag} className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{tag}</span>
+                <span key={tag} className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-300 text-muted-foreground">{tag}</span>
               ))}
             </div>
           )}
 
           {trade.entryTranscript && (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Transcript</p>
-              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">"{trade.entryTranscript}"</p>
+              <p className="section-label mb-1">Transcript</p>
+              <p className="rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">"{trade.entryTranscript}"</p>
             </div>
           )}
 
           {trade.additionalNotes && (
             <div className="mt-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Additional Notes</p>
-              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed border border-border/50">{trade.additionalNotes}</p>
+              <p className="section-label mb-1">Additional Notes</p>
+              <p className="rounded-xl bg-card p-3 font-body text-xs font-300 leading-relaxed border border-border">{trade.additionalNotes}</p>
             </div>
           )}
         </Section>
@@ -279,8 +281,8 @@ export default function TradeDetail() {
             <div className="space-y-4">
               {trade.updates.map((u) => (
                 <div key={u.id} className="border-l-2 border-border pl-3">
-                  <p className="text-[10px] text-accent tabular-nums">{new Date(u.timestamp).toLocaleString()}</p>
-                  <p className="mt-1 text-xs leading-relaxed">{u.note}</p>
+                  <p className="font-body text-[10px] font-300 text-accent tabular-nums tracking-data">{new Date(u.timestamp).toLocaleString()}</p>
+                  <p className="mt-1 font-body text-xs font-300 leading-relaxed">{u.note}</p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
                     {u.emotionalState.map((e) => (<EmotionBadge key={e} emotion={e} />))}
                   </div>
@@ -304,18 +306,18 @@ export default function TradeDetail() {
               </div>
             )}
             {trade.exitTranscript && (
-              <p className="mt-3 rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">"{trade.exitTranscript}"</p>
+              <p className="mt-3 rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">"{trade.exitTranscript}"</p>
             )}
           </Section>
         )}
 
         {trade.reflectionNote && (
           <Section title="Reflection">
-            <p className="text-xs leading-relaxed">{trade.reflectionNote}</p>
+            <p className="font-body text-xs font-300 leading-relaxed">{trade.reflectionNote}</p>
             {trade.reflectionLesson && (
-              <div className="mt-2 rounded-lg bg-primary/5 p-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-primary mb-1">Lesson</p>
-                <p className="text-xs leading-relaxed text-foreground">{trade.reflectionLesson}</p>
+              <div className="mt-2 rounded-xl bg-[hsl(var(--green-primary)/0.05)] p-3">
+                <p className="section-label mb-1">Lesson</p>
+                <p className="font-body text-xs font-300 leading-relaxed text-foreground">{trade.reflectionLesson}</p>
               </div>
             )}
             {trade.emotionalStateAtReflection && trade.emotionalStateAtReflection.length > 0 && (
@@ -329,10 +331,10 @@ export default function TradeDetail() {
 
       {isOpen && (
         <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
-          <button onClick={() => setShowUpdateModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
+          <button onClick={() => setShowUpdateModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary border border-[hsl(var(--border-default))] py-3 font-body text-xs font-400 text-foreground active:scale-[0.97] transition-colors hover:border-[hsl(var(--border-default)/1.5)]">
             <Plus className="h-4 w-4" /> Update
           </button>
-          <button onClick={() => setShowExitModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[hsl(0,100%,60%)]/15 py-3 text-xs font-semibold text-[hsl(0,100%,60%)] active:scale-[0.97]">
+          <button onClick={() => setShowExitModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--red-action)/0.15)] border border-[hsl(var(--red-action)/0.4)] py-3 font-body text-xs font-400 text-red-action active:scale-[0.97] transition-colors hover:bg-[hsl(var(--red-action)/0.25)]">
             <LogOut className="h-4 w-4" /> Log Exit
           </button>
         </div>
@@ -342,19 +344,19 @@ export default function TradeDetail() {
       <UpdateModal open={showUpdateModal} onOpenChange={setShowUpdateModal} onSave={handleSaveUpdate} />
 
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="max-w-sm bg-card border-border">
+        <DialogContent className="max-w-sm bg-popover border-border">
           <DialogHeader>
-            <DialogTitle>Delete this trade?</DialogTitle>
-            <DialogDescription>This will permanently delete this trade and all its exits, updates, and notes. This cannot be undone.</DialogDescription>
+            <DialogTitle className="font-display font-600">Delete this trade?</DialogTitle>
+            <DialogDescription className="font-body font-300">This will permanently delete this trade and all its exits, updates, and notes. This cannot be undone.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
-              <p className="text-xs text-muted-foreground mb-1.5">Type <span className="font-bold text-foreground">DELETE</span> to confirm</p>
-              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE" className="h-9 text-sm font-mono" />
+              <p className="font-body text-xs font-300 text-muted-foreground mb-1.5">Type <span className="font-400 text-foreground">DELETE</span> to confirm</p>
+              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE" className="h-9 font-body text-sm font-mono" />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-              <Button className="flex-1 bg-[hsl(0,80%,40%)] text-white hover:bg-[hsl(0,80%,35%)]" disabled={deleteConfirmText !== "DELETE"} onClick={() => { deleteTrade(trade.id); setShowDeleteModal(false); toast.success("Trade deleted"); navigate("/journal"); }}>
+              <Button className="flex-1 bg-red-destroy text-foreground hover:bg-[hsl(var(--red-destroy)/0.8)]" disabled={deleteConfirmText !== "DELETE"} onClick={() => { deleteTrade(trade.id); setShowDeleteModal(false); toast.success("Trade deleted"); navigate("/journal"); }}>
                 Delete Trade
               </Button>
             </div>

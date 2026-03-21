@@ -54,6 +54,7 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
       text: noteText.trim(),
       timestamp: new Date().toISOString(),
       duringSession: isOpen,
+      noteType: "note",
     });
     setNoteText("");
     setShowTextInput(false);

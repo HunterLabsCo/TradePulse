@@ -235,7 +235,6 @@ export default function NewTrade() {
   }, []);
 
   const stopRecording = useCallback(async () => {
-    clearSilenceTimer();
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
     const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();

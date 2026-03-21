@@ -197,6 +197,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         setNoteText((prev) => (prev + " " + text).trim());
       },
       onStop: () => setIsRecording(false),
+      silenceTimeoutMs: 3000,
     });
     noteRecorderRef.current = recorder;
     recorder.start();

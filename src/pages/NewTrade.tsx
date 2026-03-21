@@ -192,56 +192,8 @@ export default function NewTrade() {
       setVoiceError(`Failed to start recording: ${err.message}`);
     }
   }, []);
-    try {
-      const recognition = new SpeechRecognition();
-      recognition.continuous = true;
-      recognition.interimResults = true;
-      recognition.lang = "en-US";
-      recognitionRef.current = recognition;
 
-      let committed = "";
-      fullTranscriptRef.current = "";
-      livePartialRef.current = "";
 
-      recognition.onresult = (event: any) => {
-        let interim = "";
-        let final = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const t = event.results[i][0].transcript;
-          if (event.results[i].isFinal) final += t;
-          else interim += t;
-        }
-        if (final) {
-          committed = committed ? `${committed} ${final}` : final;
-          setFullTranscript(committed);
-          fullTranscriptRef.current = committed;
-        }
-        setLivePartial(interim);
-        livePartialRef.current = interim;
-      };
-
-      recognition.onerror = (event: any) => {
-        console.error("[WebSpeech] Error:", event.error);
-        setVoiceError(event.error === "not-allowed"
-          ? "Microphone permission denied. Please allow mic access and try again."
-          : `Speech recognition error: ${event.error}`);
-        setIsRecording(false);
-      };
-
-      recognition.onend = () => {
-        if (recognitionRef.current) {
-          try { recognition.start(); } catch {}
-        }
-      };
-
-      recognition.start();
-      setFullTranscript("");
-      setLivePartial("");
-      setIsRecording(true);
-    } catch (err: any) {
-      setVoiceError(`Failed to start recording: ${err.message}`);
-    }
-  }, []);
 
   const stopRecording = useCallback(async () => {
     const capturedFull = fullTranscriptRef.current;

@@ -53,7 +53,6 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
 
 const QUICK_TAGS = [
   "Interrupted",
-  "Work trade",
   "Full session",
   "Pre-set orders",
   "Above MC ceiling",

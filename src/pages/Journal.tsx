@@ -17,9 +17,9 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "losses", label: "Losses" },
 ];
 
-const chipBase = "rounded-full px-3 py-1.5 font-body text-xs font-300 transition-colors active:scale-[0.97]";
+const chipBase = "rounded-full px-3 py-1.5 font-body text-xs font-light transition-colors active:scale-[0.97]";
 const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
+const chipOn = "bg-primary border border-primary text-primary-foreground font-normal";
 
 export default function Journal() {
   const navigate = useNavigate();
@@ -40,8 +40,8 @@ export default function Journal() {
     <div className="flex min-h-screen flex-col pb-24">
       <header className="px-5 pt-safe-top">
         <div className="py-4">
-          <h1 className="font-display text-lg font-600 tracking-tight text-foreground">Journal</h1>
-          <p className="font-body text-xs font-300 text-muted-foreground">Full trade history</p>
+          <h1 className="font-display text-[22px] font-bold tracking-[-0.01em] text-foreground">Journal</h1>
+          <p className="font-body text-[12px] font-normal text-muted-foreground">Full trade history</p>
         </div>
       </header>
 
@@ -52,7 +52,7 @@ export default function Journal() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by token name..."
-            className="h-10 pl-9 font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary focus-visible:border-primary"
+            className="h-10 pl-9 font-body text-sm font-light bg-secondary border-border focus-visible:ring-primary focus-visible:border-primary"
           />
         </div>
       </div>
@@ -79,17 +79,17 @@ export default function Journal() {
             >
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-display text-sm font-600 truncate text-foreground">{trade.tokenName}</span>
-                  <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">{trade.chain}</span>
+                  <span className="font-display text-[15px] font-semibold truncate text-foreground">{trade.tokenName}</span>
+                  <span className="rounded-full border border-[hsl(0_0%_20%)] px-[7px] py-[2px] font-body text-[10px] font-medium tracking-[0.05em] text-[hsl(var(--text-secondary))]">{trade.chain}</span>
                   {trade.isDemo && (
-                    <span className="font-body text-[9px] font-400 rounded bg-[hsl(var(--text-primary)/0.06)] px-1.5 py-0.5 text-[hsl(var(--text-muted))]">DEMO</span>
+                    <span className="rounded-full border border-[hsl(0_0%_20%)] px-[7px] py-[2px] font-body text-[10px] font-medium tracking-[0.05em] text-[hsl(var(--text-secondary))]">DEMO</span>
                   )}
                 </div>
-                <div className="mt-1 flex items-center gap-2 font-body text-[10px] font-300 text-muted-foreground">
+                <div className="mt-1 flex items-center gap-2 font-body text-[12px] font-light text-muted-foreground">
                   {trade.entryMarketCap && <span>MC: {trade.entryMarketCap}</span>}
                   {trade.setupType && <span>• {trade.setupType}</span>}
                 </div>
-                <div className="mt-1 flex items-center gap-2 font-body text-[10px] font-300 text-accent tabular-nums tracking-data">
+                <div className="mt-1 flex items-center gap-2 font-body text-[11px] font-light text-[hsl(220_80%_70%)] tabular-nums tracking-data">
                   <span>{new Date(trade.entryTime).toLocaleDateString()}</span>
                 </div>
                 {trade.emotionalStateAtEntry.length > 0 && (
@@ -104,7 +104,7 @@ export default function Journal() {
                 {trade.status === "closed" && trade.finalPnl !== undefined ? (
                   <PnlBadge pnl={trade.finalPnl} />
                 ) : (
-                  <span className="rounded-md border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[11px] font-400 text-primary">OPEN</span>
+                  <span className="rounded-full border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-primary">OPEN</span>
                 )}
                 <ChevronRight className="h-4 w-4 text-[hsl(var(--text-muted))]" />
               </div>
@@ -112,7 +112,7 @@ export default function Journal() {
           ))}
           {filtered.length === 0 && (
             <div className="rounded-xl bg-card border border-border p-8 text-center">
-              <p className="font-body text-sm font-300 text-muted-foreground">
+              <p className="font-body text-sm font-light text-muted-foreground">
                 {trades.length === 0 ? "No trades logged yet. Tap New Trade to get started." : "No trades match your filters."}
               </p>
             </div>

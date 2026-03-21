@@ -52,7 +52,7 @@ export const EmotionBadge = React.forwardRef<
     <span
       ref={ref}
       className={cn(
-        "inline-flex items-center rounded-full px-2 py-0.5 font-body text-[10px] font-300 tracking-wide",
+        "inline-flex items-center rounded-full px-[10px] py-[3px] font-body text-[11px] font-medium tracking-wide",
         color,
         className
       )}

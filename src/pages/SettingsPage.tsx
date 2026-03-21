@@ -14,9 +14,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-const chipBase = "rounded-full px-4 py-2.5 font-body text-xs font-300 transition-colors active:scale-[0.96]";
+const chipBase = "rounded-full px-4 py-2.5 font-body text-xs font-light transition-colors active:scale-[0.96]";
 const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
+const chipOn = "bg-primary border border-primary text-primary-foreground font-normal";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -56,7 +56,7 @@ export default function SettingsPage() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <h1 className="font-display text-base font-600">Settings</h1>
+        <h1 className="font-display text-[18px] font-semibold">Settings</h1>
       </header>
 
       <div className="space-y-6 px-5">
@@ -68,7 +68,7 @@ export default function SettingsPage() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Anon Trader"
-            className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-sm font-300 text-foreground placeholder:text-[hsl(var(--text-muted))] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-[hsl(var(--text-muted))] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
 
@@ -91,8 +91,8 @@ export default function SettingsPage() {
         {/* Subscription Status */}
         <div className="rounded-xl bg-card border border-border p-4">
           <p className="section-label">Subscription</p>
-          <p className="mt-1 font-display text-sm font-600 text-foreground">Free Tier</p>
-          <p className="font-body text-[10px] font-300 text-muted-foreground">Connect a wallet to subscribe</p>
+          <p className="mt-1 font-display text-[15px] font-semibold text-foreground">Free Tier</p>
+          <p className="font-body text-[12px] font-light text-muted-foreground">Connect a wallet to subscribe</p>
         </div>
 
         {/* Export */}
@@ -101,13 +101,13 @@ export default function SettingsPage() {
           <div className="flex gap-2">
             <button
               onClick={exportCSV}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-400 text-foreground active:scale-[0.97]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
             >
               <Download className="h-4 w-4" /> CSV
             </button>
             <button
               onClick={exportJSON}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-400 text-foreground active:scale-[0.97]"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
             >
               <Download className="h-4 w-4" /> JSON
             </button>
@@ -117,22 +117,22 @@ export default function SettingsPage() {
         {/* Delete All */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--red-destroy)/0.1)] border border-[hsl(var(--red-destroy)/0.3)] py-3 font-body text-xs font-400 text-red-destroy active:scale-[0.97]">
+            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--red-destroy)/0.1)] border border-[hsl(var(--red-destroy)/0.3)] py-3 font-body text-xs font-normal text-red-destroy active:scale-[0.97]">
               <Trash2 className="h-4 w-4" /> Delete All Data
             </button>
           </AlertDialogTrigger>
           <AlertDialogContent className="bg-popover border-border max-w-sm">
             <AlertDialogHeader>
-              <AlertDialogTitle className="font-display font-600">Delete everything?</AlertDialogTitle>
-              <AlertDialogDescription className="font-body font-300">
+              <AlertDialogTitle className="font-display font-semibold">Delete everything?</AlertDialogTitle>
+              <AlertDialogDescription className="font-body font-light">
                 This will permanently delete all your trades and data. This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="bg-secondary text-foreground border-border font-body font-400">Cancel</AlertDialogCancel>
+              <AlertDialogCancel className="bg-secondary text-foreground border-border font-body font-normal">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={deleteAllTrades}
-                className="bg-red-destroy text-foreground hover:bg-[hsl(var(--red-destroy)/0.8)] font-body font-400"
+                className="bg-red-destroy text-foreground hover:bg-[hsl(var(--red-destroy)/0.8)] font-body font-normal"
               >
                 Delete
               </AlertDialogAction>

@@ -52,7 +52,6 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
     setShowTextInput(false);
   };
 
-  // Filter to only "note" type entries
   const directNotes = notes.filter((n) => n.noteType !== "update");
 
   return (
@@ -63,10 +62,10 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
           onClick={isRecording ? stopVoice : startVoice}
           className={cn(
             "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-            isRecording ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+            isRecording ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
           )}
         >
-          {isRecording ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+          {isRecording ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
         </button>
         <Button
           variant={showTextInput ? "secondary" : "outline"}
@@ -95,25 +94,25 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
         </div>
       )}
 
-      {/* Notes Feed — only direct notes */}
+      {/* Notes Feed */}
       {directNotes.length === 0 ? (
         <p className="text-xs text-muted-foreground italic">No notes yet.</p>
       ) : (
         <div className="space-y-2">
           {[...directNotes].reverse().map((n) => (
-            <div key={n.id} className="rounded-lg bg-background p-3 border border-border/50">
+            <div key={n.id} className="rounded-lg bg-card p-3 border border-border/50">
               <div className="mb-1">
                 <span className="text-[10px] font-semibold text-muted-foreground">📝 Note</span>
               </div>
               <p className="text-xs leading-relaxed whitespace-pre-line">{n.text}</p>
               <div className="mt-1.5 flex items-center gap-2">
-                <span className="text-[10px] text-muted-foreground tabular-nums">
+                <span className="text-[10px] text-accent tabular-nums">
                   {new Date(n.timestamp).toLocaleString()}
                 </span>
                 <span
                   className={`text-[9px] rounded px-1.5 py-0.5 font-medium ${
                     n.duringSession
-                      ? "bg-primary/10 text-primary"
+                      ? "bg-accent/15 text-accent"
                       : "bg-muted text-muted-foreground"
                   }`}
                 >

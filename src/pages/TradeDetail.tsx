@@ -76,9 +76,9 @@ function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
   return (
     <div className="space-y-2">
       {[...updates].reverse().map((n) => (
-        <div key={n.id} className="rounded-lg bg-background p-3 border border-border/50">
+        <div key={n.id} className="rounded-lg bg-card p-3 border border-border/50">
           <div className="mb-1">
-            <span className="text-[10px] font-semibold text-primary">⚡ Trade Update</span>
+            <span className="text-[10px] font-semibold text-accent">⚡ Trade Update</span>
           </div>
           <p className="text-xs leading-relaxed whitespace-pre-line">{n.text}</p>
           {n.emotions && n.emotions.length > 0 && (
@@ -89,10 +89,10 @@ function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
             </div>
           )}
           <div className="mt-1.5 flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground tabular-nums">
+            <span className="text-[10px] text-accent tabular-nums">
               {new Date(n.timestamp).toLocaleString()}
             </span>
-            <span className="text-[9px] rounded px-1.5 py-0.5 font-medium bg-primary/10 text-primary">
+            <span className="text-[9px] rounded px-1.5 py-0.5 font-medium bg-accent/15 text-accent">
               Mid-trade update
             </span>
           </div>
@@ -180,7 +180,7 @@ export default function TradeDetail() {
             <span
               className={cn(
                 "mt-1 inline-flex rounded-md px-2 py-0.5 text-[11px] font-semibold",
-                isOpen ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground"
+                isOpen ? "bg-primary/15 text-primary" : "bg-[hsl(0,80%,60%)]/15 text-[hsl(0,80%,45%)]"
               )}
             >
               {isOpen ? "OPEN" : "CLOSED"}
@@ -192,7 +192,7 @@ export default function TradeDetail() {
             )}
             <button
               onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(""); }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors active:scale-[0.95]"
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-[hsl(0,80%,40%)]/50 hover:text-[hsl(0,80%,40%)] hover:bg-[hsl(0,80%,40%)]/10 transition-colors active:scale-[0.95]"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -268,7 +268,7 @@ export default function TradeDetail() {
           {trade.entryTranscript && (
             <div className="mt-3">
               <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Transcript</p>
-              <p className="rounded-lg bg-background p-3 text-xs leading-relaxed text-muted-foreground italic">
+              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">
                 "{trade.entryTranscript}"
               </p>
             </div>
@@ -290,12 +290,12 @@ export default function TradeDetail() {
           <ExitHistory events={exitEvents} />
         </Section>
 
-        {/* Updates — separate section */}
+        {/* Updates */}
         <Section title={`Updates (${updateNotes.length})`} icon="⚡">
           <UpdatesFeed updates={updateNotes} />
         </Section>
 
-        {/* Notes — separate section */}
+        {/* Notes */}
         <Section title={`Notes (${directNotes.length})`} icon="📝">
           <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
         </Section>
@@ -306,7 +306,7 @@ export default function TradeDetail() {
             <div className="space-y-4">
               {trade.updates.map((u) => (
                 <div key={u.id} className="border-l-2 border-border pl-3">
-                  <p className="text-[10px] text-muted-foreground tabular-nums">
+                  <p className="text-[10px] text-accent tabular-nums">
                     {new Date(u.timestamp).toLocaleString()}
                   </p>
                   <p className="mt-1 text-xs leading-relaxed">{u.note}</p>
@@ -338,7 +338,7 @@ export default function TradeDetail() {
               </div>
             )}
             {trade.exitTranscript && (
-              <p className="mt-3 rounded-lg bg-background p-3 text-xs leading-relaxed text-muted-foreground italic">
+              <p className="mt-3 rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">
                 "{trade.exitTranscript}"
               </p>
             )}
@@ -377,13 +377,12 @@ export default function TradeDetail() {
           </button>
           <button
             onClick={() => setShowExitModal(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-destructive/15 py-3 text-xs font-semibold text-destructive active:scale-[0.97]"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[hsl(0,100%,60%)]/15 py-3 text-xs font-semibold text-[hsl(0,100%,60%)] active:scale-[0.97]"
           >
             <LogOut className="h-4 w-4" /> Log Exit
           </button>
         </div>
       )}
-
 
       {/* Exit Modal */}
       <ExitModal
@@ -402,7 +401,7 @@ export default function TradeDetail() {
 
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="max-w-sm">
+        <DialogContent className="max-w-sm bg-card border-border">
           <DialogHeader>
             <DialogTitle>Delete this trade?</DialogTitle>
             <DialogDescription>
@@ -424,8 +423,7 @@ export default function TradeDetail() {
                 Cancel
               </Button>
               <Button
-                variant="destructive"
-                className="flex-1"
+                className="flex-1 bg-[hsl(0,80%,40%)] text-white hover:bg-[hsl(0,80%,35%)]"
                 disabled={deleteConfirmText !== "DELETE"}
                 onClick={() => {
                   deleteTrade(trade.id);

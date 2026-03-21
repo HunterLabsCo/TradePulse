@@ -14,6 +14,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
+const chipSelected = "bg-primary text-primary-foreground border border-primary";
+
 export default function SettingsPage() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
@@ -64,7 +67,7 @@ export default function SettingsPage() {
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Anon Trader"
-            className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl bg-card px-4 py-3 text-sm text-foreground placeholder:text-[hsl(0,0%,27%)] outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
 
@@ -78,8 +81,8 @@ export default function SettingsPage() {
                 onClick={() => setDefaultChain(chain)}
                 className={`rounded-xl px-4 py-2.5 text-xs font-semibold transition-colors active:scale-[0.96] ${
                   defaultChain === chain
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card text-muted-foreground"
+                    ? chipSelected
+                    : chipDefault
                 }`}
               >
                 {chain === "BNB" ? "BNB / BSC" : chain}
@@ -117,7 +120,7 @@ export default function SettingsPage() {
         {/* Delete All */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-destructive/10 py-3 text-xs font-semibold text-destructive active:scale-[0.97]">
+            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[hsl(0,80%,40%)]/10 py-3 text-xs font-semibold text-[hsl(0,80%,40%)] active:scale-[0.97]">
               <Trash2 className="h-4 w-4" /> Delete All Data
             </button>
           </AlertDialogTrigger>
@@ -132,7 +135,7 @@ export default function SettingsPage() {
               <AlertDialogCancel className="bg-muted text-foreground border-0">Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={deleteAllTrades}
-                className="bg-destructive text-destructive-foreground"
+                className="bg-[hsl(0,80%,40%)] text-white hover:bg-[hsl(0,80%,35%)]"
               >
                 Delete
               </AlertDialogAction>

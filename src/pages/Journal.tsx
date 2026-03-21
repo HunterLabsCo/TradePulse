@@ -17,6 +17,9 @@ const FILTERS: { value: Filter; label: string }[] = [
   { value: "losses", label: "Losses" },
 ];
 
+const chipDefault = "bg-[hsl(0,0%,10%)] border border-[hsl(0,0%,27%)] text-[hsl(0,0%,67%)]";
+const chipSelected = "bg-primary text-primary-foreground border border-primary";
+
 export default function Journal() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
@@ -24,9 +27,7 @@ export default function Journal() {
   const [filter, setFilter] = useState<Filter>("all");
 
   const filtered = trades.filter((t) => {
-    // Search filter
     if (search && !t.tokenName.toLowerCase().includes(search.toLowerCase())) return false;
-    // Status filter
     if (filter === "open") return t.status === "open";
     if (filter === "closed") return t.status === "closed";
     if (filter === "wins") return t.status === "closed" && (t.finalPnl ?? 0) > 0;
@@ -65,8 +66,8 @@ export default function Journal() {
             className={cn(
               "whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors active:scale-[0.97]",
               filter === f.value
-                ? "bg-primary text-primary-foreground"
-                : "bg-card text-muted-foreground hover:text-foreground"
+                ? chipSelected
+                : chipDefault
             )}
           >
             {f.label}
@@ -95,7 +96,7 @@ export default function Journal() {
                   {trade.entryMarketCap && <span>MC: {trade.entryMarketCap}</span>}
                   {trade.setupType && <span>• {trade.setupType}</span>}
                 </div>
-                <div className="mt-1 flex items-center gap-2 text-[10px] text-muted-foreground tabular-nums">
+                <div className="mt-1 flex items-center gap-2 text-[10px] text-accent tabular-nums">
                   <span>{new Date(trade.entryTime).toLocaleDateString()}</span>
                 </div>
                 {trade.emotionalStateAtEntry.length > 0 && (

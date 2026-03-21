@@ -17,12 +17,12 @@ export function ExitHistory({ events }: { events: ExitEvent[] }) {
   return (
     <div className="space-y-3">
       {events.map((ev) => (
-        <div key={ev.id} className="rounded-lg bg-background p-3 border border-border/50">
+        <div key={ev.id} className="rounded-lg bg-card p-3 border border-border/50">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold">{EXIT_TYPE_LABELS[ev.exitType] ?? ev.exitType}</span>
             <span
               className={`text-xs font-bold tabular-nums ${
-                ev.pnlPercent >= 0 ? "text-emerald-400" : "text-red-400"
+                ev.pnlPercent >= 0 ? "text-primary" : "text-[hsl(0,100%,60%)]"
               }`}
             >
               {ev.pnlPercent > 0 ? "+" : ""}{ev.pnlPercent}%
@@ -30,7 +30,7 @@ export function ExitHistory({ events }: { events: ExitEvent[] }) {
           </div>
           <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
             <span>{ev.percentClosed}% closed</span>
-            <span className="tabular-nums">{new Date(ev.timestamp).toLocaleString()}</span>
+            <span className="tabular-nums text-accent">{new Date(ev.timestamp).toLocaleString()}</span>
           </div>
           {ev.note && (
             <p className="mt-2 text-xs leading-relaxed text-muted-foreground italic">"{ev.note}"</p>

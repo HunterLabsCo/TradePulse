@@ -47,14 +47,11 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
       onText: (text) => {
         const updated = (noteTextRef.current + " " + text).trim();
         setNoteText(updated);
-        // Auto-detect emotions
         const detected = detectEmotionsFromText(text);
         if (detected.length > 0) {
           setEmotions((prev) => {
             const merged = [...prev];
-            for (const e of detected) {
-              if (!merged.includes(e)) merged.push(e);
-            }
+            for (const e of detected) { if (!merged.includes(e)) merged.push(e); }
             return merged;
           });
         }
@@ -91,7 +88,7 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh]">
+      <DrawerContent className="max-h-[85vh] bg-card border-t border-border">
         <DrawerHeader>
           <DrawerTitle>Trade Update</DrawerTitle>
           <DrawerDescription>Record a mid-trade journal entry</DrawerDescription>
@@ -139,7 +136,7 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
                     emotion={e}
                     className={cn(
                       "cursor-pointer transition-opacity",
-                      emotions.includes(e) ? "ring-1 ring-foreground/30" : "opacity-50"
+                      emotions.includes(e) ? "ring-1 ring-primary/50" : "opacity-50"
                     )}
                   />
                 </button>

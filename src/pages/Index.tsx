@@ -33,7 +33,7 @@ export default function Index() {
             <p className="font-body text-[12px] font-normal text-muted-foreground">Trade. Speak. Reflect.</p>
           </div>
           {nonDemoCount < FREE_LIMIT && (
-            <div className="rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-3 py-1.5 text-right">
+            <div className="absolute right-0 top-1/2 -translate-y-1/2 rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-3 py-1.5 text-right">
               <p className="section-label">Free trades</p>
               <p className="font-display text-[18px] font-semibold tabular-nums tracking-data text-foreground">
                 {nonDemoCount} <span className="font-body font-light text-muted-foreground">/ {FREE_LIMIT}</span>

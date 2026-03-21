@@ -37,12 +37,12 @@
 
     --sidebar-background: 0 0% 0%;
     --sidebar-foreground: 0 0% 100%;
-    --sidebar-primary: 73 100% 50%;
+    --sidebar-primary: 152 100% 50%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 10%;
     --sidebar-accent-foreground: 0 0% 100%;
     --sidebar-border: 0 0% 10%;
-    --sidebar-ring: 73 100% 50%;
+    --sidebar-ring: 152 100% 50%;
   }
 }
 

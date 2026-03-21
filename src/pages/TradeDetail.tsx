@@ -155,7 +155,7 @@ export default function TradeDetail() {
         <Section title="Entry" defaultOpen>
           <div className="space-y-0.5">
             <Field label="Market Cap" value={trade.entryMarketCap} />
-            <Field label="Price" value={trade.entryPrice} />
+            <Field label="Entry Price" value={trade.entryPrice} />
             <Field label="Size" value={trade.positionSize} />
             <Field label="Setup" value={trade.setupType} />
             <Field label="Narrative" value={trade.narrativeType} />

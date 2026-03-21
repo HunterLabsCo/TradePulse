@@ -37,6 +37,9 @@ const LABELS: Record<string, string> = {
   "in-the-zone": "In the Zone",
   "revenge-mindset": "Revenge",
   fomo: "FOMO",
+  detached: "Detached / Numb",
+  sharp: "Sharp / Clear",
+  tired: "Tired / Fatigued",
 };
 
 import React from "react";

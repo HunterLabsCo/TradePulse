@@ -304,7 +304,7 @@ export default function TradeDetail() {
 
       {/* Action Buttons — OPEN trades only */}
       {isOpen && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
+        <div className="fixed bottom-6 left-0 right-0 z-30 flex gap-2 px-5">
           <button
             onClick={() => setShowUpdateModal(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"

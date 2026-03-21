@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
+import { createVoiceRecorder } from "@/lib/voice-utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";

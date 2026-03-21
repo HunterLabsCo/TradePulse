@@ -186,9 +186,17 @@ export default function TradeDetail() {
               {isOpen ? "OPEN" : "CLOSED"}
             </span>
           </div>
-          {isClosed && trade.finalPnl !== undefined && (
-            <PnlBadge pnl={trade.finalPnl} className="text-sm" />
-          )}
+          <div className="flex items-center gap-2">
+            {isClosed && trade.finalPnl !== undefined && (
+              <PnlBadge pnl={trade.finalPnl} className="text-sm" />
+            )}
+            <button
+              onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(""); }}
+              className="flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/50 hover:text-destructive hover:bg-destructive/10 transition-colors active:scale-[0.95]"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
       </header>
 

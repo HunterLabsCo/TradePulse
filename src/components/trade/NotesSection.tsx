@@ -1,14 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Mic, PenLine, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { createVoiceRecorder } from "@/lib/voice-utils";
 import type { TradeNote } from "@/lib/sample-data";
-
-const SpeechRecognition =
-  typeof window !== "undefined"
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    : null;
 
 interface NotesSectionProps {
   notes: TradeNote[];
@@ -20,31 +16,26 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
   const [noteText, setNoteText] = useState("");
   const [showTextInput, setShowTextInput] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
+  const noteTextRef = useRef(noteText);
+  useEffect(() => { noteTextRef.current = noteText; }, [noteText]);
 
   const startVoice = () => {
-    if (!SpeechRecognition) return;
-    const rec = new SpeechRecognition();
-    rec.continuous = true;
-    rec.interimResults = false;
-    rec.lang = "en-US";
-    rec.onresult = (e: any) => {
-      let text = "";
-      for (let i = 0; i < e.results.length; i++) {
-        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
-      }
-      setNoteText((prev) => (prev + " " + text).trim());
-    };
-    rec.start();
-    recognitionRef.current = rec;
+    const recorder = createVoiceRecorder({
+      onText: (text) => {
+        setNoteText((prev) => (prev + " " + text).trim());
+      },
+      onStop: () => setIsRecording(false),
+    });
+    recorderRef.current = recorder;
+    recorder.start();
     setIsRecording(true);
     setShowTextInput(true);
   };
 
   const stopVoice = () => {
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setIsRecording(false);
+    recorderRef.current?.stop();
+    recorderRef.current = null;
   };
 
   const handleSave = () => {
@@ -59,6 +50,9 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
     setNoteText("");
     setShowTextInput(false);
   };
+
+  // Filter to only "note" type entries
+  const directNotes = notes.filter((n) => n.noteType !== "update");
 
   return (
     <div className="space-y-3">
@@ -100,19 +94,15 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
         </div>
       )}
 
-      {/* Notes Feed */}
-      {notes.length === 0 ? (
+      {/* Notes Feed — only direct notes */}
+      {directNotes.length === 0 ? (
         <p className="text-xs text-muted-foreground italic">No notes yet.</p>
       ) : (
         <div className="space-y-2">
-          {[...notes].reverse().map((n) => (
+          {[...directNotes].reverse().map((n) => (
             <div key={n.id} className="rounded-lg bg-background p-3 border border-border/50">
               <div className="mb-1">
-                {n.noteType === "update" ? (
-                  <span className="text-[10px] font-semibold text-primary">⚡ Trade Update</span>
-                ) : (
-                  <span className="text-[10px] font-semibold text-muted-foreground">📝 Note</span>
-                )}
+                <span className="text-[10px] font-semibold text-muted-foreground">📝 Note</span>
               </div>
               <p className="text-xs leading-relaxed whitespace-pre-line">{n.text}</p>
               <div className="mt-1.5 flex items-center gap-2">
@@ -126,7 +116,7 @@ export function NotesSection({ notes, isOpen, onAddNote }: NotesSectionProps) {
                       : "bg-muted text-muted-foreground"
                   }`}
                 >
-                  {n.duringSession ? (n.noteType === "update" ? "Mid-trade update" : "During session") : "Post-session"}
+                  {n.duringSession ? "During session" : "Post-session"}
                 </span>
               </div>
             </div>

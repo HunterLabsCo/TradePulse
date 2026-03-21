@@ -216,7 +216,6 @@ export default function NewTrade() {
           ? "Microphone permission denied. Please allow mic access and try again."
           : `Speech recognition error: ${event.error}`);
         setIsRecording(false);
-        clearSilenceTimer();
       };
 
       recognition.onend = () => {

@@ -94,12 +94,12 @@ export default function NewTrade() {
     modelId: "scribe_v2_realtime",
     commitStrategy: CommitStrategy.VAD,
     onPartialTranscript: (data) => {
-      console.log("[Scribe] Partial:", data.text);
+      console.log("[Scribe] Partial:", JSON.stringify(data));
       setLivePartial(data.text);
       livePartialRef.current = data.text;
     },
     onCommittedTranscript: (data) => {
-      console.log("[Scribe] Committed:", data.text);
+      console.log("[Scribe] Committed:", JSON.stringify(data));
       setFullTranscript((prev) => {
         const next = prev ? `${prev} ${data.text}` : data.text;
         fullTranscriptRef.current = next;
@@ -107,6 +107,13 @@ export default function NewTrade() {
       });
       setLivePartial("");
       livePartialRef.current = "";
+    },
+    onError: (error) => {
+      console.error("[Scribe] Error event:", error);
+      setVoiceError(`Scribe error: ${typeof error === 'string' ? error : JSON.stringify(error)}`);
+    },
+    onDisconnect: () => {
+      console.log("[Scribe] Disconnected. Transcript ref:", fullTranscriptRef.current);
     },
   });
 

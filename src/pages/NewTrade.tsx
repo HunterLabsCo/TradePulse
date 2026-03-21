@@ -71,6 +71,8 @@ export default function NewTrade() {
   const [sttMethod, setSttMethod] = useState<"elevenlabs" | "webspeech" | null>(null);
 
   const recognitionRef = useRef<any>(null);
+  const fullTranscriptRef = useRef("");
+  const livePartialRef = useRef("");
 
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");

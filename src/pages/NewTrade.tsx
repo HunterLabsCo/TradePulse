@@ -207,12 +207,7 @@ export default function NewTrade() {
         }
         setLivePartial(interim);
         livePartialRef.current = interim;
-        // Reset silence timer on any speech
-        clearSilenceTimer();
-        silenceTimerRef.current = setTimeout(() => {
-          stopRecording();
-        }, SILENCE_TIMEOUT);
-      };
+        // No silence auto-stop for entry — manual tap-to-stop only
 
       recognition.onerror = (event: any) => {
         if (event.error === "no-speech") return;

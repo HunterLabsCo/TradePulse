@@ -171,6 +171,16 @@ export default function NewTrade() {
   const [isRecordingNotes, setIsRecordingNotes] = useState(false);
   const notesRecRef = useRef<any>(null);
 
+  const SILENCE_TIMEOUT = 2500;
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearSilenceTimer = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+  };
+
   const startRecording = useCallback(() => {
     setVoiceError(null);
     if (!SpeechRecognition) {
@@ -203,14 +213,21 @@ export default function NewTrade() {
         }
         setLivePartial(interim);
         livePartialRef.current = interim;
+        // Reset silence timer on any speech
+        clearSilenceTimer();
+        silenceTimerRef.current = setTimeout(() => {
+          stopRecording();
+        }, SILENCE_TIMEOUT);
       };
 
       recognition.onerror = (event: any) => {
+        if (event.error === "no-speech") return;
         console.error("[WebSpeech] Error:", event.error);
         setVoiceError(event.error === "not-allowed"
           ? "Microphone permission denied. Please allow mic access and try again."
           : `Speech recognition error: ${event.error}`);
         setIsRecording(false);
+        clearSilenceTimer();
       };
 
       recognition.onend = () => {
@@ -223,6 +240,10 @@ export default function NewTrade() {
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
+      // Start silence timer
+      silenceTimerRef.current = setTimeout(() => {
+        stopRecording();
+      }, SILENCE_TIMEOUT);
     } catch (err: any) {
       setVoiceError(`Failed to start recording: ${err.message}`);
     }

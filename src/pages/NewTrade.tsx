@@ -522,28 +522,25 @@ export default function NewTrade() {
 
         {/* Confirmation Signals */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Confirmation Signals</label>
+          <label className="section-label">Confirmation Signals</label>
           <div className="flex flex-wrap gap-1.5">
             {CONFIRMATION_SIGNALS.map((sig) => (
               <button
                 key={sig}
                 onClick={() => toggleSignal(sig)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]",
-                  confirmationSignals.includes(sig)
-                    ? chipSelected
-                    : chipDefault
+                  chipBase, "px-2.5 py-1",
+                  confirmationSignals.includes(sig) ? chipSelected : chipDefault
                 )}
               >
                 {confirmationSignals.includes(sig) && <Check className="mr-1 inline h-3 w-3" />}
                 {sig}
               </button>
             ))}
-            {/* Custom signals */}
             {customSignals.map((sig) => (
               <span
                 key={sig}
-                className="inline-flex items-center gap-1 rounded-md border border-dashed border-primary/40 bg-primary/10 px-2.5 py-1 text-[11px] font-semibold text-primary"
+                className="inline-flex items-center gap-1 rounded-full border border-dashed border-[hsl(var(--green-primary)/0.4)] bg-[hsl(var(--green-primary)/0.1)] px-2.5 py-1 font-body text-[11px] font-300 text-primary"
               >
                 {sig}
                 <button onClick={() => removeCustomSignal(sig)} className="hover:text-destructive">
@@ -557,19 +554,18 @@ export default function NewTrade() {
               placeholder="Describe signal…"
               value={confirmationSignalOther}
               onChange={(e) => setConfirmationSignalOther(e.target.value)}
-              className="mt-1.5 bg-card border-border"
+              className="mt-1.5 bg-secondary border-border font-body font-300 focus-visible:ring-primary"
             />
           )}
-          {/* Add custom signal input */}
           <div className="flex items-center gap-2 mt-1">
             <Input
               placeholder="+ Add your own"
               value={newCustomSignal}
               onChange={(e) => setNewCustomSignal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCustomSignal()}
-              className="h-8 bg-card border-border text-xs flex-1"
+              className="h-8 bg-secondary border-border font-body text-xs font-300 flex-1 focus-visible:ring-primary"
             />
-            <Button variant="ghost" size="sm" onClick={addCustomSignal} disabled={!newCustomSignal.trim()} className="h-8 px-2 text-xs">
+            <Button variant="ghost" size="sm" onClick={addCustomSignal} disabled={!newCustomSignal.trim()} className="h-8 px-2 font-body text-xs font-400">
               Add
             </Button>
           </div>

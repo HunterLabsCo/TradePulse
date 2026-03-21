@@ -168,6 +168,8 @@ export default function NewTrade() {
       recognitionRef.current = recognition;
 
       let committed = "";
+      fullTranscriptRef.current = "";
+      livePartialRef.current = "";
 
       recognition.onresult = (event: any) => {
         let interim = "";

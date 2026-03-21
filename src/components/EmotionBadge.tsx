@@ -31,18 +31,18 @@ const LABELS: Record<string, string> = {
   fomo: "FOMO",
 };
 
-export function EmotionBadge({
-  emotion,
-  className,
-}: {
-  emotion: EmotionalState;
-  className?: string;
-}) {
+import React from "react";
+
+export const EmotionBadge = React.forwardRef<
+  HTMLSpanElement,
+  { emotion: EmotionalState; className?: string }
+>(({ emotion, className }, ref) => {
   const color = EMOTION_COLORS[emotion] ?? "bg-muted text-muted-foreground";
   const label = LABELS[emotion] ?? emotion.charAt(0).toUpperCase() + emotion.slice(1);
 
   return (
     <span
+      ref={ref}
       className={cn(
         "inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide",
         color,
@@ -52,4 +52,5 @@ export function EmotionBadge({
       {label}
     </span>
   );
-}
+});
+EmotionBadge.displayName = "EmotionBadge";

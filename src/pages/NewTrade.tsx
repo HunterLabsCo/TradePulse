@@ -312,7 +312,7 @@ export default function NewTrade() {
             </Alert>
           )}
 
-          {isRecording && sttMethod === "webspeech" && (
+          {isRecording && (
             <p className="text-[10px] text-muted-foreground">Using browser speech recognition</p>
           )}
 

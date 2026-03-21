@@ -504,10 +504,10 @@ export default function NewTrade() {
         {/* Collapsible Indicators */}
         <Collapsible open={showIndicators} onOpenChange={setShowIndicators}>
           <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <button className="flex items-center gap-1.5 font-body text-xs font-300 text-muted-foreground hover:text-foreground transition-colors">
               <Plus className={cn("h-3.5 w-3.5 transition-transform", showIndicators && "rotate-45")} />
               Add indicators
-              <span className="text-[10px] text-muted-foreground/60">— optional</span>
+              <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">— optional</span>
             </button>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-2">
@@ -515,7 +515,7 @@ export default function NewTrade() {
               placeholder="e.g. RSI, MACD, VWAP…"
               value={indicatorsUsed}
               onChange={(e) => setIndicatorsUsed(e.target.value)}
-              className="bg-card border-border"
+              className="bg-secondary border-border font-body font-300 focus-visible:ring-primary"
             />
           </CollapsibleContent>
         </Collapsible>

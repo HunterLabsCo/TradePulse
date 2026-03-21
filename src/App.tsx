@@ -7,7 +7,6 @@ import { BottomNav } from "@/components/BottomNav";
 import Index from "./pages/Index";
 import NewTrade from "./pages/NewTrade";
 import TradeDetail from "./pages/TradeDetail";
-import Analytics from "./pages/Analytics";
 import Journal from "./pages/Journal";
 import SettingsPage from "./pages/SettingsPage";
 import Paywall from "./pages/Paywall";

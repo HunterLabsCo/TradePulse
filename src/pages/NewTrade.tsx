@@ -573,14 +573,14 @@ export default function NewTrade() {
 
         {/* Session Status */}
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Session Status</label>
+          <label className="section-label">Session Status</label>
           <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
-            <SelectTrigger className="bg-card border-border"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
             <SelectContent>
               {SESSION_STATUSES.map((s) => (
                 <SelectItem key={s.value} value={s.value}>
-                  <span>{s.label}</span>
-                  <span className="ml-1.5 text-[10px] text-muted-foreground">— {s.desc}</span>
+                  <span className="font-body font-400">{s.label}</span>
+                  <span className="ml-1.5 font-body text-[10px] font-300 text-muted-foreground">— {s.desc}</span>
                 </SelectItem>
               ))}
             </SelectContent>

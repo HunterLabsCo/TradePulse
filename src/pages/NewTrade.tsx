@@ -174,12 +174,6 @@ export default function NewTrade() {
 
   // No silence auto-stop for entry form — manual stop only
 
-  const clearSilenceTimer = () => {
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-  };
 
   const startRecording = useCallback(() => {
     setVoiceError(null);

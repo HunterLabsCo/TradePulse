@@ -147,7 +147,7 @@ export default function TradeDetail() {
   const confirmationOther = trade.confirmationSignalOther;
 
   return (
-    <div className="flex min-h-screen flex-col pb-24">
+    <div className="flex min-h-screen flex-col pb-40">
       {/* Header */}
       <header className="px-5 py-4 pt-safe-top">
         <button

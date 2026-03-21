@@ -397,6 +397,9 @@ export default function TradeDetail() {
       <UpdateModal
         open={showUpdateModal}
         onOpenChange={setShowUpdateModal}
+        onSave={handleSaveUpdate}
+      />
+
       {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent className="max-w-sm">

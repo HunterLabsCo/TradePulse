@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, LogOut, ChevronDown } from "lucide-react";
+import { ArrowLeft, Plus, LogOut, ChevronDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTradeStore } from "@/lib/trade-store";
 import { PnlBadge } from "@/components/PnlBadge";

@@ -314,16 +314,11 @@ export default function NewTrade() {
     }
   }, []);
 
-  // Secondary voice helpers with silence auto-stop using createVoiceRecorder
-  const emotionRecorderRef = useRef<ReturnType<typeof import("@/lib/voice-utils").createVoiceRecorder> | null>(null);
-  const notesRecorderRef = useRef<ReturnType<typeof import("@/lib/voice-utils").createVoiceRecorder> | null>(null);
-
   const startSecondaryVoice = (
     setRecording: (v: boolean) => void,
     recRef: React.MutableRefObject<any>,
     setText: (fn: (prev: string) => string) => void,
   ) => {
-    const { createVoiceRecorder } = require("@/lib/voice-utils");
     const recorder = createVoiceRecorder({
       onText: (text: string) => {
         setText((prev: string) => (prev + " " + text).trim());

@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useScribe, CommitStrategy } from "@elevenlabs/react";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, Trade } from "@/lib/sample-data";
@@ -114,7 +113,6 @@ export default function NewTrade() {
   const [fullTranscript, setFullTranscript] = useState("");
   const [livePartial, setLivePartial] = useState("");
   const [voiceError, setVoiceError] = useState<string | null>(null);
-  const [sttMethod, setSttMethod] = useState<"elevenlabs" | "webspeech" | null>(null);
 
   const recognitionRef = useRef<any>(null);
   const fullTranscriptRef = useRef("");
@@ -135,86 +133,15 @@ export default function NewTrade() {
   const [quickTags, setQuickTags] = useState<string[]>([]);
   const [transcript, setTranscript] = useState("");
 
-  // ElevenLabs Scribe hook
-  const scribe = useScribe({
-    modelId: "scribe_v2_realtime",
-    commitStrategy: CommitStrategy.VAD,
-    onPartialTranscript: (data) => {
-      console.log("[Scribe] Partial:", JSON.stringify(data));
-      setLivePartial(data.text);
-      livePartialRef.current = data.text;
-    },
-    onCommittedTranscript: (data) => {
-      console.log("[Scribe] Committed:", JSON.stringify(data));
-      setFullTranscript((prev) => {
-        const next = prev ? `${prev} ${data.text}` : data.text;
-        fullTranscriptRef.current = next;
-        return next;
-      });
-      setLivePartial("");
-      livePartialRef.current = "";
-    },
-    onError: (error) => {
-      const formattedError = formatVoiceError(error);
-      console.error("[Scribe] Error event:", error, { formattedError });
-      setVoiceError(`Scribe error: ${formattedError}`);
-    },
-    onDisconnect: () => {
-      console.log("[Scribe] Disconnected. Transcript ref:", fullTranscriptRef.current);
-    },
-  });
-
-  const startRecording = useCallback(async () => {
+  const startRecording = useCallback(() => {
     setVoiceError(null);
 
-    // Try ElevenLabs first
-    try {
-      console.log("[Voice] Fetching ElevenLabs scribe token…");
-      const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
-
-      if (error) {
-        console.error("[Voice] Supabase invoke error:", error);
-        throw new Error(`Token fetch failed: ${error.message || JSON.stringify(error)}`);
-      }
-      if (data?.error) {
-        console.error("[Voice] Edge function returned error:", data.error);
-        throw new Error(`ElevenLabs: ${data.error}`);
-      }
-      if (!data?.token) {
-        console.error("[Voice] No token in response:", data);
-        throw new Error("No token returned from edge function");
-      }
-
-      console.log("[Voice] Token obtained, connecting ElevenLabs Scribe…");
-      fullTranscriptRef.current = "";
-      livePartialRef.current = "";
-      setFullTranscript("");
-      setLivePartial("");
-      setIsRecording(true);
-      setSttMethod("elevenlabs");
-
-      await scribe.connect({
-        token: data.token,
-        microphone: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-      });
-      console.log("[Voice] scribe.connect() resolved. isConnected:", scribe.isConnected);
-    } catch (elevenLabsErr: any) {
-      console.warn("[Voice] ElevenLabs unavailable:", elevenLabsErr.message);
-
-      // Fall back to Web Speech API
-      if (!SpeechRecognition) {
-        setVoiceError(`ElevenLabs failed: ${elevenLabsErr.message}. Browser Speech API also unavailable.`);
-        toast.error("Voice recording unavailable");
-        return;
-      }
-
-      console.log("[Voice] Falling back to Web Speech API…");
-      setSttMethod("webspeech");
-      startWebSpeech();
+    if (!SpeechRecognition) {
+      setVoiceError("Speech recognition is not supported in this browser. Please use Chrome.");
+      toast.error("Voice recording unavailable");
+      return;
     }
-  }, [scribe]);
 
-  const startWebSpeech = useCallback(() => {
     try {
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
@@ -266,17 +193,14 @@ export default function NewTrade() {
     }
   }, []);
 
+
+
   const stopRecording = useCallback(async () => {
-    // Read from refs BEFORE disconnecting to avoid stale closures
     const capturedFull = fullTranscriptRef.current;
     const capturedPartial = livePartialRef.current;
     const finalTranscript = [capturedFull, capturedPartial].filter(Boolean).join(" ").trim();
 
-    console.log("[Voice] Stopping. Full ref:", capturedFull, "Partial ref:", capturedPartial, "Final:", finalTranscript);
-
-    if (sttMethod === "elevenlabs") {
-      scribe.disconnect();
-    } else if (recognitionRef.current) {
+    if (recognitionRef.current) {
       recognitionRef.current.onend = null;
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -287,13 +211,6 @@ export default function NewTrade() {
     livePartialRef.current = "";
 
     if (!finalTranscript) {
-      if (sttMethod === "elevenlabs" && SpeechRecognition) {
-        setVoiceError("No speech detected from ElevenLabs. Switched to browser speech recognition fallback.");
-        toast.error("No speech detected from ElevenLabs — using browser speech fallback");
-        setSttMethod("webspeech");
-        startWebSpeech();
-        return;
-      }
       toast.error("No speech detected");
       return;
     }
@@ -335,7 +252,7 @@ export default function NewTrade() {
     } finally {
       setIsParsing(false);
     }
-  }, [scribe, sttMethod, startWebSpeech]);
+  }, []);
 
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) => prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]);
@@ -395,7 +312,7 @@ export default function NewTrade() {
             </Alert>
           )}
 
-          {isRecording && sttMethod === "webspeech" && (
+          {isRecording && (
             <p className="text-[10px] text-muted-foreground">Using browser speech recognition</p>
           )}
 

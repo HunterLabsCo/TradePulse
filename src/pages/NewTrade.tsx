@@ -621,22 +621,21 @@ export default function NewTrade() {
 
         {/* Quick Tags */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Quick Tags</label>
+          <label className="section-label">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
             {allQuickTags.map((tag) => (
-              <button key={tag} onClick={() => toggleTag(tag)} className={cn("rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors active:scale-[0.96]", quickTags.includes(tag) ? chipSelected : chipDefault)}>{tag}</button>
+              <button key={tag} onClick={() => toggleTag(tag)} className={cn(chipBase, "px-2.5 py-1", quickTags.includes(tag) ? chipBlue : chipDefault)}>{tag}</button>
             ))}
           </div>
-          {/* Add custom tag */}
           <div className="flex items-center gap-2 mt-1">
             <Input
               placeholder="+ Add custom tag"
               value={newCustomTag}
               onChange={(e) => setNewCustomTag(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addCustomTag()}
-              className="h-8 bg-card border-border text-xs flex-1"
+              className="h-8 bg-secondary border-border font-body text-xs font-300 flex-1 focus-visible:ring-primary"
             />
-            <Button variant="ghost" size="sm" onClick={addCustomTag} disabled={!newCustomTag.trim()} className="h-8 px-2 text-xs">
+            <Button variant="ghost" size="sm" onClick={addCustomTag} disabled={!newCustomTag.trim()} className="h-8 px-2 font-body text-xs font-400">
               Add
             </Button>
           </div>

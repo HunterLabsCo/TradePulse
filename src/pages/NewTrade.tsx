@@ -82,7 +82,7 @@ export default function NewTrade() {
   // Scribe hook
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: "vad",
+    commitStrategy: CommitStrategy.VAD,
     onPartialTranscript: (data) => {
       setLivePartial(data.text);
     },

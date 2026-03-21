@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useScribe, CommitStrategy } from "@elevenlabs/react";
+import { useScribe } from "@elevenlabs/react";
 import { useTradeStore } from "@/lib/trade-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, Trade } from "@/lib/sample-data";
@@ -59,6 +59,52 @@ const SpeechRecognition =
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
     : null;
 
+const formatVoiceError = (error: unknown): string => {
+  if (!error) return "Unknown error";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message || error.name;
+
+  if (typeof error === "object") {
+    const e = error as Record<string, unknown> & {
+      error?: { message?: string };
+      cause?: { message?: string };
+    };
+
+    const candidates = [
+      e.message,
+      e.error,
+      e.reason,
+      e.type,
+      e.code,
+      e.details,
+      e.error?.message,
+      e.cause?.message,
+    ].filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+
+    if (candidates.length > 0) return candidates.join(" · ");
+
+    try {
+      const ownProps = Object.getOwnPropertyNames(error as object);
+      if (ownProps.length > 0) {
+        const serialized = Object.fromEntries(
+          ownProps.map((key) => [key, (error as Record<string, unknown>)[key]])
+        );
+        return JSON.stringify(serialized);
+      }
+    } catch {
+      // no-op
+    }
+
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return "Unknown object error";
+    }
+  }
+
+  return String(error);
+};
+
 export default function NewTrade() {
   const navigate = useNavigate();
   const { addTrade, getNonDemoTradeCount } = useTradeStore();
@@ -92,7 +138,7 @@ export default function NewTrade() {
   // ElevenLabs Scribe hook
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
-    commitStrategy: CommitStrategy.VAD,
+    commitStrategy: "vad",
     onPartialTranscript: (data) => {
       console.log("[Scribe] Partial:", JSON.stringify(data));
       setLivePartial(data.text);
@@ -109,8 +155,9 @@ export default function NewTrade() {
       livePartialRef.current = "";
     },
     onError: (error) => {
-      console.error("[Scribe] Error event:", error);
-      setVoiceError(`Scribe error: ${typeof error === 'string' ? error : JSON.stringify(error)}`);
+      const formattedError = formatVoiceError(error);
+      console.error("[Scribe] Error event:", error, { formattedError });
+      setVoiceError(`Scribe error: ${formattedError}`);
     },
     onDisconnect: () => {
       console.log("[Scribe] Disconnected. Transcript ref:", fullTranscriptRef.current);
@@ -240,6 +287,13 @@ export default function NewTrade() {
     livePartialRef.current = "";
 
     if (!finalTranscript) {
+      if (sttMethod === "elevenlabs" && SpeechRecognition) {
+        setVoiceError("No speech detected from ElevenLabs. Switched to browser speech recognition fallback.");
+        toast.error("No speech detected from ElevenLabs — using browser speech fallback");
+        setSttMethod("webspeech");
+        startWebSpeech();
+        return;
+      }
       toast.error("No speech detected");
       return;
     }
@@ -281,7 +335,7 @@ export default function NewTrade() {
     } finally {
       setIsParsing(false);
     }
-  }, [scribe, sttMethod, fullTranscript, livePartial]);
+  }, [scribe, sttMethod, startWebSpeech]);
 
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) => prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]);

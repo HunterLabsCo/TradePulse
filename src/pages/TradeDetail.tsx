@@ -151,7 +151,7 @@ export default function TradeDetail() {
       {/* Header */}
       <header className="px-5 py-4 pt-safe-top">
         <button
-          onClick={() => navigate("/")}
+          onClick={() => navigate(-1)}
           className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card mb-3"
         >
           <ArrowLeft className="h-5 w-5" />

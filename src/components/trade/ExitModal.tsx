@@ -40,6 +40,50 @@ interface ExitModalProps {
   onSave: (event: ExitEvent) => void;
 }
 
+// Voice parsing helpers
+function parseExitTypeFromText(text: string): ExitType | null {
+  const lower = text.toLowerCase();
+  if (lower.includes("take profit") || lower.includes("taking profit")) return "take-profit";
+  if (lower.includes("stop loss") || lower.includes("stopped out") || lower.includes("hit my stop")) return "stop-loss";
+  if (lower.includes("full exit") || lower.includes("closing everything") || lower.includes("all out")) return "full-exit";
+  if (lower.includes("moon bag") || lower.includes("moonbag")) return "moon-bag";
+  if (lower.includes("partial") || lower.includes("scaling out") || lower.includes("taking some")) return "partial-exit";
+  return null;
+}
+
+function parsePercentFromText(text: string, max: number): number | null {
+  const lower = text.toLowerCase();
+  if (lower.includes("all of it") || lower.includes("full position") || lower.includes("everything") || lower.includes("100%") || lower.includes("100 percent")) {
+    return Math.min(100, max);
+  }
+  if (lower.includes("half") || lower.includes("50%") || lower.includes("50 percent")) return Math.min(50, max);
+  if (lower.includes("quarter") || lower.includes("25%") || lower.includes("25 percent")) return Math.min(25, max);
+  if (lower.includes("75%") || lower.includes("75 percent") || lower.includes("three quarter")) return Math.min(75, max);
+  // Try to extract a number followed by "percent" or "%"
+  const match = lower.match(/(\d+)\s*(?:percent|%)/);
+  if (match) {
+    const val = parseInt(match[1]);
+    if (val > 0 && val <= max) return val;
+  }
+  return null;
+}
+
+function parsePnlFromText(text: string): number | null {
+  const lower = text.toLowerCase();
+  // "up 50", "plus 25 percent", "down 30"
+  const upMatch = lower.match(/(?:up|plus|gained|made)\s*(\d+)/);
+  if (upMatch) return parseInt(upMatch[1]);
+  const downMatch = lower.match(/(?:down|minus|lost|negative)\s*(\d+)/);
+  if (downMatch) return -parseInt(downMatch[1]);
+  // "+50%", "-30%"
+  const pctMatch = lower.match(/([+-]?\d+)\s*(?:percent|%)/);
+  if (pctMatch) return parseInt(pctMatch[1]);
+  // "2x", "3x"
+  const xMatch = lower.match(/(\d+)\s*x/);
+  if (xMatch) return (parseInt(xMatch[1]) - 1) * 100;
+  return null;
+}
+
 export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: ExitModalProps) {
   const [exitType, setExitType] = useState<ExitType | null>(null);
   const [percentClosed, setPercentClosed] = useState<number | null>(null);
@@ -56,6 +100,10 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
   const [showTextInput, setShowTextInput] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  // Voice pre-fill state
+  const [isPreFilling, setIsPreFilling] = useState(false);
+  const preFillRef = useRef<any>(null);
 
   const percentPresets = [25, 50, 75, 100].filter((v) => v <= remainingPercent);
   const pnlPresets = [-30, 25, 50, 100, 200];
@@ -79,6 +127,53 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
     }
   };
 
+  // Voice pre-fill — parses speech and fills fields
+  const startPreFill = () => {
+    if (!SpeechRecognition) return;
+    const rec = new SpeechRecognition();
+    rec.continuous = true;
+    rec.interimResults = false;
+    rec.lang = "en-US";
+    rec.onresult = (e: any) => {
+      let text = "";
+      for (let i = 0; i < e.results.length; i++) {
+        if (e.results[i].isFinal) text += e.results[i][0].transcript + " ";
+      }
+      text = text.trim();
+      if (!text) return;
+
+      // Parse and pre-fill fields
+      const parsedType = parseExitTypeFromText(text);
+      if (parsedType) setExitType(parsedType);
+
+      const parsedPercent = parsePercentFromText(text, remainingPercent);
+      if (parsedPercent !== null) {
+        setPercentClosed(parsedPercent);
+        setShowCustomPercent(false);
+      }
+
+      const parsedPnl = parsePnlFromText(text);
+      if (parsedPnl !== null) {
+        setPnlPercent(parsedPnl);
+        setShowCustomPnl(false);
+      }
+
+      // Also append to note text
+      setNoteText((prev) => (prev + " " + text).trim());
+      setShowTextInput(true);
+    };
+    rec.start();
+    preFillRef.current = rec;
+    setIsPreFilling(true);
+  };
+
+  const stopPreFill = () => {
+    preFillRef.current?.stop();
+    preFillRef.current = null;
+    setIsPreFilling(false);
+  };
+
+  // Note-only voice
   const startVoice = () => {
     if (!SpeechRecognition) return;
     const rec = new SpeechRecognition();
@@ -141,6 +236,28 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
           <DrawerDescription>Record an exit for this trade</DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-6 space-y-5">
+          {/* Voice Pre-Fill */}
+          <div className="flex flex-col items-center gap-2 py-2 rounded-xl bg-card">
+            <button
+              onClick={isPreFilling ? stopPreFill : startPreFill}
+              className={cn(
+                "flex h-16 w-16 items-center justify-center rounded-full shadow-lg transition-all active:scale-[0.95]",
+                isPreFilling
+                  ? "bg-destructive shadow-destructive/30 animate-pulse"
+                  : "bg-primary shadow-primary/30"
+              )}
+            >
+              {isPreFilling ? (
+                <MicOff className="h-7 w-7 text-destructive-foreground" />
+              ) : (
+                <Mic className="h-7 w-7 text-primary-foreground" />
+              )}
+            </button>
+            <p className="text-xs text-muted-foreground">
+              {isPreFilling ? "Listening — tap to stop" : "Tap to describe your exit by voice"}
+            </p>
+          </div>
+
           {/* Exit Type */}
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">Exit Type</p>
@@ -284,10 +401,10 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 onClick={isRecording ? stopVoice : startVoice}
                 className={cn(
                   "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-                  isRecording ? "bg-red-500 shadow-red-500/30" : "bg-primary shadow-primary/30"
+                  isRecording ? "bg-destructive shadow-destructive/30" : "bg-primary shadow-primary/30"
                 )}
               >
-                {isRecording ? <MicOff className="h-5 w-5 text-white" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+                {isRecording ? <MicOff className="h-5 w-5 text-destructive-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
               </button>
               <Button
                 variant={showTextInput ? "secondary" : "outline"}

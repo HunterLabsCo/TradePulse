@@ -11,10 +11,11 @@ import {
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { ExitModal } from "@/components/trade/ExitModal";
+import { UpdateModal } from "@/components/trade/UpdateModal";
 import { ExitHistory } from "@/components/trade/ExitHistory";
 import { NotesSection } from "@/components/trade/NotesSection";
 import { TradeSummary } from "@/components/trade/TradeSummary";
-import type { ExitEvent, TradeNote } from "@/lib/sample-data";
+import type { ExitEvent, TradeNote, EmotionalState } from "@/lib/sample-data";
 
 function Section({
   title,
@@ -60,6 +61,7 @@ export default function TradeDetail() {
   const trade = useTradeStore((s) => s.getTradeById(id ?? ""));
   const updateTrade = useTradeStore((s) => s.updateTrade);
   const [showExitModal, setShowExitModal] = useState(false);
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
 
   if (!trade) {
     return (
@@ -93,12 +95,26 @@ export default function TradeDetail() {
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
+  const handleSaveUpdate = (note: TradeNote, emotions: EmotionalState[]) => {
+    // Add emotional state info to the note text if emotions were selected
+    const emotionSuffix = emotions.length > 0 ? `\n[Emotions: ${emotions.join(", ")}]` : "";
+    const enrichedNote: TradeNote = {
+      ...note,
+      text: note.text + emotionSuffix,
+    };
+    updateTrade(trade.id, { tradeNotes: [...tradeNotes, enrichedNote] });
+  };
+
+  // Format confirmation signals for display
+  const confirmationSignals = trade.confirmationSignals ?? [];
+  const confirmationOther = trade.confirmationSignalOther;
+
   return (
     <div className="flex min-h-screen flex-col pb-24">
       {/* Header */}
       <header className="px-5 py-4 pt-safe-top">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/")}
           className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card mb-3"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -145,19 +161,42 @@ export default function TradeDetail() {
             <Field label="Size" value={trade.positionSize} />
             <Field label="Setup" value={trade.setupType} />
             <Field label="Narrative" value={trade.narrativeType} />
-            <Field label="Volume ✓" value={trade.volumeConfirmed} />
-            <Field label="Wallet ✓" value={trade.walletConfirmed} />
             <Field label="Session" value={trade.sessionType} />
-            <Field label="Status" value={trade.interruptionStatus} />
             <Field label="Time" value={new Date(trade.entryTime).toLocaleString()} />
           </div>
-          {trade.emotionalStateAtEntry.length > 0 && (
-            <div className="mt-3 flex flex-wrap gap-1">
-              {trade.emotionalStateAtEntry.map((e) => (
-                <EmotionBadge key={e} emotion={e} />
-              ))}
+
+          {/* Confirmation Signals */}
+          {(confirmationSignals.length > 0 || confirmationOther) && (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Confirmation Signals</p>
+              <div className="flex flex-wrap gap-1">
+                {confirmationSignals.map((sig) => (
+                  <span key={sig} className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
+                    {sig}
+                  </span>
+                ))}
+                {confirmationOther && (
+                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary border border-dashed border-primary/30">
+                    {confirmationOther}
+                  </span>
+                )}
+              </div>
             </div>
           )}
+
+          {/* Emotional State at Entry */}
+          {trade.emotionalStateAtEntry.length > 0 && (
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Emotional State</p>
+              <div className="flex flex-wrap gap-1">
+                {trade.emotionalStateAtEntry.map((e) => (
+                  <EmotionBadge key={e} emotion={e} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Tags */}
           {trade.quickTags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {trade.quickTags.map((tag) => (
@@ -167,10 +206,25 @@ export default function TradeDetail() {
               ))}
             </div>
           )}
+
+          {/* Raw Transcript */}
           {trade.entryTranscript && (
-            <p className="mt-3 rounded-lg bg-background p-3 text-xs leading-relaxed text-muted-foreground italic">
-              "{trade.entryTranscript}"
-            </p>
+            <div className="mt-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Transcript</p>
+              <p className="rounded-lg bg-background p-3 text-xs leading-relaxed text-muted-foreground italic">
+                "{trade.entryTranscript}"
+              </p>
+            </div>
+          )}
+
+          {/* Additional Notes */}
+          {trade.additionalNotes && (
+            <div className="mt-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Additional Notes</p>
+              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed border border-border/50">
+                {trade.additionalNotes}
+              </p>
+            </div>
           )}
         </Section>
 
@@ -250,11 +304,11 @@ export default function TradeDetail() {
         )}
       </div>
 
-      {/* Action Buttons — positioned above FAB */}
+      {/* Action Buttons — OPEN trades only */}
       {isOpen && (
         <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
           <button
-            onClick={() => navigate(`/new-trade?edit=${trade.id}`)}
+            onClick={() => setShowUpdateModal(true)}
             className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
           >
             <Plus className="h-4 w-4" /> Update
@@ -281,6 +335,13 @@ export default function TradeDetail() {
         onOpenChange={setShowExitModal}
         remainingPercent={remainingPercent}
         onSave={handleSaveExit}
+      />
+
+      {/* Update Modal */}
+      <UpdateModal
+        open={showUpdateModal}
+        onOpenChange={setShowUpdateModal}
+        onSave={handleSaveUpdate}
       />
     </div>
   );

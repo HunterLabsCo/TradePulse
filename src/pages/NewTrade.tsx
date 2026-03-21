@@ -1,7 +1,9 @@
-import { useState } from "react";
-import { ArrowLeft, Mic, Check } from "lucide-react";
+import { useState, useCallback } from "react";
+import { ArrowLeft, Mic, Square, Loader2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useScribe } from "@elevenlabs/react";
 import { useTradeStore } from "@/lib/trade-store";
+import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, Trade } from "@/lib/sample-data";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -14,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 const FREE_LIMIT = 20;
 
@@ -54,6 +57,13 @@ export default function NewTrade() {
   const navigate = useNavigate();
   const { addTrade, getNonDemoTradeCount } = useTradeStore();
 
+  // Voice state
+  const [isRecording, setIsRecording] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
+  const [fullTranscript, setFullTranscript] = useState("");
+  const [livePartial, setLivePartial] = useState("");
+
+  // Form state
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");
   const [entryMarketCap, setEntryMarketCap] = useState("");
@@ -68,6 +78,101 @@ export default function NewTrade() {
   const [emotions, setEmotions] = useState<EmotionalState[]>([]);
   const [quickTags, setQuickTags] = useState<string[]>([]);
   const [transcript, setTranscript] = useState("");
+
+  // Scribe hook
+  const scribe = useScribe({
+    modelId: "scribe_v2_realtime",
+    commitStrategy: "vad",
+    onPartialTranscript: (data) => {
+      setLivePartial(data.text);
+    },
+    onCommittedTranscript: (data) => {
+      setFullTranscript((prev) => {
+        const next = prev ? `${prev} ${data.text}` : data.text;
+        return next;
+      });
+      setLivePartial("");
+    },
+  });
+
+  const startRecording = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("elevenlabs-scribe-token");
+      if (error || !data?.token) {
+        toast.error("Failed to start voice recording");
+        console.error("Token error:", error);
+        return;
+      }
+
+      setFullTranscript("");
+      setLivePartial("");
+      setIsRecording(true);
+
+      await scribe.connect({
+        token: data.token,
+        microphone: {
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      });
+    } catch (err) {
+      console.error("Recording error:", err);
+      toast.error("Microphone access required");
+      setIsRecording(false);
+    }
+  }, [scribe]);
+
+  const stopRecording = useCallback(async () => {
+    scribe.disconnect();
+    setIsRecording(false);
+
+    // Combine committed + any remaining partial
+    const finalTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ").trim();
+    setLivePartial("");
+
+    if (!finalTranscript) {
+      toast.error("No speech detected");
+      return;
+    }
+
+    setTranscript(finalTranscript);
+    setIsParsing(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("parse-trade-transcript", {
+        body: { transcript: finalTranscript },
+      });
+
+      if (error || !data?.parsed) {
+        toast.error("AI parsing failed — fill in fields manually");
+        console.error("Parse error:", error, data);
+        setIsParsing(false);
+        return;
+      }
+
+      const p = data.parsed;
+      if (p.tokenName) setTokenName(p.tokenName);
+      if (p.chain) setChain(p.chain);
+      if (p.entryMarketCap) setEntryMarketCap(p.entryMarketCap);
+      if (p.entryPrice) setEntryPrice(p.entryPrice);
+      if (p.positionSize) setPositionSize(p.positionSize);
+      if (p.setupType) setSetupType(p.setupType);
+      if (p.narrativeType) setNarrativeType(p.narrativeType);
+      if (p.volumeConfirmed != null) setVolumeConfirmed(p.volumeConfirmed);
+      if (p.walletConfirmed != null) setWalletConfirmed(p.walletConfirmed);
+      if (p.interruptionStatus) setInterruptionStatus(p.interruptionStatus);
+      if (p.sessionType) setSessionType(p.sessionType);
+      if (p.emotionalStates?.length) setEmotions(p.emotionalStates);
+      if (p.quickTags?.length) setQuickTags(p.quickTags);
+
+      toast.success("Trade parsed — review & save");
+    } catch (err) {
+      console.error("Parse error:", err);
+      toast.error("AI parsing failed");
+    } finally {
+      setIsParsing(false);
+    }
+  }, [scribe, fullTranscript, livePartial]);
 
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) =>
@@ -114,6 +219,8 @@ export default function NewTrade() {
     navigate(`/trade/${trade.id}`);
   };
 
+  const displayTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ");
+
   return (
     <div className="flex min-h-screen flex-col bg-background pb-28">
       {/* Header */}
@@ -128,15 +235,73 @@ export default function NewTrade() {
       </header>
 
       <div className="flex flex-col gap-6 px-5">
-        {/* Voice placeholder */}
-        <div className="flex flex-col items-center gap-3 rounded-2xl bg-card p-5">
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-full bg-primary/15">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/30">
-              <Mic className="h-5 w-5 text-primary" />
+        {/* ──────── VOICE SECTION (dominant) ──────── */}
+        <div className="flex flex-col items-center gap-4 rounded-2xl bg-card p-6">
+          {/* Mic button */}
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isParsing}
+            className={cn(
+              "group relative flex h-28 w-28 items-center justify-center rounded-full transition-all active:scale-[0.93]",
+              isRecording
+                ? "bg-red-500/20"
+                : isParsing
+                  ? "bg-muted"
+                  : "bg-primary/15"
+            )}
+          >
+            {isRecording && (
+              <div className="absolute inset-0 animate-ping rounded-full bg-red-500/10" />
+            )}
+            <div
+              className={cn(
+                "flex h-20 w-20 items-center justify-center rounded-full shadow-lg transition-colors",
+                isRecording
+                  ? "bg-red-500 shadow-red-500/30"
+                  : isParsing
+                    ? "bg-muted-foreground/30"
+                    : "bg-primary shadow-primary/30"
+              )}
+            >
+              {isParsing ? (
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              ) : isRecording ? (
+                <Square className="h-7 w-7 text-white" fill="white" />
+              ) : (
+                <Mic className="h-8 w-8 text-primary-foreground" />
+              )}
             </div>
-          </div>
-          <p className="text-xs text-muted-foreground">Voice entry coming soon — use form below</p>
+          </button>
+
+          <p className="text-xs text-muted-foreground">
+            {isParsing
+              ? "Parsing your trade…"
+              : isRecording
+                ? "Listening — tap to stop"
+                : "Tap to record your trade entry"}
+          </p>
+
+          {/* Live transcript */}
+          {(isRecording || displayTranscript) && (
+            <div className="w-full rounded-xl bg-background/50 p-4">
+              <p className="text-sm leading-relaxed text-foreground">
+                {displayTranscript || (
+                  <span className="text-muted-foreground italic">Waiting for speech…</span>
+                )}
+                {isRecording && livePartial && (
+                  <span className="text-muted-foreground"> {livePartial}</span>
+                )}
+              </p>
+            </div>
+          )}
         </div>
+
+        {/* ──────── PARSED FORM (secondary) ──────── */}
+        {(tokenName || transcript) && (
+          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Review & correct
+          </p>
+        )}
 
         {/* Token + Chain */}
         <div className="grid grid-cols-[1fr_100px] gap-3">
@@ -281,7 +446,7 @@ export default function NewTrade() {
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-muted-foreground">Entry Notes / Transcript</label>
           <Textarea
-            placeholder="Paste your voice transcript or type notes…"
+            placeholder="Your voice transcript appears here, or type notes…"
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
             className="min-h-[80px] bg-card border-border"
@@ -293,7 +458,7 @@ export default function NewTrade() {
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
         <Button
           onClick={handleSave}
-          disabled={!tokenName.trim()}
+          disabled={!tokenName.trim() || isParsing}
           className="h-12 w-full rounded-xl bg-primary text-sm font-bold text-primary-foreground active:scale-[0.97]"
         >
           Save Entry

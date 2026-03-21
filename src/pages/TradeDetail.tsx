@@ -42,7 +42,7 @@ function Section({
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
       <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-card px-4 py-3 text-left active:scale-[0.98]">
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <span className="text-xs font-semibold uppercase tracking-wider text-accent">
           {icon && <span className="mr-1">{icon}</span>}{title}
         </span>
         <ChevronDown
@@ -135,12 +135,10 @@ export default function TradeDetail() {
   const handleSaveExit = (event: ExitEvent) => {
     const newExitEvents = [...exitEvents, event];
     const updates: Record<string, any> = { exitEvents: newExitEvents };
-
     if (event.exitType === "full-exit" || event.exitType === "moon-bag") {
       updates.status = "closed";
       updates.closedAt = new Date().toISOString();
     }
-
     updateTrade(trade.id, updates);
     setShowExitModal(false);
     toast.success("Exit logged ✓", { duration: 2000 });
@@ -164,7 +162,7 @@ export default function TradeDetail() {
       <header className="px-5 py-4 pt-safe-top">
         <button
           onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card mb-3"
+          className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card mb-3 text-accent"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -201,16 +199,10 @@ export default function TradeDetail() {
       </header>
 
       <div className="space-y-2 px-5">
-        {/* Summary (closed trades) */}
         {isClosed && exitEvents.length > 0 && (
-          <TradeSummary
-            exitEvents={exitEvents}
-            entryTime={trade.entryTime}
-            closedAt={trade.closedAt}
-          />
+          <TradeSummary exitEvents={exitEvents} entryTime={trade.entryTime} closedAt={trade.closedAt} />
         )}
 
-        {/* Entry */}
         <Section title="Entry" defaultOpen>
           <div className="space-y-0.5">
             <Field label="Market Cap" value={trade.entryMarketCap} />
@@ -222,29 +214,23 @@ export default function TradeDetail() {
             <Field label="Time" value={new Date(trade.entryTime).toLocaleString()} />
           </div>
 
-          {/* Confirmation Signals */}
           {(confirmationSignals.length > 0 || confirmationOther) && (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Confirmation Signals</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Confirmation Signals</p>
               <div className="flex flex-wrap gap-1">
                 {confirmationSignals.map((sig) => (
-                  <span key={sig} className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                    {sig}
-                  </span>
+                  <span key={sig} className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">{sig}</span>
                 ))}
                 {confirmationOther && (
-                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary border border-dashed border-primary/30">
-                    {confirmationOther}
-                  </span>
+                  <span className="rounded-md bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary border border-dashed border-primary/30">{confirmationOther}</span>
                 )}
               </div>
             </div>
           )}
 
-          {/* Emotional State at Entry */}
           {trade.emotionalStateAtEntry.length > 0 && (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Emotional State</p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Emotional State</p>
               <div className="flex flex-wrap gap-1">
                 {trade.emotionalStateAtEntry.map((e) => (
                   <EmotionBadge key={e} emotion={e} />
@@ -253,67 +239,50 @@ export default function TradeDetail() {
             </div>
           )}
 
-          {/* Quick Tags */}
           {trade.quickTags.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
               {trade.quickTags.map((tag) => (
-                <span key={tag} className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                  {tag}
-                </span>
+                <span key={tag} className="rounded-md bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">{tag}</span>
               ))}
             </div>
           )}
 
-          {/* Raw Transcript */}
           {trade.entryTranscript && (
             <div className="mt-3">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Transcript</p>
-              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">
-                "{trade.entryTranscript}"
-              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Transcript</p>
+              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">"{trade.entryTranscript}"</p>
             </div>
           )}
 
-          {/* Additional Notes */}
           {trade.additionalNotes && (
             <div className="mt-2">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">Additional Notes</p>
-              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed border border-border/50">
-                {trade.additionalNotes}
-              </p>
+              <p className="text-[10px] font-semibold uppercase tracking-wider text-accent mb-1">Additional Notes</p>
+              <p className="rounded-lg bg-card p-3 text-xs leading-relaxed border border-border/50">{trade.additionalNotes}</p>
             </div>
           )}
         </Section>
 
-        {/* Exit History */}
         <Section title={`Exit History (${exitEvents.length})`}>
           <ExitHistory events={exitEvents} />
         </Section>
 
-        {/* Updates */}
         <Section title={`Updates (${updateNotes.length})`} icon="⚡">
           <UpdatesFeed updates={updateNotes} />
         </Section>
 
-        {/* Notes */}
         <Section title={`Notes (${directNotes.length})`} icon="📝">
           <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
         </Section>
 
-        {/* Updates (legacy) */}
         {trade.updates.length > 0 && (
           <Section title={`Legacy Updates (${trade.updates.length})`}>
             <div className="space-y-4">
               {trade.updates.map((u) => (
                 <div key={u.id} className="border-l-2 border-border pl-3">
-                  <p className="text-[10px] text-accent tabular-nums">
-                    {new Date(u.timestamp).toLocaleString()}
-                  </p>
+                  <p className="text-[10px] text-accent tabular-nums">{new Date(u.timestamp).toLocaleString()}</p>
                   <p className="mt-1 text-xs leading-relaxed">{u.note}</p>
                   <div className="mt-1.5 flex flex-wrap gap-1">
-                    {u.emotionalState.map((e) => (
-                      <EmotionBadge key={e} emotion={e} />
-                    ))}
+                    {u.emotionalState.map((e) => (<EmotionBadge key={e} emotion={e} />))}
                   </div>
                 </div>
               ))}
@@ -321,7 +290,6 @@ export default function TradeDetail() {
           </Section>
         )}
 
-        {/* Exit (legacy) */}
         {trade.exitTime && (
           <Section title="Exit">
             <div className="space-y-0.5">
@@ -332,20 +300,15 @@ export default function TradeDetail() {
             </div>
             {trade.emotionalStateAtExit && trade.emotionalStateAtExit.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1">
-                {trade.emotionalStateAtExit.map((e) => (
-                  <EmotionBadge key={e} emotion={e} />
-                ))}
+                {trade.emotionalStateAtExit.map((e) => (<EmotionBadge key={e} emotion={e} />))}
               </div>
             )}
             {trade.exitTranscript && (
-              <p className="mt-3 rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">
-                "{trade.exitTranscript}"
-              </p>
+              <p className="mt-3 rounded-lg bg-card p-3 text-xs leading-relaxed text-accent italic">"{trade.exitTranscript}"</p>
             )}
           </Section>
         )}
 
-        {/* Reflection */}
         {trade.reflectionNote && (
           <Section title="Reflection">
             <p className="text-xs leading-relaxed">{trade.reflectionNote}</p>
@@ -357,81 +320,41 @@ export default function TradeDetail() {
             )}
             {trade.emotionalStateAtReflection && trade.emotionalStateAtReflection.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
-                {trade.emotionalStateAtReflection.map((e) => (
-                  <EmotionBadge key={e} emotion={e} />
-                ))}
+                {trade.emotionalStateAtReflection.map((e) => (<EmotionBadge key={e} emotion={e} />))}
               </div>
             )}
           </Section>
         )}
       </div>
 
-      {/* Action Buttons — OPEN trades only */}
       {isOpen && (
         <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
-          <button
-            onClick={() => setShowUpdateModal(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]"
-          >
+          <button onClick={() => setShowUpdateModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card py-3 text-xs font-semibold active:scale-[0.97]">
             <Plus className="h-4 w-4" /> Update
           </button>
-          <button
-            onClick={() => setShowExitModal(true)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[hsl(0,100%,60%)]/15 py-3 text-xs font-semibold text-[hsl(0,100%,60%)] active:scale-[0.97]"
-          >
+          <button onClick={() => setShowExitModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[hsl(0,100%,60%)]/15 py-3 text-xs font-semibold text-[hsl(0,100%,60%)] active:scale-[0.97]">
             <LogOut className="h-4 w-4" /> Log Exit
           </button>
         </div>
       )}
 
-      {/* Exit Modal */}
-      <ExitModal
-        open={showExitModal}
-        onOpenChange={setShowExitModal}
-        remainingPercent={remainingPercent}
-        onSave={handleSaveExit}
-      />
+      <ExitModal open={showExitModal} onOpenChange={setShowExitModal} remainingPercent={remainingPercent} onSave={handleSaveExit} />
+      <UpdateModal open={showUpdateModal} onOpenChange={setShowUpdateModal} onSave={handleSaveUpdate} />
 
-      {/* Update Modal */}
-      <UpdateModal
-        open={showUpdateModal}
-        onOpenChange={setShowUpdateModal}
-        onSave={handleSaveUpdate}
-      />
-
-      {/* Delete Confirmation Modal */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent className="max-w-sm bg-card border-border">
           <DialogHeader>
             <DialogTitle>Delete this trade?</DialogTitle>
-            <DialogDescription>
-              This will permanently delete this trade and all its exits, updates, and notes. This cannot be undone.
-            </DialogDescription>
+            <DialogDescription>This will permanently delete this trade and all its exits, updates, and notes. This cannot be undone.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
               <p className="text-xs text-muted-foreground mb-1.5">Type <span className="font-bold text-foreground">DELETE</span> to confirm</p>
-              <Input
-                value={deleteConfirmText}
-                onChange={(e) => setDeleteConfirmText(e.target.value)}
-                placeholder="DELETE"
-                className="h-9 text-sm font-mono"
-              />
+              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE" className="h-9 text-sm font-mono" />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-[hsl(0,80%,40%)] text-white hover:bg-[hsl(0,80%,35%)]"
-                disabled={deleteConfirmText !== "DELETE"}
-                onClick={() => {
-                  deleteTrade(trade.id);
-                  setShowDeleteModal(false);
-                  toast.success("Trade deleted");
-                  navigate("/journal");
-                }}
-              >
+              <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
+              <Button className="flex-1 bg-[hsl(0,80%,40%)] text-white hover:bg-[hsl(0,80%,35%)]" disabled={deleteConfirmText !== "DELETE"} onClick={() => { deleteTrade(trade.id); setShowDeleteModal(false); toast.success("Trade deleted"); navigate("/journal"); }}>
                 Delete Trade
               </Button>
             </div>

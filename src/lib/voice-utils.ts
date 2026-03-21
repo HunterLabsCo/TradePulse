@@ -30,8 +30,8 @@ export function createVoiceRecorder(options: {
     }
   };
 
-  const silenceTimeout = options.silenceTimeoutMs;
-  const autoStopEnabled = silenceTimeout !== null && silenceTimeout !== undefined;
+  const silenceTimeout = options.silenceTimeoutMs === undefined ? DEFAULT_SILENCE_TIMEOUT_MS : options.silenceTimeoutMs;
+  const autoStopEnabled = silenceTimeout !== null;
 
   const resetSilenceTimer = () => {
     clearSilenceTimer();

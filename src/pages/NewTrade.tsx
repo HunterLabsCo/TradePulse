@@ -228,10 +228,7 @@ export default function NewTrade() {
       setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
-      // Start silence timer
-      silenceTimerRef.current = setTimeout(() => {
-        stopRecording();
-      }, SILENCE_TIMEOUT);
+      // No silence auto-stop for entry — manual tap-to-stop only
     } catch (err: any) {
       setVoiceError(`Failed to start recording: ${err.message}`);
     }

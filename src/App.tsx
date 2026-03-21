@@ -24,7 +24,7 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/new-trade" element={<NewTrade />} />
           <Route path="/trade/:id" element={<TradeDetail />} />
-          <Route path="/analytics" element={<Analytics />} />
+          
           <Route path="/journal" element={<Journal />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/paywall" element={<Paywall />} />

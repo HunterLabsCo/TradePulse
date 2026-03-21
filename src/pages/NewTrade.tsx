@@ -443,7 +443,7 @@ export default function NewTrade() {
 
         {/* Form fields */}
         {(tokenName || rawTranscript) && (
-          <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">Review & correct</p>
+          <p className="section-label">Review & correct</p>
         )}
 
         {/* Token + Chain */}

@@ -17,11 +17,12 @@ export default defineConfig(({ mode }) => ({
     react(),
     nodePolyfills(),
     mode === "development" && componentTagger(),
+    VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["placeholder.svg"],
       manifest: {
-        name: "TradeSnap",
-        short_name: "TradeSnap",
+        name: "TradePulse",
+        short_name: "TradePulse",
         description: "Voice-first trade journal for crypto traders",
         theme_color: "#0d0d0d",
         background_color: "#0d0d0d",

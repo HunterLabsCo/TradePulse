@@ -40,4 +40,4 @@ export function truncateAddress(addr: string): string {
 export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 export const LIFETIME_PRICE_USD = 99;
 export const FREE_TRADE_LIMIT = 20;
-export const RECEIVING_WALLET = import.meta.env.VITE_RECEIVING_WALLET || "PLACEHOLDER_WALLET_ADDRESS";
+export const RECEIVING_WALLET = import.meta.env.VITE_RECEIVING_WALLET || "B2HXTm8qwrZ5n13oemVCQ4jGJ3TeRF98XxrC6oo2bnuk";

@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus, X, MicOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
 import { createVoiceRecorder } from "@/lib/voice-utils";

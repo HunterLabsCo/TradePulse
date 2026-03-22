@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Mic, ChevronRight } from "lucide-react";
 import { useTradeStore } from "@/lib/trade-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 import { PnlBadge } from "@/components/PnlBadge";
 import { EmotionBadge } from "@/components/EmotionBadge";
 import { cn } from "@/lib/utils";

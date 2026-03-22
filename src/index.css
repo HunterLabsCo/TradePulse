@@ -127,4 +127,10 @@
     letter-spacing: 0.14em;
     color: hsl(var(--text-secondary));
   }
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
 }

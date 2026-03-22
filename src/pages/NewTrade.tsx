@@ -196,6 +196,36 @@ const chipDefault = "bg-transparent border border-[hsl(var(--border-default))] t
 const chipSelected = "bg-primary text-primary-foreground border border-primary font-400";
 const chipBlue = "bg-accent text-accent-foreground border border-accent font-400";
 
+const EMOTION_CHIP_SELECTED: Record<string, string> = {
+  confident:        "bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 font-400",
+  calm:             "bg-teal-500/25 text-teal-300 border border-teal-500/60 font-400",
+  focused:          "bg-sky-500/25 text-sky-300 border border-sky-500/60 font-400",
+  patient:          "bg-cyan-500/25 text-cyan-300 border border-cyan-500/60 font-400",
+  "in-the-zone":    "bg-emerald-400/25 text-emerald-200 border border-emerald-400/60 font-400",
+  disciplined:      "bg-emerald-600/25 text-emerald-300 border border-emerald-600/60 font-400",
+  sharp:            "bg-sky-600/25 text-sky-200 border border-sky-500/60 font-400",
+  anxious:          "bg-amber-500/25 text-amber-300 border border-amber-500/60 font-400",
+  nervous:          "bg-orange-500/25 text-orange-300 border border-orange-500/60 font-400",
+  rushed:           "bg-red-500/25 text-red-300 border border-red-500/60 font-400",
+  frustrated:       "bg-red-600/25 text-red-300 border border-red-600/60 font-400",
+  "revenge-mindset":"bg-rose-600/25 text-rose-300 border border-rose-500/60 font-400",
+  greedy:           "bg-yellow-500/25 text-yellow-300 border border-yellow-500/60 font-400",
+  fearful:          "bg-violet-500/25 text-violet-300 border border-violet-500/60 font-400",
+  overconfident:    "bg-amber-600/25 text-amber-300 border border-amber-500/60 font-400",
+  hesitant:         "bg-slate-400/25 text-slate-300 border border-slate-400/60 font-400",
+  impulsive:        "bg-rose-500/25 text-rose-300 border border-rose-500/60 font-400",
+  euphoric:         "bg-pink-500/25 text-pink-300 border border-pink-500/60 font-400",
+  fomo:             "bg-orange-600/25 text-orange-200 border border-orange-500/60 font-400",
+  distracted:       "bg-zinc-500/25 text-zinc-300 border border-zinc-500/60 font-400",
+  interrupted:      "bg-zinc-600/25 text-zinc-300 border border-zinc-600/60 font-400",
+  uncertain:        "bg-slate-500/25 text-slate-300 border border-slate-500/60 font-400",
+  conflicted:       "bg-purple-500/25 text-purple-300 border border-purple-500/60 font-400",
+  detached:         "bg-zinc-400/25 text-zinc-300 border border-zinc-400/60 font-400",
+  tired:            "bg-stone-500/25 text-stone-300 border border-stone-500/60 font-400",
+  bored:            "bg-zinc-500/25 text-zinc-200 border border-zinc-400/60 font-400",
+  pressured:        "bg-amber-500/25 text-amber-200 border border-amber-400/60 font-400",
+};
+
 export default function NewTrade() {
   const navigate = useNavigate();
   const { addTrade, getNonDemoTradeCount } = useTradeStore();

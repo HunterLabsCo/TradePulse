@@ -32,11 +32,13 @@ import {
 
 type PaymentMethod = "SOL" | "USDC" | null;
 
+const METAMASK_ICON = "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg";
+
 const WALLETS = [
-  { name: "Phantom", color: "#ab9ff2", bg: "bg-[#ab9ff2]/10 border-[#ab9ff2]/30", type: "solana", initial: "P" },
-  { name: "Solflare", color: "#fc8c3c", bg: "bg-[#fc8c3c]/10 border-[#fc8c3c]/30", type: "solana", initial: "S" },
-  { name: "Backpack", color: "#e33e3f", bg: "bg-[#e33e3f]/10 border-[#e33e3f]/30", type: "solana", initial: "B" },
-  { name: "MetaMask", color: "#f6851b", bg: "bg-[#f6851b]/10 border-[#f6851b]/30", type: "ethereum", initial: "M" },
+  { name: "Phantom", bg: "bg-[#ab9ff2]/10 border-[#ab9ff2]/30", type: "solana" },
+  { name: "Solflare", bg: "bg-[#fc8c3c]/10 border-[#fc8c3c]/30", type: "solana" },
+  { name: "Backpack", bg: "bg-[#e33e3f]/10 border-[#e33e3f]/30", type: "solana" },
+  { name: "MetaMask", bg: "bg-[#f6851b]/10 border-[#f6851b]/30", type: "ethereum" },
 ];
 
 export default function Upgrade() {
@@ -323,29 +325,24 @@ export default function Upgrade() {
           </button>
         )}
 
-        {/* Pay Button */}
-        <button
-          disabled={!canPay}
-          onClick={handlePay}
-          className={`flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-display text-[15px] font-bold transition-all active:scale-[0.97] ${
-            canPay
-              ? "bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)]"
-              : "bg-[hsl(var(--bg-elevated))] text-muted-foreground cursor-not-allowed"
-          }`}
-        >
-          {paying ? (
-            <span className="animate-pulse">Processing…</span>
-          ) : (
-            <>
-              <Wallet className="h-4 w-4" />
-              {paymentMethod === "SOL"
-                ? `Pay ≈ ${solAmount.toFixed(3)} SOL`
-                : paymentMethod === "USDC"
-                ? "Pay 99 USDC"
-                : "Select payment method"}
-            </>
-          )}
-        </button>
+        {/* Pay Button — only show when payment method is selected and wallet connected */}
+        {canPay && (
+          <button
+            onClick={handlePay}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl py-4 font-display text-[15px] font-bold transition-all active:scale-[0.97] bg-primary text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)]"
+          >
+            {paying ? (
+              <span className="animate-pulse">Processing…</span>
+            ) : (
+              <>
+                <Wallet className="h-4 w-4" />
+                {paymentMethod === "SOL"
+                  ? `Pay ≈ ${solAmount.toFixed(3)} SOL`
+                  : "Pay 99 USDC"}
+              </>
+            )}
+          </button>
+        )}
       </div>
 
       {/* Wallet Selection Drawer */}
@@ -358,10 +355,15 @@ export default function Upgrade() {
           </DrawerHeader>
           <div className="px-4 pb-6">
             <div className="grid grid-cols-2 gap-3">
-              {WALLETS.map(({ name, color, bg, type, initial }) => {
+              {WALLETS.map(({ name, bg, type }) => {
                 const isThisConnected =
                   (name.toLowerCase() === connectedWalletType && isSolanaConnected) ||
                   (name === "MetaMask" && isMetaMaskConnected);
+
+                const adapterIcon = wallets.find(
+                  (w) => w.adapter.name.toLowerCase() === name.toLowerCase()
+                )?.adapter.icon;
+                const icon = name === "MetaMask" ? METAMASK_ICON : adapterIcon;
 
                 return (
                   <button
@@ -378,12 +380,13 @@ export default function Upgrade() {
                         <Check className="h-2.5 w-2.5 text-primary-foreground" />
                       </div>
                     )}
-                    <div
-                      className="flex h-12 w-12 items-center justify-center rounded-2xl text-white text-[22px] font-bold shadow-md"
-                      style={{ backgroundColor: color }}
-                    >
-                      {initial}
-                    </div>
+                    {icon ? (
+                      <img src={icon} alt={name} className="h-12 w-12 rounded-2xl" />
+                    ) : (
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-border">
+                        <Wallet className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
                     <span className="font-body text-[13px] font-semibold text-foreground">{name}</span>
                   </button>
                 );

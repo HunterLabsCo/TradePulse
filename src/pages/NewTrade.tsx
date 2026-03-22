@@ -352,7 +352,8 @@ export default function NewTrade() {
 
   const handleSave = () => {
     if (!tokenName.trim()) return;
-    if (getNonDemoTradeCount() >= FREE_LIMIT) { navigate("/paywall"); return; }
+    const { isPro } = useSubscriptionStore.getState();
+    if (getNonDemoTradeCount() >= FREE_LIMIT && !isPro) { navigate("/upgrade"); return; }
 
     const finalSetup = setupType === "Custom" ? (customSetupType || "Custom") : setupType;
 

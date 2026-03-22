@@ -39,7 +39,7 @@ export default function Index() {
               backgroundClip: 'text',
               margin: 0,
               lineHeight: 1.2
-            }}>TradeSnap</h1>
+            }}>TradePulse</h1>
             <p className="mx-auto max-w-[300px] font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
               Built for active traders. Log your trades on the go — no typing, no friction.
             </p>

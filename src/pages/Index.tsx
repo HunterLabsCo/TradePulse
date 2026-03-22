@@ -29,17 +29,7 @@ export default function Index() {
       <header className="px-5 pt-safe-top">
         <div className="relative flex items-center justify-center py-4">
           <div className="text-center">
-            <h1 style={{
-              fontSize: '32px',
-              fontWeight: 800,
-              display: 'inline-block',
-              background: 'linear-gradient(to right, #4FC3F7, #ffffff, #39FF14)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              backgroundClip: 'text',
-              margin: 0,
-              lineHeight: 1.2
-            }}>TradePulse</h1>
+            <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em] text-foreground">TradePulse</h1>
             <p className="mx-auto max-w-[300px] font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
               Built for active traders. Log your trades on the go — no typing, no friction.
             </p>

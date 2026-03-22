@@ -29,7 +29,9 @@ export default function Index() {
       <header className="px-5 pt-safe-top">
         <div className="relative flex items-center justify-center py-4">
           <div className="text-center">
-            <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em] text-foreground">TradePulse</h1>
+            <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em]">
+              <span className="text-primary">Trade</span><span className="text-[hsl(var(--blue-accent))]">Pulse</span>
+            </h1>
             <p className="mx-auto max-w-[300px] font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
               Built for active traders. Log your trades on the go — no typing, no friction.
             </p>

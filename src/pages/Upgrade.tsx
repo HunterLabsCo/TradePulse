@@ -33,10 +33,10 @@ import {
 type PaymentMethod = "SOL" | "USDC" | null;
 
 const WALLETS = [
-  { name: "Phantom", color: "bg-[#ab9ff2]", type: "solana" },
-  { name: "Solflare", color: "bg-[#fc8c3c]", type: "solana" },
-  { name: "Backpack", color: "bg-[#e33e3f]", type: "solana" },
-  { name: "MetaMask", color: "bg-[#f6851b]", type: "ethereum" },
+  { name: "Phantom", color: "#ab9ff2", bg: "bg-[#ab9ff2]/10 border-[#ab9ff2]/30", type: "solana", initial: "P" },
+  { name: "Solflare", color: "#fc8c3c", bg: "bg-[#fc8c3c]/10 border-[#fc8c3c]/30", type: "solana", initial: "S" },
+  { name: "Backpack", color: "#e33e3f", bg: "bg-[#e33e3f]/10 border-[#e33e3f]/30", type: "solana", initial: "B" },
+  { name: "MetaMask", color: "#f6851b", bg: "bg-[#f6851b]/10 border-[#f6851b]/30", type: "ethereum", initial: "M" },
 ];
 
 export default function Upgrade() {
@@ -356,35 +356,39 @@ export default function Upgrade() {
               Choose Wallet
             </DrawerTitle>
           </DrawerHeader>
-          <div className="px-4 pb-6 space-y-2">
-            {WALLETS.map(({ name, color, type }) => {
-              const isThisConnected =
-                (name.toLowerCase() === connectedWalletType && isSolanaConnected) ||
-                (name === "MetaMask" && isMetaMaskConnected);
+          <div className="px-4 pb-6">
+            <div className="grid grid-cols-2 gap-3">
+              {WALLETS.map(({ name, color, bg, type, initial }) => {
+                const isThisConnected =
+                  (name.toLowerCase() === connectedWalletType && isSolanaConnected) ||
+                  (name === "MetaMask" && isMetaMaskConnected);
 
-              return (
-                <button
-                  key={name}
-                  onClick={() =>
-                    type === "ethereum"
-                      ? connectMetaMask()
-                      : connectSolanaWallet(name)
-                  }
-                  className={`flex w-full items-center justify-between rounded-xl ${color} px-4 py-3.5 font-body text-[13px] font-semibold text-white shadow-md active:scale-[0.97] transition-transform`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Wallet className="h-4 w-4" />
-                    <span>{name}</span>
-                  </div>
-                  {isThisConnected && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="h-2 w-2 rounded-full bg-white/80" />
-                      <Check className="h-3.5 w-3.5" />
+                return (
+                  <button
+                    key={name}
+                    onClick={() =>
+                      type === "ethereum"
+                        ? connectMetaMask()
+                        : connectSolanaWallet(name)
+                    }
+                    className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-5 transition-all active:scale-[0.96] ${bg}`}
+                  >
+                    {isThisConnected && (
+                      <div className="absolute top-2 right-2 flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                        <Check className="h-2.5 w-2.5 text-primary-foreground" />
+                      </div>
+                    )}
+                    <div
+                      className="flex h-12 w-12 items-center justify-center rounded-2xl text-white text-[22px] font-bold shadow-md"
+                      style={{ backgroundColor: color }}
+                    >
+                      {initial}
                     </div>
-                  )}
-                </button>
-              );
-            })}
+                    <span className="font-body text-[13px] font-semibold text-foreground">{name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </DrawerContent>
       </Drawer>

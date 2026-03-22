@@ -1,6 +1,8 @@
-import { ArrowLeft, Download, Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
+import { truncateAddress, FREE_TRADE_LIMIT } from "@/lib/subscription-utils";
 import { useState } from "react";
 import {
   AlertDialog,
@@ -22,8 +24,12 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
   const deleteAllTrades = useTradeStore((s) => s.deleteAllTrades);
+  const getNonDemoTradeCount = useTradeStore((s) => s.getNonDemoTradeCount);
+  const { isPro, txSignature } = useSubscriptionStore();
   const [displayName, setDisplayName] = useState("");
   const [defaultChain, setDefaultChain] = useState("SOL");
+
+  const nonDemoCount = getNonDemoTradeCount();
 
   function exportCSV() {
     const headers = "Token,Chain,Status,PnL,Entry Time,Exit Time\n";
@@ -60,6 +66,44 @@ export default function SettingsPage() {
       </header>
 
       <div className="space-y-6 px-5">
+        {/* Subscription Status */}
+        <div className="rounded-xl bg-card border border-border p-4">
+          <p className="section-label">Subscription</p>
+          {isPro ? (
+            <div className="mt-1">
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 rounded-full bg-[hsl(var(--green-primary)/0.15)] border border-[hsl(var(--green-primary)/0.3)] px-3 py-1">
+                  <Check className="h-3 w-3 text-primary" />
+                  <span className="font-display text-[13px] font-semibold text-primary">Pro — Lifetime</span>
+                </div>
+              </div>
+              {txSignature && (
+                <a
+                  href={`https://solscan.io/tx/${txSignature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 block font-mono-label text-[11px] text-[hsl(var(--blue-accent))] underline decoration-[hsl(var(--blue-accent)/0.3)] underline-offset-2"
+                >
+                  Tx: {truncateAddress(txSignature)}
+                </a>
+              )}
+            </div>
+          ) : (
+            <div className="mt-1">
+              <p className="font-display text-[15px] font-semibold text-foreground">Free Tier</p>
+              <p className="font-body text-[12px] font-light text-muted-foreground">
+                {nonDemoCount} / {FREE_TRADE_LIMIT} free trades used
+              </p>
+              <button
+                onClick={() => navigate("/upgrade")}
+                className="mt-3 flex w-full items-center justify-center rounded-xl bg-primary py-2.5 font-display text-[13px] font-bold text-primary-foreground active:scale-[0.97]"
+              >
+                Upgrade to Pro
+              </button>
+            </div>
+          )}
+        </div>
+
         {/* Display Name */}
         <div>
           <label className="section-label mb-1.5 block">Display Name</label>
@@ -86,13 +130,6 @@ export default function SettingsPage() {
               </button>
             ))}
           </div>
-        </div>
-
-        {/* Subscription Status */}
-        <div className="rounded-xl bg-card border border-border p-4">
-          <p className="section-label">Subscription</p>
-          <p className="mt-1 font-display text-[15px] font-semibold text-foreground">Free Tier</p>
-          <p className="font-body text-[12px] font-light text-muted-foreground">Connect a wallet to subscribe</p>
         </div>
 
         {/* Export */}

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Mic, ChevronRight } from "lucide-react";
 import { useTradeStore } from "@/lib/trade-store";
+import { useSubscriptionStore } from "@/lib/subscription-store";
 import { PnlBadge } from "@/components/PnlBadge";
 import { EmotionBadge } from "@/components/EmotionBadge";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ export default function Index() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
   const nonDemoCount = useTradeStore((s) => s.getNonDemoTradeCount());
+  const isPro = useSubscriptionStore((s) => s.isPro);
 
   const closedTrades = trades.filter((t) => t.status === "closed" && t.finalPnl !== undefined);
   const totalTrades = closedTrades.length;
@@ -109,7 +111,13 @@ export default function Index() {
       {/* New Trade FAB */}
       <div className="fixed bottom-20 left-0 right-0 px-5">
         <button
-          onClick={() => navigate("/new-trade")}
+          onClick={() => {
+            if (nonDemoCount >= FREE_LIMIT && !isPro) {
+              navigate("/upgrade");
+            } else {
+              navigate("/new-trade");
+            }
+          }}
           className="flex w-full items-center justify-center gap-2 rounded-[16px] bg-primary py-4 font-display text-[16px] font-bold text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] transition-all active:scale-[0.97]"
         >
           <Mic className="h-5 w-5" />

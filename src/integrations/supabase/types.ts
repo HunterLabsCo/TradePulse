@@ -14,7 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      subscribers: {
+        Row: {
+          amount_paid: number | null
+          created_at: string | null
+          id: string
+          payment_currency: string | null
+          plan: string | null
+          transaction_signature: string | null
+          verified: boolean | null
+          wallet_address: string
+          wallet_type: string | null
+        }
+        Insert: {
+          amount_paid?: number | null
+          created_at?: string | null
+          id?: string
+          payment_currency?: string | null
+          plan?: string | null
+          transaction_signature?: string | null
+          verified?: boolean | null
+          wallet_address: string
+          wallet_type?: string | null
+        }
+        Update: {
+          amount_paid?: number | null
+          created_at?: string | null
+          id?: string
+          payment_currency?: string | null
+          plan?: string | null
+          transaction_signature?: string | null
+          verified?: boolean | null
+          wallet_address?: string
+          wallet_type?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

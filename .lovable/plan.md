@@ -1,73 +1,170 @@
 
 
-# Rebuild Exit Logging + Live Trade Notes
+# Crypto Payments Integration for TradePulse
 
-## Summary
+## Overview
+Add wallet-based crypto payments (SOL and USDC) with Solana wallet adapters, a Supabase `subscribers` table, an `/upgrade` page, transaction verification via a backend function, and Pro status management throughout the app.
 
-Six parts: fix broken buttons, Quick Exit Modal with remaining-position tracking, floating exit FAB, exit history, live notes feed, and closed-trade summary with unaccounted-position warning.
+## Architecture
 
-## File Changes
-
-### 1. `src/lib/sample-data.ts` — New Types
-
-Add:
-```typescript
-export type ExitType = "take-profit" | "stop-loss" | "partial-exit" | "full-exit" | "moon-bag";
-
-export interface ExitEvent {
-  id: string;
-  exitType: ExitType;
-  percentClosed: number;
-  pnlPercent: number;
-  emotionalState: EmotionalState[];
-  note?: string;
-  timestamp: string;
-}
-
-export interface TradeNote {
-  id: string;
-  text: string;
-  timestamp: string;
-  duringSession: boolean;
-}
+```text
+┌─────────────┐     ┌──────────────────┐     ┌─────────────────────┐
+│  /upgrade   │────▶│ Wallet Adapter   │────▶│ On-chain Transfer   │
+│  page       │     │ (Phantom/Solflare│     │ (SOL or USDC)       │
+│             │     │  /Backpack)      │     │ to RECEIVING_WALLET │
+└─────┬───────┘     └──────────────────┘     └──────────┬──────────┘
+      │                                                  │ tx signature
+      │                                                  ▼
+      │                                      ┌─────────────────────┐
+      │                                      │ Edge Function:      │
+      │                                      │ verify-payment      │
+      │                                      │ (Helius RPC check)  │
+      │                                      │ → insert subscriber │
+      └──────────────────────────────────────▶└─────────────────────┘
 ```
 
-Add to `Trade`: `exitEvents?: ExitEvent[]`, `tradeNotes?: TradeNote[]`, `closedAt?: string`.
+---
 
-### 2. `src/components/EmotionBadge.tsx` — Missing Colors
+## Step 1: Database — `subscribers` table
 
-Add mappings for `disciplined`, `hesitant`, `impulsive`, `euphoric`, `detached`, `sharp`, `tired`.
+Create via migration:
 
-### 3. `src/pages/TradeDetail.tsx` — Full Rebuild
+```sql
+CREATE TABLE public.subscribers (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  wallet_address text UNIQUE NOT NULL,
+  wallet_type text,
+  plan text DEFAULT 'lifetime',
+  payment_currency text,
+  amount_paid numeric,
+  transaction_signature text UNIQUE,
+  created_at timestamptz DEFAULT now(),
+  verified boolean DEFAULT false
+);
 
-**Part 1 — Fix Buttons**: Add `onClick` handlers. Update opens inline edit mode (toggle state). Log Exit opens exit drawer.
+ALTER TABLE public.subscribers ENABLE ROW LEVEL SECURITY;
 
-**Part 2 — Quick Exit Modal** (Drawer):
-- Exit Type: tap buttons (Take Profit, Stop Loss, Partial Exit, Full Exit, Moon Bag)
-- % Position Closed:
-  - Compute `remainingPercent = 100 - Σ(exitEvents.percentClosed)`
-  - Display **"Remaining position: X%"** label
-  - Only show preset chips (25/50/75/100) where value ≤ remainingPercent
-  - Custom input enforces max = remainingPercent with error if exceeded
-- P&L %: preset chips (-30/+25/+50/+100/+200) + Custom
-- Emotional State: multi-select chips
-- Quick Note: mic button (Web Speech) + text toggle
-- Save: push ExitEvent to `trade.exitEvents[]`. If type is `full-exit` or `moon-bag`, set `status: "closed"` and `closedAt`.
+-- Anyone can read their own subscription by wallet address
+CREATE POLICY "Public read by wallet"
+  ON public.subscribers FOR SELECT
+  USING (true);
 
-**Part 3 — Floating Exit FAB**: Fixed bottom-24 right-5, LogOut icon, open trades only. Opens exit drawer.
+-- Only backend (service role) inserts via edge function
+CREATE POLICY "Service role insert"
+  ON public.subscribers FOR INSERT
+  WITH CHECK (false);
+```
 
-**Part 4 — Exit History Section**: Collapsible section after Entry. Cards show type, %, P&L, timestamp, note, emotion tags. Empty state: "No exits logged yet."
+The SELECT policy is open so the frontend can check subscription status by wallet address. Inserts are blocked for anon — only the edge function (using service role key) can insert.
 
-**Part 5 — Live Notes Feed**: Section after Exit History. Voice Note (mic/Web Speech) + Text Note (textarea). Each card: text, timestamp, "During session" / "Post-session" label. Stored in `trade.tradeNotes[]`.
+## Step 2: Environment variable
 
-**Part 6 — Summary Row** (closed trades only): Card above Entry showing:
-- Total realized P&L: `Σ(pnlPercent × percentClosed / 100)`
-- **Warning**: If `Σ(percentClosed) ≠ 100`, display "⚠️ Position not fully accounted for"
-- Number of exits
-- Duration: entryTime → closedAt
+Store `VITE_RECEIVING_WALLET` in the codebase (it's a public address, not a secret). Placeholder value until user provides actual address.
 
-### Files Modified
-- `src/lib/sample-data.ts`
-- `src/components/EmotionBadge.tsx`
-- `src/pages/TradeDetail.tsx`
+Store Helius API key as a Supabase secret for the edge function. Will need to ask user for a Helius API key (free tier available).
+
+## Step 3: Install dependencies
+
+- `@solana/web3.js` — Solana connection and transactions
+- `@solana/spl-token` — USDC SPL token transfers
+- `@solana/wallet-adapter-react`, `@solana/wallet-adapter-react-ui`, `@solana/wallet-adapter-base` — wallet adapter framework
+- `@solana/wallet-adapter-phantom`, `@solana/wallet-adapter-solflare`, `@solana/wallet-adapter-backpack` — wallet adapters
+- `ethers` — MetaMask connection only (no payment flow yet)
+- `canvas-confetti` — success screen confetti
+
+## Step 4: Wallet + Pro state management
+
+**New file: `src/lib/subscription-store.ts`** (Zustand store)
+- `connectedWallet: string | null`
+- `walletType: string | null`
+- `isPro: boolean`
+- `setWallet(address, type)` / `disconnect()`
+- `setIsPro(value)`
+- Persisted to localStorage
+
+**New file: `src/lib/subscription-utils.ts`**
+- `checkProStatus(walletAddress)` — queries Supabase `subscribers` table
+- `fetchSolPrice()` — calls CoinGecko API
+- Re-verify on app load
+
+## Step 5: Wallet Provider wrapper
+
+**New file: `src/components/WalletProvider.tsx`**
+- Wraps the app with `ConnectionProvider` + `WalletProvider` from Solana wallet adapter
+- Configures Phantom, Solflare, Backpack adapters
+- Uses mainnet-beta endpoint
+
+Update `src/App.tsx` to wrap routes with this provider.
+
+## Step 6: Upgrade page — `/upgrade`
+
+**New file: `src/pages/Upgrade.tsx`**
+
+Layout:
+- Header: "Upgrade to TradePulse Pro"
+- Subheader: "One payment. Lifetime access. No renewals."
+- Two payment cards: SOL (dynamic price from CoinGecko, refreshed every 60s) and USDC (fixed 99)
+- Four wallet connect buttons: Phantom, Solflare, Backpack, MetaMask
+- MetaMask shows "ETH payments coming soon" after connecting
+- Connected state shows truncated address with green dot
+- Pay button activates when wallet connected + method selected
+- Handles SOL transfer (SystemProgram) and USDC transfer (SPL token transfer to receiving wallet)
+- On success: calls verify-payment edge function, then navigates to success screen
+
+**New file: `src/pages/UpgradeSuccess.tsx`**
+- "You're Pro" heading in lime green with confetti
+- Transaction signature (truncated, links to Solscan)
+- "Start Trading" button → Home
+
+## Step 7: Edge function — `verify-payment`
+
+**New file: `supabase/functions/verify-payment/index.ts`**
+
+Accepts: `{ txSignature, walletAddress, walletType, paymentCurrency, expectedAmount }`
+
+1. Calls Helius RPC `getTransaction` to confirm the signature
+2. Verifies receiving address matches `RECEIVING_WALLET` secret
+3. Verifies amount (exact for USDC, 0.5% tolerance for SOL)
+4. If valid: inserts into `subscribers` with `verified = true`
+5. If amount doesn't match but tx is real: inserts with `verified = false` for manual review
+6. Returns `{ success, verified }` to frontend
+
+Needs secrets: `HELIUS_API_KEY`, `RECEIVING_WALLET` (runtime secret for edge function).
+
+## Step 8: Free tier gating updates
+
+**Modify `src/pages/NewTrade.tsx`**:
+- Import `useSubscriptionStore`
+- If `getNonDemoTradeCount() >= 20 && !isPro` → navigate to `/upgrade` instead of `/paywall`
+
+**Modify `src/pages/Index.tsx`**:
+- New Trade button: if at limit and not Pro, go to `/upgrade`
+
+## Step 9: Settings page updates
+
+**Modify `src/pages/SettingsPage.tsx`**:
+- If Pro: show green "Pro — Lifetime" badge with tx signature link to Solscan
+- If free: show "X / 20 free trades used" counter + "Upgrade to Pro" button
+
+## Step 10: Pro status check on app load
+
+**Modify `src/App.tsx`**:
+- On mount, if wallet is connected in store, call `checkProStatus()` to re-verify against Supabase
+
+## Step 11: Update routing
+
+**Modify `src/App.tsx`**:
+- Add `/upgrade` and `/upgrade/success` routes
+- Remove or redirect `/paywall` to `/upgrade`
+
+---
+
+## Secrets needed from user
+1. **Helius API key** — free at helius.dev, needed for tx verification
+2. **Receiving wallet address** — their Solana wallet to receive payments
+
+## What stays unchanged
+- All trade logging, journal, voice recording, and data functionality
+- Existing styling and color scheme
+- Bottom nav, trade detail pages, all existing routes
 

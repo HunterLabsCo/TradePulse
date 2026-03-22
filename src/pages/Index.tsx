@@ -29,17 +29,15 @@ export default function Index() {
     <div className="flex min-h-screen flex-col pb-24">
       {/* Header */}
       <header className="px-5 pt-safe-top">
-        <div className="relative flex items-center justify-center py-4">
-          <div className="text-center">
-            <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em]">
-              <span className="text-primary">Trade</span><span className="text-[hsl(var(--blue-accent))]">Pulse</span>
-            </h1>
-            <p className="mx-auto max-w-[300px] font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
-              Built for active traders. Log your trades on the go — no typing, no friction.
-            </p>
-          </div>
+        <div className="flex flex-col items-center py-4 gap-3">
+          <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em]">
+            <span className="text-primary">Trade</span><span className="text-[hsl(var(--blue-accent))]">Pulse</span>
+          </h1>
+          <p className="mx-auto max-w-[260px] text-center font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
+            Built for active traders. Log your trades on the go — no typing, no friction.
+          </p>
           {nonDemoCount < FREE_LIMIT && (
-            <div className="absolute right-0 top-1/2 -translate-y-1/2 rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-3 py-1.5 text-right">
+            <div className="rounded-xl bg-[hsl(var(--bg-elevated))] border border-[hsl(var(--border-default))] px-4 py-1.5 text-center">
               <p className="section-label">Free trades</p>
               <p className="font-display text-[18px] font-semibold tabular-nums tracking-data text-foreground">
                 {nonDemoCount} <span className="font-body font-light text-muted-foreground">/ {FREE_LIMIT}</span>

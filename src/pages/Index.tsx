@@ -30,12 +30,12 @@ export default function Index() {
         <div className="relative flex items-center justify-center py-4">
           <div className="text-center">
             <h1
-              className="font-display text-[32px] font-[800] tracking-[-0.01em]"
+              className="font-display text-[32px] font-[800] tracking-[-0.01em] inline-block"
               style={{
                 background: 'linear-gradient(to right, #4FC3F7, #FFFFFF 50%, #39FF14)',
                 WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                color: 'transparent',
               }}
             >
               TradeSnap

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Wallet, Check, AlertCircle } from "lucide-react";
+import { ArrowLeft, Wallet, Check, AlertCircle, ChevronRight } from "lucide-react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import {
   PublicKey,
@@ -23,8 +23,21 @@ import {
   LIFETIME_PRICE_USD,
   RECEIVING_WALLET,
 } from "@/lib/subscription-utils";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
 
 type PaymentMethod = "SOL" | "USDC" | null;
+
+const WALLETS = [
+  { name: "Phantom", color: "bg-[#ab9ff2]", type: "solana" },
+  { name: "Solflare", color: "bg-[#fc8c3c]", type: "solana" },
+  { name: "Backpack", color: "bg-[#e33e3f]", type: "solana" },
+  { name: "MetaMask", color: "bg-[#f6851b]", type: "ethereum" },
+];
 
 export default function Upgrade() {
   const navigate = useNavigate();
@@ -38,8 +51,8 @@ export default function Upgrade() {
   const [ethWallet, setEthWallet] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [connectedWalletType, setConnectedWalletType] = useState<string | null>(null);
+  const [walletDrawerOpen, setWalletDrawerOpen] = useState(false);
 
-  // Fetch SOL price on mount and every 60s
   useEffect(() => {
     fetchSolPrice().then(setSolPrice);
     const interval = setInterval(() => {
@@ -60,6 +73,7 @@ export default function Upgrade() {
         try {
           await connect();
           setConnectedWalletType(walletName.toLowerCase());
+          setWalletDrawerOpen(false);
         } catch {
           // user rejected
         }
@@ -79,6 +93,7 @@ export default function Upgrade() {
       const addr = await signer.getAddress();
       setEthWallet(addr);
       setConnectedWalletType("metamask");
+      setWalletDrawerOpen(false);
     } catch {
       toast.error("MetaMask connection rejected.");
     }
@@ -110,14 +125,13 @@ export default function Upgrade() {
           })
         );
       } else {
-        // USDC transfer
         const usdcMint = new PublicKey(USDC_MINT);
         const senderAta = await getAssociatedTokenAddress(usdcMint, publicKey);
         const receiverAta = await getAssociatedTokenAddress(
           usdcMint,
           receivingPubkey
         );
-        const amount = 99_000_000; // 99 USDC (6 decimals)
+        const amount = 99_000_000;
 
         tx = new Transaction().add(
           createTransferInstruction(senderAta, receiverAta, publicKey, amount)
@@ -126,14 +140,12 @@ export default function Upgrade() {
 
       const signature = await sendTransaction(tx, connection);
 
-      // Wait for confirmation
       const latestBlockhash = await connection.getLatestBlockhash();
       await connection.confirmTransaction({
         signature,
         ...latestBlockhash,
       });
 
-      // Verify via edge function
       const { data, error } = await supabase.functions.invoke("verify-payment", {
         body: {
           txSignature: signature,
@@ -145,7 +157,6 @@ export default function Upgrade() {
       });
 
       if (error) {
-        // Optimistic grant on verification failure
         toast.warning(
           "Payment received but verification pending — please contact support."
         );
@@ -195,6 +206,16 @@ export default function Upgrade() {
   const isSolanaConnected = connected && publicKey;
   const isAnyConnected = isSolanaConnected || isMetaMaskConnected;
   const canPay = isSolanaConnected && paymentMethod !== null && !paying;
+
+  const connectedWalletLabel = isAnyConnected
+    ? connectedWalletType
+        ? connectedWalletType.charAt(0).toUpperCase() + connectedWalletType.slice(1)
+        : "Wallet"
+    : null;
+
+  const connectedAddr = connectedWalletType === "metamask"
+    ? ethWallet
+    : publicKey?.toBase58() || null;
 
   return (
     <div className="flex min-h-screen flex-col pb-24">
@@ -257,50 +278,6 @@ export default function Upgrade() {
           </button>
         </div>
 
-        {/* Wallet Connect Buttons */}
-        <div className="space-y-2">
-          <p className="section-label">Connect Wallet</p>
-
-          {[
-            { name: "Phantom", color: "bg-[#ab9ff2]", action: () => connectSolanaWallet("phantom") },
-            { name: "Solflare", color: "bg-[#fc8c3c]", action: () => connectSolanaWallet("solflare") },
-            { name: "Backpack", color: "bg-[#e33e3f]", action: () => connectSolanaWallet("backpack") },
-            { name: "MetaMask", color: "bg-[#f6851b]", action: connectMetaMask },
-          ].map(({ name, color, action }) => {
-            const isThisConnected =
-              (name.toLowerCase() === connectedWalletType && isSolanaConnected) ||
-              (name === "MetaMask" && isMetaMaskConnected);
-
-            const connectedAddr =
-              name === "MetaMask"
-                ? ethWallet
-                : publicKey?.toBase58() || null;
-
-            return (
-              <button
-                key={name}
-                onClick={action}
-                className={`flex w-full items-center justify-between rounded-xl ${color} px-4 py-3.5 font-body text-[13px] font-semibold text-white shadow-md active:scale-[0.97] transition-transform`}
-              >
-                <div className="flex items-center gap-2">
-                  <Wallet className="h-4 w-4" />
-                  <span>
-                    {isThisConnected
-                      ? `${name} · ${truncateAddress(connectedAddr || "")}`
-                      : `Connect ${name}`}
-                  </span>
-                </div>
-                {isThisConnected && (
-                  <div className="flex items-center gap-1.5">
-                    <div className="h-2 w-2 rounded-full bg-[hsl(var(--green-primary))]" />
-                    <Check className="h-3.5 w-3.5" />
-                  </div>
-                )}
-              </button>
-            );
-          })}
-        </div>
-
         {/* MetaMask notice */}
         {isMetaMaskConnected && connectedWalletType === "metamask" && (
           <div className="flex items-start gap-2 rounded-xl border border-border bg-card p-3">
@@ -309,6 +286,41 @@ export default function Upgrade() {
               ETH payments coming soon. Connect a Solana wallet to pay now.
             </p>
           </div>
+        )}
+
+        {/* Connect Wallet / Connected status */}
+        {isAnyConnected ? (
+          <button
+            onClick={() => setWalletDrawerOpen(true)}
+            className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3.5 transition-all active:scale-[0.97]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[hsl(var(--green-primary)/0.12)]">
+                <Wallet className="h-4 w-4 text-primary" />
+              </div>
+              <div className="text-left">
+                <p className="font-body text-[13px] font-semibold text-foreground">
+                  {connectedWalletLabel}
+                </p>
+                <p className="font-body text-[11px] font-light text-muted-foreground">
+                  {truncateAddress(connectedAddr || "")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-primary" />
+              <span className="font-body text-[11px] text-muted-foreground">Connected</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </div>
+          </button>
+        ) : (
+          <button
+            onClick={() => setWalletDrawerOpen(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-4 font-body text-[14px] font-semibold text-foreground transition-all active:scale-[0.97] hover:border-primary/50"
+          >
+            <Wallet className="h-4 w-4" />
+            Connect Wallet
+          </button>
         )}
 
         {/* Pay Button */}
@@ -335,6 +347,47 @@ export default function Upgrade() {
           )}
         </button>
       </div>
+
+      {/* Wallet Selection Drawer */}
+      <Drawer open={walletDrawerOpen} onOpenChange={setWalletDrawerOpen}>
+        <DrawerContent className="pb-safe-bottom">
+          <DrawerHeader className="pb-2">
+            <DrawerTitle className="font-display text-[17px] font-bold text-foreground">
+              Choose Wallet
+            </DrawerTitle>
+          </DrawerHeader>
+          <div className="px-4 pb-6 space-y-2">
+            {WALLETS.map(({ name, color, type }) => {
+              const isThisConnected =
+                (name.toLowerCase() === connectedWalletType && isSolanaConnected) ||
+                (name === "MetaMask" && isMetaMaskConnected);
+
+              return (
+                <button
+                  key={name}
+                  onClick={() =>
+                    type === "ethereum"
+                      ? connectMetaMask()
+                      : connectSolanaWallet(name)
+                  }
+                  className={`flex w-full items-center justify-between rounded-xl ${color} px-4 py-3.5 font-body text-[13px] font-semibold text-white shadow-md active:scale-[0.97] transition-transform`}
+                >
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-4 w-4" />
+                    <span>{name}</span>
+                  </div>
+                  {isThisConnected && (
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-2 w-2 rounded-full bg-white/80" />
+                      <Check className="h-3.5 w-3.5" />
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 }

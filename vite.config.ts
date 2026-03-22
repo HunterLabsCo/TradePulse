@@ -15,8 +15,8 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
+    nodePolyfills(),
     mode === "development" && componentTagger(),
-    VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["placeholder.svg"],
       manifest: {

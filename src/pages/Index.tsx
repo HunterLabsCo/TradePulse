@@ -12,6 +12,7 @@ export default function Index() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
   const nonDemoCount = useTradeStore((s) => s.getNonDemoTradeCount());
+  const isPro = useSubscriptionStore((s) => s.isPro);
 
   const closedTrades = trades.filter((t) => t.status === "closed" && t.finalPnl !== undefined);
   const totalTrades = closedTrades.length;

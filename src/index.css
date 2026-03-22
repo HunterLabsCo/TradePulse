@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --bg-base: 0 0% 0%;
+    --bg-base: 220 40% 5%;
     --bg-surface: 0 0% 4%;
     --bg-card: 0 0% 6.7%;
     --bg-elevated: 0 0% 8.6%;

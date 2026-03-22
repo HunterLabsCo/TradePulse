@@ -32,7 +32,7 @@ export default function Index() {
             <h1
               className="font-display text-[32px] font-[800] tracking-[-0.01em]"
               style={{
-                background: 'linear-gradient(to right, #FFFFFF, #39FF14)',
+                background: 'linear-gradient(to right, #4FC3F7, #FFFFFF 50%, #39FF14)',
                 WebkitBackgroundClip: 'text',
                 backgroundClip: 'text',
                 color: 'transparent',

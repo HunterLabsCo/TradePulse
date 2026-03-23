@@ -83,8 +83,10 @@ export default function Index() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {trade.status === "closed" && trade.finalPnl !== undefined ? (
-                  <PnlBadge pnl={trade.finalPnl} />
+                {trade.status === "closed" ? (
+                  trade.finalPnl !== undefined
+                    ? <PnlBadge pnl={trade.finalPnl} />
+                    : <span className="rounded-full border border-red-500/30 bg-red-500/10 px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-red-400">CLOSED</span>
                 ) : (
                   <span className="rounded-full border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-primary">OPEN</span>
                 )}

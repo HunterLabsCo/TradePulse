@@ -140,9 +140,14 @@ export default function TradeDetail() {
   const handleSaveExit = (event: ExitEvent) => {
     const newExitEvents = [...exitEvents, event];
     const updates: Record<string, any> = { exitEvents: newExitEvents };
-    if (event.exitType === "full-exit" || event.exitType === "moon-bag") {
+    const newTotalClosed = newExitEvents.reduce((s, e) => s + e.percentClosed, 0);
+    if (newTotalClosed >= 100 || event.exitType === "full-exit" || event.exitType === "moon-bag") {
       updates.status = "closed";
       updates.closedAt = new Date().toISOString();
+      const totalWeight = newExitEvents.reduce((s, e) => s + e.percentClosed, 0);
+      updates.finalPnl = totalWeight > 0
+        ? newExitEvents.reduce((s, e) => s + e.pnlPercent * e.percentClosed, 0) / totalWeight
+        : event.pnlPercent;
     }
     updateTrade(trade.id, updates);
     setShowExitModal(false);

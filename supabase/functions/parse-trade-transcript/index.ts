@@ -13,8 +13,16 @@ Rules:
 - Chain defaults to "SOL" unless the trader mentions Ethereum/ETH/Base/Arbitrum.
 - Market cap may be stated as "68K MC" or "eighty point seven K market cap" — normalize to a string like "68K" or "80.7K".
 - Position size is usually stated in SOL or ETH (e.g., "1.4 SOL").
-- Setup type should match one of: "EMA Pullback", "Breakout", "Volume Spike Entry", "Wallet Signal", "Narrative Play", "Dip Buy", "Momentum". If none fit, use "Custom" and put the description in setupType.
-- Confirmation signals: detect mentions of volume, wallet tracking, social/twitter signals, chart patterns, gut feeling. Return as an array of matching signals from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "Other".
+- Setup type — use the MOST SPECIFIC match: "EMA Pullback" (EMAs trending, price pulled back to EMA, EMA support), "Breakout" (price breaking resistance/range), "Volume Spike Entry" (sudden volume surge), "Wallet Signal" (smart wallet / tracked wallet triggered entry), "Narrative Play" (story/theme driven), "Dip Buy" (buying a dip/drop), "Momentum" (pure momentum, no EMA or pullback mentioned). If none fit, use "Custom". Prefer "EMA Pullback" when EMAs are explicitly mentioned as a reason for entry.
+- Confirmation signals: detect any mentioned. Return as an array from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Other".
+  - "RSI" → trader mentions RSI, RSI levels, RSI holding, oversold/overbought via RSI
+  - "EMA Cross" → trader mentions EMA cross, EMAs crossed, golden cross
+  - "Volume" → volume holding, volume spike, volume confirming
+  - "Wallets" → tracked wallets, smart wallets, wallet activity
+  - "Social / Twitter" → community, Twitter/X, posts, tweets, social sentiment
+  - "Chart Pattern" → chart patterns, candlestick patterns, support/resistance, trendlines
+  - "Gut / Intuition" → gut feeling, intuition, felt right
+- Indicators used: if the trader mentions any technical indicators (RSI, MACD, VWAP, EMA values like "EMA 21", Bollinger Bands, etc.) put them in indicatorsUsed as a comma-separated string (e.g. "RSI 7, EMA 21"). RSI appearing in the transcript always goes here AND in confirmationSignals.
 - Session type: detect from context. Options: "full-session" (uninterrupted), "partially-interrupted" (brief interruptions), "intermittently-interrupted" (frequent interruptions), "work-trade" (trading at work), "mobile-only" (phone trading), "forced-exit-risk" (known interruption coming).
 - Emotional states must be chosen from this exact list: confident, calm, focused, patient, in-the-zone, anxious, nervous, rushed, frustrated, revenge-mindset, greedy, fearful, overconfident, fomo, distracted, interrupted, uncertain, conflicted, disciplined, hesitant, impulsive, euphoric, detached, sharp, tired.
 - Detect emotional language even if implicit (e.g., "took this at work" → rushed/interrupted, "feeling good" → confident, "I just went for it" → fomo/impulsive, "I'm exhausted" → tired).
@@ -69,9 +77,13 @@ serve(async (req) => {
                     type: "array",
                     items: {
                       type: "string",
-                      enum: ["Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "Other"],
+                      enum: ["Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Other"],
                     },
                     description: "Detected confirmation signals",
+                  },
+                  indicatorsUsed: {
+                    type: "string",
+                    description: "Technical indicators mentioned (e.g. 'RSI 7, EMA 21, MACD'). Comma-separated. Omit if none mentioned.",
                   },
                   sessionType: {
                     type: "string",

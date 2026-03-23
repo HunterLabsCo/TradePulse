@@ -37,7 +37,7 @@ function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
   if (lower.includes("take profit") || lower.includes("taking profit")) return "take-profit";
   if (lower.includes("stop loss") || lower.includes("stopped out") || lower.includes("hit my stop")) return "stop-loss";
-  if (lower.includes("full exit") || lower.includes("closing everything") || lower.includes("all out")) return "full-exit";
+  if (lower.includes("full exit") || lower.includes("fully exit") || lower.includes("fully exited") || lower.includes("exited the position") || lower.includes("exited this position") || lower.includes("exited my position") || lower.includes("closing everything") || lower.includes("all out") || lower.includes("sold everything") || lower.includes("out of it") || lower.includes("out of the")) return "full-exit";
   if (lower.includes("moon bag") || lower.includes("moonbag")) return "moon-bag";
   if (lower.includes("partial") || lower.includes("scaling out") || lower.includes("taking some")) return "partial-exit";
   return null;
@@ -45,7 +45,7 @@ function parseExitTypeFromText(text: string): ExitType | null {
 
 function parsePositionPercent(text: string, max: number): number | null {
   const lower = text.toLowerCase();
-  if (/\b(full exit|all of it|everything|100%\s*exit|selling 100|closing 100)\b/.test(lower)) {
+  if (/\b(full exit|fully exit|fully exited|exited (the|this|my) position|all of it|everything|100%\s*exit|selling 100|closing 100|sold everything)\b/.test(lower)) {
     return Math.min(100, max);
   }
   const posMatch = lower.match(/(?:selling|closing|exiting)\s+(\d+)\s*(?:percent|%)/);
@@ -132,7 +132,15 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         const parsedPos = parsePositionPercent(text, remainingPercent);
         if (parsedPos !== null) { setPercentClosed(parsedPos); setShowCustomPercent(false); }
         const parsedPnl = parsePnlPercent(text);
-        if (parsedPnl !== null) { setPnlPercent(parsedPnl); setShowCustomPnl(false); }
+        if (parsedPnl !== null) {
+          setPnlPercent(parsedPnl);
+          if (pnlPresets.includes(parsedPnl)) {
+            setShowCustomPnl(false);
+          } else {
+            setShowCustomPnl(true);
+            setCustomPnl(String(parsedPnl));
+          }
+        }
         const detected = detectEmotionsFromText(text);
         if (detected.length > 0) {
           setEmotions((prev) => {

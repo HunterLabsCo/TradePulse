@@ -5,7 +5,7 @@ import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
-import { createVoiceRecorder } from "@/lib/voice-utils";
+import { createVoiceRecorder, detectEmotionsFromText, detectSignalsFromText, detectIndicatorsFromText, detectSessionTypeFromText } from "@/lib/voice-utils";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -265,6 +265,30 @@ export default function NewTrade() {
           committed = committed ? `${committed} ${final}` : final;
           setFullTranscript(committed);
           fullTranscriptRef.current = committed;
+          // Real-time auto-fill as words come in
+          const detectedSignals = detectSignalsFromText(committed);
+          if (detectedSignals.length > 0) {
+            setConfirmationSignals((prev) => {
+              const merged = [...prev];
+              for (const s of detectedSignals) { if (!merged.includes(s)) merged.push(s); }
+              return merged;
+            });
+          }
+          const detectedEmotions = detectEmotionsFromText(committed);
+          if (detectedEmotions.length > 0) {
+            setEmotions((prev) => {
+              const merged = [...prev];
+              for (const e of detectedEmotions) { if (!merged.includes(e)) merged.push(e); }
+              return merged;
+            });
+          }
+          const detectedIndicators = detectIndicatorsFromText(committed);
+          if (detectedIndicators) {
+            setIndicatorsUsed(detectedIndicators);
+            setShowIndicators(true);
+          }
+          const detectedSession = detectSessionTypeFromText(committed);
+          if (detectedSession) setSessionType(detectedSession as any);
         }
         setLivePartial(interim);
         livePartialRef.current = interim;
@@ -343,7 +367,17 @@ export default function NewTrade() {
       }
       if (p.narrativeType) setNarrativeType(p.narrativeType);
       if (p.confirmationSignals?.length) setConfirmationSignals(p.confirmationSignals);
-      if (p.indicatorsUsed) { setIndicatorsUsed(p.indicatorsUsed); setShowIndicators(true); }
+      if (p.indicatorsUsed) {
+        setIndicatorsUsed(p.indicatorsUsed);
+        setShowIndicators(true);
+      } else {
+        // Client-side fallback for indicators the AI may have missed
+        const clientIndicators = detectIndicatorsFromText(finalTranscript);
+        if (clientIndicators) {
+          setIndicatorsUsed(clientIndicators);
+          setShowIndicators(true);
+        }
+      }
       if (p.sessionType) setSessionType(p.sessionType);
       if (p.emotionalStates?.length) setEmotions(p.emotionalStates);
       if (p.quickTags?.length) setQuickTags(p.quickTags);

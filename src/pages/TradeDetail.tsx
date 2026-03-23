@@ -138,7 +138,11 @@ export default function TradeDetail() {
   const remainingPercent = Math.max(0, 100 - totalPercentClosed);
 
   const handleSaveExit = (event: ExitEvent) => {
-    const newExitEvents = [...exitEvents, event];
+    // Read fresh from store to avoid stale closure bugs
+    const freshTrade = useTradeStore.getState().getTradeById(trade.id);
+    if (!freshTrade) return;
+    const freshExitEvents = freshTrade.exitEvents ?? [];
+    const newExitEvents = [...freshExitEvents, event];
     const updates: Record<string, any> = { exitEvents: newExitEvents };
     const newTotalClosed = newExitEvents.reduce((s, e) => s + e.percentClosed, 0);
     if (newTotalClosed >= 100 || event.exitType === "full-exit" || event.exitType === "moon-bag") {

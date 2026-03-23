@@ -76,7 +76,6 @@ const QUICK_TAGS = [
 const SETUP_TYPES = [
   "Migrated Confirmation",
   "Pre-Migration PVP",
-  "Re-Entry",
   "Wallet Signal",
   "Narrative Play",
   "Breakout",
@@ -93,13 +92,76 @@ const CONFIRMATION_SIGNALS = [
   "Chart Pattern",
   "Gut / Intuition",
   "EMA Cross",
-  "RSI Holding",
+  "RSI",
   "Migration Confirmed",
   "Dev History",
   "Trending / Listed",
-  "Low Supply",
   "Other",
 ];
+
+const SIGNAL_COLORS: Record<string, string> = {
+  "Volume": "bg-blue-500/20 text-blue-300 border-blue-500/50",
+  "Wallets": "bg-purple-500/20 text-purple-300 border-purple-500/50",
+  "Social / Twitter": "bg-sky-500/20 text-sky-300 border-sky-500/50",
+  "Chart Pattern": "bg-amber-500/20 text-amber-300 border-amber-500/50",
+  "Gut / Intuition": "bg-orange-500/20 text-orange-300 border-orange-500/50",
+  "EMA Cross": "bg-cyan-500/20 text-cyan-300 border-cyan-500/50",
+  "RSI": "bg-green-500/20 text-green-300 border-green-500/50",
+  "Migration Confirmed": "bg-emerald-500/20 text-emerald-300 border-emerald-500/50",
+  "Dev History": "bg-teal-500/20 text-teal-300 border-teal-500/50",
+  "Trending / Listed": "bg-pink-500/20 text-pink-300 border-pink-500/50",
+  "Other": "bg-zinc-500/20 text-zinc-300 border-zinc-500/50",
+};
+
+const EMOTION_CHIP_COLORS: Record<string, string> = {
+  confident: "bg-emerald-500/25 text-emerald-300 border-emerald-500/60",
+  calm: "bg-teal-500/25 text-teal-300 border-teal-500/60",
+  focused: "bg-sky-500/25 text-sky-300 border-sky-500/60",
+  patient: "bg-cyan-500/25 text-cyan-300 border-cyan-500/60",
+  "in-the-zone": "bg-emerald-400/25 text-emerald-200 border-emerald-400/60",
+  disciplined: "bg-emerald-600/25 text-emerald-300 border-emerald-600/60",
+  sharp: "bg-sky-600/25 text-sky-200 border-sky-600/60",
+  anxious: "bg-amber-500/25 text-amber-300 border-amber-500/60",
+  nervous: "bg-orange-500/25 text-orange-300 border-orange-500/60",
+  rushed: "bg-red-500/25 text-red-300 border-red-500/60",
+  frustrated: "bg-red-600/25 text-red-300 border-red-600/60",
+  "revenge-mindset": "bg-rose-600/25 text-rose-300 border-rose-600/60",
+  greedy: "bg-yellow-500/25 text-yellow-300 border-yellow-500/60",
+  fearful: "bg-violet-500/25 text-violet-300 border-violet-500/60",
+  overconfident: "bg-amber-600/25 text-amber-300 border-amber-600/60",
+  hesitant: "bg-slate-400/25 text-slate-300 border-slate-400/60",
+  impulsive: "bg-rose-500/25 text-rose-300 border-rose-500/60",
+  euphoric: "bg-pink-500/25 text-pink-300 border-pink-500/60",
+  fomo: "bg-orange-600/25 text-orange-200 border-orange-600/60",
+  distracted: "bg-zinc-500/25 text-zinc-300 border-zinc-500/60",
+  interrupted: "bg-zinc-600/25 text-zinc-300 border-zinc-600/60",
+  uncertain: "bg-slate-500/25 text-slate-300 border-slate-500/60",
+  conflicted: "bg-purple-500/25 text-purple-300 border-purple-500/60",
+  detached: "bg-zinc-400/25 text-zinc-300 border-zinc-400/60",
+  tired: "bg-stone-500/25 text-stone-300 border-stone-500/60",
+  bored: "bg-zinc-500/25 text-zinc-200 border-zinc-500/60",
+  pressured: "bg-amber-500/25 text-amber-200 border-amber-500/60",
+};
+
+const TAG_COLORS: Record<string, string> = {
+  "Interrupted": "bg-zinc-500/20 text-zinc-200 border-zinc-500/50",
+  "Full session": "bg-emerald-500/20 text-emerald-300 border-emerald-500/50",
+  "Pre-set orders": "bg-blue-500/20 text-blue-300 border-blue-500/50",
+  "Above MC ceiling": "bg-orange-500/20 text-orange-300 border-orange-500/50",
+  "Non-compliant": "bg-red-500/20 text-red-300 border-red-500/50",
+  "Chased / FOMO": "bg-orange-600/20 text-orange-300 border-orange-600/50",
+  "Best setup": "bg-emerald-400/20 text-emerald-200 border-emerald-400/50",
+  "Clean execution": "bg-cyan-500/20 text-cyan-300 border-cyan-500/50",
+  "Re-Entry": "bg-sky-500/20 text-sky-300 border-sky-500/50",
+  "Sized Up": "bg-green-500/20 text-green-300 border-green-500/50",
+  "Sized Down": "bg-red-400/20 text-red-300 border-red-400/50",
+  "Early Entry": "bg-blue-400/20 text-blue-300 border-blue-400/50",
+  "Late Entry": "bg-amber-500/20 text-amber-300 border-amber-500/50",
+  "Revenge Trade": "bg-rose-600/20 text-rose-300 border-rose-600/50",
+  "Low Conviction": "bg-zinc-400/20 text-zinc-300 border-zinc-400/50",
+  "High Conviction": "bg-emerald-600/20 text-emerald-300 border-emerald-600/50",
+  "Deviated From Plan": "bg-red-600/20 text-red-300 border-red-600/50",
+};
 
 const SESSION_STATUSES: { value: SessionType; label: string; desc: string }[] = [
   { value: "full-session", label: "Full session", desc: "Full attention, uninterrupted" },
@@ -283,6 +345,7 @@ export default function NewTrade() {
       }
       if (p.narrativeType) setNarrativeType(p.narrativeType);
       if (p.confirmationSignals?.length) setConfirmationSignals(p.confirmationSignals);
+      if (p.indicatorsUsed) { setIndicatorsUsed(p.indicatorsUsed); setShowIndicators(true); }
       if (p.sessionType) setSessionType(p.sessionType);
       if (p.emotionalStates?.length) setEmotions(p.emotionalStates);
       if (p.quickTags?.length) setQuickTags(p.quickTags);
@@ -477,7 +540,7 @@ export default function NewTrade() {
           </div>
           <div className="space-y-1.5">
             <label className="section-label">Size</label>
-            <Input placeholder="1.4 SOL" value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
+            <Input placeholder={`1.4 ${chain}`} value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
           </div>
         </div>
 
@@ -531,8 +594,10 @@ export default function NewTrade() {
                 key={sig}
                 onClick={() => toggleSignal(sig)}
                 className={cn(
-                  chipBase, "px-2.5 py-1",
-                  confirmationSignals.includes(sig) ? chipSelected : chipDefault
+                  chipBase, "px-2.5 py-1 border",
+                  confirmationSignals.includes(sig)
+                    ? (SIGNAL_COLORS[sig] ?? chipSelected)
+                    : chipDefault
                 )}
               >
                 {confirmationSignals.includes(sig) && <Check className="mr-1 inline h-3 w-3" />}
@@ -594,7 +659,18 @@ export default function NewTrade() {
           <label className="section-label">Emotional State</label>
           <div className="flex flex-wrap gap-1.5">
             {EMOTIONS.map((em) => (
-              <button key={em.value} onClick={() => toggleEmotion(em.value)} className={cn(chipBase, "px-2.5 py-1", emotions.includes(em.value) ? chipSelected : chipDefault)}>{em.label}</button>
+              <button
+                key={em.value}
+                onClick={() => toggleEmotion(em.value)}
+                className={cn(
+                  chipBase, "px-2.5 py-1 border",
+                  emotions.includes(em.value)
+                    ? (EMOTION_CHIP_COLORS[em.value] ?? chipSelected)
+                    : chipDefault
+                )}
+              >
+                {em.label}
+              </button>
             ))}
           </div>
           <button
@@ -626,7 +702,18 @@ export default function NewTrade() {
           <label className="section-label">Quick Tags</label>
           <div className="flex flex-wrap gap-1.5">
             {allQuickTags.map((tag) => (
-              <button key={tag} onClick={() => toggleTag(tag)} className={cn(chipBase, "px-2.5 py-1", quickTags.includes(tag) ? chipBlue : chipDefault)}>{tag}</button>
+              <button
+                key={tag}
+                onClick={() => toggleTag(tag)}
+                className={cn(
+                  chipBase, "px-2.5 py-1 border",
+                  quickTags.includes(tag)
+                    ? (TAG_COLORS[tag] ?? chipBlue)
+                    : chipDefault
+                )}
+              >
+                {tag}
+              </button>
             ))}
           </div>
           <div className="flex items-center gap-2 mt-1">

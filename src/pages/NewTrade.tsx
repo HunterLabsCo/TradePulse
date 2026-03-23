@@ -250,8 +250,7 @@ export default function NewTrade() {
       recognition.interimResults = true;
       recognition.lang = "en-US";
       recognitionRef.current = recognition;
-      let committed = "";
-      fullTranscriptRef.current = "";
+      let committed = fullTranscriptRef.current;
       livePartialRef.current = "";
 
       recognition.onresult = (event: any) => {
@@ -287,7 +286,6 @@ export default function NewTrade() {
       };
 
       recognition.start();
-      setFullTranscript("");
       setLivePartial("");
       setIsRecording(true);
     } catch (err: any) {

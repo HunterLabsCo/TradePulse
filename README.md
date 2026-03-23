@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# TradePulse
 
-TODO: Document your project here
+Voice-first trade journal for crypto traders.

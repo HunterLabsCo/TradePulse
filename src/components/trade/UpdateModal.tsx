@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/drawer";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { EmotionBadge } from "@/components/EmotionBadge";
 import { cn } from "@/lib/utils";
 import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";
@@ -28,11 +29,13 @@ const chipOn = "bg-primary border border-primary text-primary-foreground font-40
 interface UpdateModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (note: TradeNote, emotions: EmotionalState[]) => void;
+  onSave: (note: TradeNote, emotions: EmotionalState[], sizeAdded?: string) => void;
+  chain?: string;
 }
 
-export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
+export function UpdateModal({ open, onOpenChange, onSave, chain = "SOL" }: UpdateModalProps) {
   const [noteText, setNoteText] = useState("");
+  const [sizeAdded, setSizeAdded] = useState("");
   const [emotions, setEmotions] = useState<EmotionalState[]>([]);
   const [isRecording, setIsRecording] = useState(false);
   const recorderRef = useRef<ReturnType<typeof createVoiceRecorder> | null>(null);
@@ -74,21 +77,26 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
   };
 
   const handleSave = () => {
-    if (!noteText.trim()) return;
+    if (!noteText.trim() && !sizeAdded.trim()) return;
+    const trimmedSize = sizeAdded.trim();
     const note: TradeNote = {
       id: crypto.randomUUID(),
-      text: noteText.trim(),
+      text: noteText.trim() || (trimmedSize ? `Added ${trimmedSize} ${chain} to position` : ""),
       timestamp: new Date().toISOString(),
       duringSession: true,
       noteType: "update",
       emotions: emotions.length > 0 ? [...emotions] : undefined,
+      sizeAdded: trimmedSize || undefined,
     };
-    onSave(note, emotions);
+    onSave(note, emotions, trimmedSize || undefined);
     setNoteText("");
+    setSizeAdded("");
     setEmotions([]);
     setIsRecording(false);
     onOpenChange(false);
   };
+
+  const canSave = noteText.trim().length > 0 || sizeAdded.trim().length > 0;
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -120,6 +128,17 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
             </p>
           </div>
 
+          {/* Added to Position */}
+          <div className="space-y-1.5">
+            <label className="section-label">Added to Position — optional</label>
+            <Input
+              placeholder={`e.g. 0.5 ${chain}`}
+              value={sizeAdded}
+              onChange={(e) => setSizeAdded(e.target.value)}
+              className="bg-secondary border-border font-body font-300 focus-visible:ring-primary"
+            />
+          </div>
+
           {/* Text Area */}
           <Textarea
             value={noteText}
@@ -138,14 +157,14 @@ export function UpdateModal({ open, onOpenChange, onSave }: UpdateModalProps) {
                   onClick={() => toggleEmotion(e)}
                   className={cn(chipBase, emotions.includes(e) ? chipOn : chipOff)}
                 >
-                  {EMOTIONS.find(em => em === e) ? e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ") : e}
+                  {e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ")}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Save */}
-          <Button onClick={handleSave} disabled={!noteText.trim()} className="w-full font-display font-600">
+          <Button onClick={handleSave} disabled={!canSave} className="w-full font-display font-600">
             Save Update
           </Button>
         </div>

@@ -234,6 +234,7 @@ export default function TradeDetail() {
             <Field label="Size" value={trade.positionSize} />
             <Field label="Setup" value={trade.setupType} />
             <Field label="Narrative" value={trade.narrativeType} />
+            <Field label="Indicators" value={trade.indicatorsUsed} />
             <Field label="Session" value={trade.sessionType} />
             <Field label="Time" value={new Date(trade.entryTime).toLocaleString()} />
           </div>
@@ -318,7 +319,7 @@ export default function TradeDetail() {
           <Section title="Exit">
             <div className="space-y-0.5">
               <Field label="Price" value={trade.exitPrice} />
-              <Field label="PnL" value={trade.finalPnl !== undefined ? `${trade.finalPnl > 0 ? "+" : ""}${trade.finalPnl.toFixed(2)} SOL` : undefined} />
+              <Field label="PnL" value={trade.finalPnl !== undefined ? `${trade.finalPnl > 0 ? "+" : ""}${trade.finalPnl.toFixed(1)}%` : undefined} />
               <Field label="Method" value={trade.exitMethod} />
               <Field label="Time" value={new Date(trade.exitTime).toLocaleString()} />
             </div>

@@ -22,7 +22,7 @@ export const PnlBadge = React.forwardRef<
       )}
     >
       {isPositive ? "+" : ""}
-      {pnl.toFixed(2)} SOL
+      {pnl.toFixed(1)}%
     </span>
   );
 });

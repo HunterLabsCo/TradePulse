@@ -13,16 +13,26 @@ Rules:
 - Chain defaults to "SOL" unless the trader mentions Ethereum/ETH/Base/Arbitrum.
 - Market cap may be stated as "68K MC" or "eighty point seven K market cap" — normalize to a string like "68K" or "80.7K".
 - Position size is usually stated in SOL or ETH (e.g., "1.4 SOL").
-- Setup type — use the MOST SPECIFIC match: "EMA Pullback" (EMAs trending, price pulled back to EMA, EMA support), "Breakout" (price breaking resistance/range), "Volume Spike Entry" (sudden volume surge), "Wallet Signal" (smart wallet / tracked wallet triggered entry), "Narrative Play" (story/theme driven), "Dip Buy" (buying a dip/drop), "Momentum" (pure momentum, no EMA or pullback mentioned). If none fit, use "Custom". Prefer "EMA Pullback" when EMAs are explicitly mentioned as a reason for entry.
-- Confirmation signals: detect any mentioned. Return as an array from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Other".
-  - "RSI" → trader mentions RSI, RSI levels, RSI holding, oversold/overbought via RSI
+- Setup type — choose EXACTLY one of these values (use the label verbatim):
+  - "Migrated Confirmation" → token just migrated/graduated, entry after migration confirmation
+  - "Pre-Migration PVP" → entry before migration, playing the pump before it migrates
+  - "Wallet Signal" → smart wallet / tracked wallet triggered the entry
+  - "Narrative Play" → story/theme/meta driven entry (AI narrative, meme cycle, sector play)
+  - "Breakout" → price breaking out of resistance or a range
+  - "Dip Buy / Pullback" → buying a dip, pullback, or retracement (including EMA pullback)
+  - "Volume Spike" → sudden volume surge triggered entry
+  - "Momentum Chase" → pure momentum entry, trending strongly upward, no other specific trigger
+  - "Custom" → use ONLY if none of the above fit, then describe in narrativeType
+  Note: if trader mentions EMA support or EMA holding → use "Dip Buy / Pullback". If trending upward with RSI/momentum language → use "Momentum Chase".
+- Confirmation signals — CRITICAL: detect ALL mentioned signals. Return as an array from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Other".
+  - "RSI" → ANY mention of RSI, RSI levels, RSI holding, RSI trending, overbought, oversold via RSI — ALWAYS include this if RSI appears anywhere in the transcript
   - "EMA Cross" → trader mentions EMA cross, EMAs crossed, golden cross
   - "Volume" → volume holding, volume spike, volume confirming
-  - "Wallets" → tracked wallets, smart wallets, wallet activity
+  - "Wallets" → tracked wallets, smart wallets, wallet activity, major wallet
   - "Social / Twitter" → community, Twitter/X, posts, tweets, social sentiment
   - "Chart Pattern" → chart patterns, candlestick patterns, support/resistance, trendlines
   - "Gut / Intuition" → gut feeling, intuition, felt right
-- Indicators used: if the trader mentions any technical indicators (RSI, MACD, VWAP, EMA values like "EMA 21", Bollinger Bands, etc.) put them in indicatorsUsed as a comma-separated string (e.g. "RSI 7, EMA 21"). RSI appearing in the transcript always goes here AND in confirmationSignals.
+- Indicators used — CRITICAL: if the trader mentions ANY technical indicator word, put it in indicatorsUsed. This includes: RSI (any RSI mention), MACD, VWAP, EMA with a number (e.g. "EMA 21"), Bollinger Bands, volume indicators. Return as comma-separated string (e.g. "RSI, EMA 21"). If RSI is mentioned anywhere in the transcript, it MUST appear in both indicatorsUsed AND confirmationSignals.
 - Session type: detect from context. Options: "full-session" (uninterrupted), "partially-interrupted" (brief interruptions), "intermittently-interrupted" (frequent interruptions), "work-trade" (trading at work), "mobile-only" (phone trading), "forced-exit-risk" (known interruption coming).
 - Emotional states must be chosen from this exact list: confident, calm, focused, patient, in-the-zone, anxious, nervous, rushed, frustrated, revenge-mindset, greedy, fearful, overconfident, fomo, distracted, interrupted, uncertain, conflicted, disciplined, hesitant, impulsive, euphoric, detached, sharp, tired.
 - Detect emotional language even if implicit (e.g., "took this at work" → rushed/interrupted, "feeling good" → confident, "I just went for it" → fomo/impulsive, "I'm exhausted" → tired).
@@ -38,6 +48,12 @@ serve(async (req) => {
     const { transcript } = await req.json();
     if (!transcript || typeof transcript !== "string") {
       return new Response(JSON.stringify({ error: "transcript is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (transcript.length > 2000) {
+      return new Response(JSON.stringify({ error: "Transcript too long (max 2000 characters)" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -71,7 +87,7 @@ serve(async (req) => {
                   chain: { type: "string", enum: ["SOL", "ETH", "BASE", "ARB"] },
                   entryMarketCap: { type: "string", description: "Market cap at entry, e.g. 80.7K" },
                   positionSize: { type: "string", description: "Position size, e.g. 1.4 SOL" },
-                  setupType: { type: "string", description: "Setup type: EMA Pullback, Breakout, Volume Spike Entry, Wallet Signal, Narrative Play, Dip Buy, Momentum, or Custom" },
+                  setupType: { type: "string", enum: ["Migrated Confirmation", "Pre-Migration PVP", "Wallet Signal", "Narrative Play", "Breakout", "Dip Buy / Pullback", "Volume Spike", "Momentum Chase", "Custom"], description: "Setup type — must be one of the enum values exactly" },
                   narrativeType: { type: "string", description: "Narrative category if mentioned" },
                   confirmationSignals: {
                     type: "array",

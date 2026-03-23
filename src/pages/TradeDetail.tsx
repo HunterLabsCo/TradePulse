@@ -234,6 +234,7 @@ export default function TradeDetail() {
             <Field label="Size" value={trade.positionSize} />
             <Field label="Setup" value={trade.setupType} />
             <Field label="Narrative" value={trade.narrativeType} />
+            <Field label="Indicators" value={trade.indicatorsUsed} />
             <Field label="Session" value={trade.sessionType} />
             <Field label="Time" value={new Date(trade.entryTime).toLocaleString()} />
           </div>

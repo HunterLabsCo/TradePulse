@@ -77,8 +77,13 @@ function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
     <div className="space-y-2">
       {[...updates].reverse().map((n) => (
         <div key={n.id} className="rounded-xl bg-card border-l-2 border-l-primary border border-border p-3">
-          <div className="mb-1">
+          <div className="mb-1 flex items-center gap-2 flex-wrap">
             <span className="font-body text-[11px] font-500 text-primary">⚡ Trade Update</span>
+            {n.sizeAdded && (
+              <span className="rounded-full bg-[hsl(var(--green-primary)/0.15)] border border-[hsl(var(--green-primary)/0.35)] px-2 py-0.5 font-body text-[10px] font-500 text-primary">
+                +{n.sizeAdded} added
+              </span>
+            )}
           </div>
           <p className="font-body text-xs font-300 leading-relaxed whitespace-pre-line text-foreground">{n.text}</p>
           {n.emotions && n.emotions.length > 0 && (
@@ -149,8 +154,20 @@ export default function TradeDetail() {
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
-  const handleSaveUpdate = (note: TradeNote, _emotions: EmotionalState[]) => {
-    updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
+  const handleSaveUpdate = (note: TradeNote, _emotions: EmotionalState[], sizeAdded?: string) => {
+    const updates: Record<string, any> = { tradeNotes: [...tradeNotes, note] };
+    if (sizeAdded) {
+      const existing = trade.positionSize ?? "";
+      const existingNum = parseFloat(existing);
+      const addedNum = parseFloat(sizeAdded);
+      if (!isNaN(existingNum) && !isNaN(addedNum)) {
+        const chain = existing.replace(/[\d.]/g, "").trim() || trade.chain;
+        updates.positionSize = `${(existingNum + addedNum).toFixed(2)} ${chain}`.trim();
+      } else {
+        updates.positionSize = existing ? `${existing} (+${sizeAdded})` : sizeAdded;
+      }
+    }
+    updateTrade(trade.id, updates);
   };
 
   const confirmationSignals = trade.confirmationSignals ?? [];
@@ -341,7 +358,7 @@ export default function TradeDetail() {
       )}
 
       <ExitModal open={showExitModal} onOpenChange={setShowExitModal} remainingPercent={remainingPercent} onSave={handleSaveExit} />
-      <UpdateModal open={showUpdateModal} onOpenChange={setShowUpdateModal} onSave={handleSaveUpdate} />
+      <UpdateModal open={showUpdateModal} onOpenChange={setShowUpdateModal} onSave={handleSaveUpdate} chain={trade.chain} />
 
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
         <DialogContent className="max-w-sm bg-popover border-border">

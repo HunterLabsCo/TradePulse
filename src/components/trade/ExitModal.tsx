@@ -33,13 +33,40 @@ const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-
 const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
 const chipStopLoss = "bg-red-action border border-red-action text-foreground font-400";
 
+const EMOTION_CHIP_COLORS: Record<string, string> = {
+  confident: "bg-emerald-500/25 text-emerald-300 border-emerald-500/60",
+  calm: "bg-teal-500/25 text-teal-300 border-teal-500/60",
+  focused: "bg-sky-500/25 text-sky-300 border-sky-500/60",
+  "in-the-zone": "bg-emerald-400/25 text-emerald-200 border-emerald-400/60",
+  disciplined: "bg-emerald-600/25 text-emerald-300 border-emerald-600/60",
+  sharp: "bg-sky-600/25 text-sky-200 border-sky-600/60",
+  anxious: "bg-amber-500/25 text-amber-300 border-amber-500/60",
+  nervous: "bg-orange-500/25 text-orange-300 border-orange-500/60",
+  rushed: "bg-red-500/25 text-red-300 border-red-500/60",
+  frustrated: "bg-red-600/25 text-red-300 border-red-600/60",
+  "revenge-mindset": "bg-rose-600/25 text-rose-300 border-rose-600/60",
+  greedy: "bg-yellow-500/25 text-yellow-300 border-yellow-500/60",
+  fearful: "bg-violet-500/25 text-violet-300 border-violet-500/60",
+  overconfident: "bg-amber-600/25 text-amber-300 border-amber-600/60",
+  hesitant: "bg-slate-400/25 text-slate-300 border-slate-400/60",
+  impulsive: "bg-rose-500/25 text-rose-300 border-rose-500/60",
+  euphoric: "bg-pink-500/25 text-pink-300 border-pink-500/60",
+  fomo: "bg-orange-600/25 text-orange-200 border-orange-600/60",
+  distracted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
+  interrupted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
+  uncertain: "bg-indigo-400/25 text-indigo-300 border-indigo-400/60",
+  patient: "bg-cyan-500/25 text-cyan-300 border-cyan-500/60",
+  bored: "bg-indigo-400/25 text-indigo-200 border-indigo-400/60",
+  pressured: "bg-amber-500/25 text-amber-200 border-amber-500/60",
+};
+
 function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
   if (lower.includes("take profit") || lower.includes("taking profit")) return "take-profit";
   if (lower.includes("stop loss") || lower.includes("stopped out") || lower.includes("hit my stop")) return "stop-loss";
   if (lower.includes("full exit") || lower.includes("fully exit") || lower.includes("fully exited") || lower.includes("exited the position") || lower.includes("exited this position") || lower.includes("exited my position") || lower.includes("closing everything") || lower.includes("all out") || lower.includes("sold everything") || lower.includes("out of it") || lower.includes("out of the")) return "full-exit";
   if (lower.includes("moon bag") || lower.includes("moonbag")) return "moon-bag";
-  if (lower.includes("partial") || lower.includes("scaling out") || lower.includes("taking some")) return "partial-exit";
+  if (lower.includes("partial exit") || lower.includes("partially exited") || lower.includes("scaling out") || lower.includes("taking some") || lower.includes("took some") || lower.includes("sold some") || lower.includes("selling some")) return "partial-exit";
   return null;
 }
 
@@ -345,7 +372,12 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 <button
                   key={e}
                   onClick={() => toggleEmotion(e)}
-                  className={cn(chipBase, emotions.includes(e) ? chipOn : chipOff)}
+                  className={cn(
+                    chipBase, "border",
+                    emotions.includes(e)
+                      ? (EMOTION_CHIP_COLORS[e] ?? chipOn)
+                      : chipOff
+                  )}
                 >
                   {e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ")}
                 </button>

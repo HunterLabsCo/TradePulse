@@ -1,5 +1,18 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "trade-pulse-.*\\.vercel\\.app"
+        }
+      ],
+      "destination": "https://tradepulse-app.vercel.app/$1",
+      "permanent": false
+    }
+  ],
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

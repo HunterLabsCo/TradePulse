@@ -24,20 +24,75 @@ Rules:
   - "Momentum Chase" → pure momentum entry, trending strongly upward, no other specific trigger
   - "Custom" → use ONLY if none of the above fit, then describe in narrativeType
   Note: if trader mentions EMA support or EMA holding → use "Dip Buy / Pullback". If trending upward with RSI/momentum language → use "Momentum Chase".
-- Confirmation signals — CRITICAL: detect ALL mentioned signals. Return as an array from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Other".
-  - "RSI" → ANY mention of RSI, RSI levels, RSI holding, RSI trending, overbought, oversold via RSI — ALWAYS include this if RSI appears anywhere in the transcript
-  - "EMA Cross" → trader mentions EMA cross, EMAs crossed, golden cross
+- Confirmation signals — CRITICAL: detect ALL mentioned signals. Return as an array from: "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Migration Confirmed", "Dev History", "Trending / Listed", "Other".
+  - "RSI" → ANY mention of RSI, RSI levels, RSI holding, RSI trending — ALWAYS include if RSI appears anywhere
+  - "EMA Cross" → EMAs crossed, golden cross, EMA 9/21, EMAs trending
   - "Volume" → volume holding, volume spike, volume confirming
   - "Wallets" → tracked wallets, smart wallets, wallet activity, major wallet
   - "Social / Twitter" → community, Twitter/X, posts, tweets, social sentiment
   - "Chart Pattern" → chart patterns, candlestick patterns, support/resistance, trendlines
   - "Gut / Intuition" → gut feeling, intuition, felt right
-- Indicators used — CRITICAL: if the trader mentions ANY technical indicator word, put it in indicatorsUsed. This includes: RSI (any RSI mention), MACD, VWAP, EMA with a number (e.g. "EMA 21"), Bollinger Bands, volume indicators. Return as comma-separated string (e.g. "RSI, EMA 21"). If RSI is mentioned anywhere in the transcript, it MUST appear in both indicatorsUsed AND confirmationSignals.
-- Session type: detect from context. Options: "full-session" (uninterrupted), "partially-interrupted" (brief interruptions), "intermittently-interrupted" (frequent interruptions), "work-trade" (trading at work), "mobile-only" (phone trading), "forced-exit-risk" (known interruption coming).
-- Emotional states must be chosen from this exact list: confident, calm, focused, patient, in-the-zone, anxious, nervous, rushed, frustrated, revenge-mindset, greedy, fearful, overconfident, fomo, distracted, interrupted, uncertain, conflicted, disciplined, hesitant, impulsive, euphoric, detached, sharp, tired.
-- Detect emotional language even if implicit (e.g., "took this at work" → rushed/interrupted, "feeling good" → confident, "I just went for it" → fomo/impulsive, "I'm exhausted" → tired).
-- Quick tags to detect: Interrupted, Work trade, Full session, Pre-set orders, Above MC ceiling, Non-compliant, Chased / FOMO, Best setup, Clean execution.
-- If a field is not mentioned, omit it (return null or empty).`;
+  - "Migration Confirmed" → token migrated, graduated
+  - "Dev History" → dev background, team history
+  - "Trending / Listed" → trending, listed on CMC/CG
+- Indicators used — CRITICAL: if the trader mentions ANY technical indicator, put it in indicatorsUsed. Includes: RSI, MACD, VWAP, EMA with a number (e.g. "EMA 21"), Bollinger Bands. Return comma-separated (e.g. "RSI, EMA 9, EMA 21"). If RSI is mentioned, it MUST appear in both indicatorsUsed AND confirmationSignals.
+- Session type: "full-session", "partially-interrupted", "intermittently-interrupted", "work-trade", "mobile-only", "forced-exit-risk".
+- Emotional states from: confident, calm, focused, patient, in-the-zone, anxious, nervous, rushed, frustrated, revenge-mindset, greedy, fearful, overconfident, fomo, distracted, interrupted, uncertain, conflicted, disciplined, hesitant, impulsive, euphoric, detached, sharp, tired.
+- Detect emotional language even if implicit.
+- Quick tags: Interrupted, Work trade, Full session, Pre-set orders, Above MC ceiling, Non-compliant, Chased / FOMO, Best setup, Clean execution.
+- If a field is not mentioned, omit it.`;
+
+const TOOL = {
+  name: "parse_trade_entry",
+  description: "Extract structured trade entry data from a voice transcript",
+  input_schema: {
+    type: "object",
+    properties: {
+      tokenName: { type: "string", description: "Token ticker/name only (1-4 words max)" },
+      chain: { type: "string", enum: ["SOL", "ETH", "BASE", "ARB"] },
+      entryMarketCap: { type: "string", description: "Market cap at entry, e.g. 80.7K" },
+      positionSize: { type: "string", description: "Position size, e.g. 1.4 SOL" },
+      setupType: {
+        type: "string",
+        enum: ["Migrated Confirmation", "Pre-Migration PVP", "Wallet Signal", "Narrative Play", "Breakout", "Dip Buy / Pullback", "Volume Spike", "Momentum Chase", "Custom"],
+      },
+      narrativeType: { type: "string", description: "Narrative category if mentioned" },
+      confirmationSignals: {
+        type: "array",
+        items: {
+          type: "string",
+          enum: ["Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Migration Confirmed", "Dev History", "Trending / Listed", "Other"],
+        },
+      },
+      indicatorsUsed: {
+        type: "string",
+        description: "Technical indicators mentioned, comma-separated. Omit if none.",
+      },
+      sessionType: {
+        type: "string",
+        enum: ["full-session", "partially-interrupted", "intermittently-interrupted", "work-trade", "mobile-only", "forced-exit-risk"],
+      },
+      emotionalStates: {
+        type: "array",
+        items: {
+          type: "string",
+          enum: [
+            "confident", "calm", "focused", "patient", "in-the-zone",
+            "anxious", "nervous", "rushed", "frustrated", "revenge-mindset",
+            "greedy", "fearful", "overconfident",
+            "fomo", "distracted", "interrupted", "uncertain", "conflicted",
+            "disciplined", "hesitant", "impulsive", "euphoric", "detached", "sharp", "tired",
+          ],
+        },
+      },
+      quickTags: {
+        type: "array",
+        items: { type: "string" },
+      },
+    },
+    required: ["tokenName"],
+  },
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -59,80 +114,25 @@ serve(async (req) => {
       });
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+    if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "x-api-key": ANTHROPIC_API_KEY,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "claude-haiku-4-5-20251001",
+        max_tokens: 1024,
+        system: SYSTEM_PROMPT,
+        tools: [TOOL],
+        tool_choice: { type: "tool", name: "parse_trade_entry" },
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: `Parse this trade entry transcript:\n\n"${transcript}"` },
         ],
-        tools: [
-          {
-            type: "function",
-            function: {
-              name: "parse_trade_entry",
-              description: "Extract structured trade entry data from a voice transcript",
-              parameters: {
-                type: "object",
-                properties: {
-                  tokenName: { type: "string", description: "Token ticker/name only (1-4 words max)" },
-                  chain: { type: "string", enum: ["SOL", "ETH", "BASE", "ARB"] },
-                  entryMarketCap: { type: "string", description: "Market cap at entry, e.g. 80.7K" },
-                  positionSize: { type: "string", description: "Position size, e.g. 1.4 SOL" },
-                  setupType: { type: "string", enum: ["Migrated Confirmation", "Pre-Migration PVP", "Wallet Signal", "Narrative Play", "Breakout", "Dip Buy / Pullback", "Volume Spike", "Momentum Chase", "Custom"], description: "Setup type — must be one of the enum values exactly" },
-                  narrativeType: { type: "string", description: "Narrative category if mentioned" },
-                  confirmationSignals: {
-                    type: "array",
-                    items: {
-                      type: "string",
-                      enum: ["Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition", "EMA Cross", "RSI", "Other"],
-                    },
-                    description: "Detected confirmation signals",
-                  },
-                  indicatorsUsed: {
-                    type: "string",
-                    description: "Technical indicators mentioned (e.g. 'RSI 7, EMA 21, MACD'). Comma-separated. Omit if none mentioned.",
-                  },
-                  sessionType: {
-                    type: "string",
-                    enum: ["full-session", "partially-interrupted", "intermittently-interrupted", "work-trade", "mobile-only", "forced-exit-risk"],
-                    description: "Session status",
-                  },
-                  emotionalStates: {
-                    type: "array",
-                    items: {
-                      type: "string",
-                      enum: [
-                        "confident", "calm", "focused", "patient", "in-the-zone",
-                        "anxious", "nervous", "rushed", "frustrated", "revenge-mindset",
-                        "greedy", "fearful", "overconfident",
-                        "fomo", "distracted", "interrupted", "uncertain", "conflicted",
-                        "disciplined", "hesitant", "impulsive", "euphoric", "detached", "sharp", "tired",
-                      ],
-                    },
-                    description: "Detected emotional states",
-                  },
-                  quickTags: {
-                    type: "array",
-                    items: { type: "string" },
-                    description: "Applicable quick tags",
-                  },
-                },
-                required: ["tokenName"],
-                additionalProperties: false,
-              },
-            },
-          },
-        ],
-        tool_choice: { type: "function", function: { name: "parse_trade_entry" } },
       }),
     });
 
@@ -143,26 +143,18 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
       const text = await response.text();
-      throw new Error(`AI gateway error [${response.status}]: ${text}`);
+      throw new Error(`Anthropic API error [${response.status}]: ${text}`);
     }
 
     const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const toolUse = data.content?.find((b: any) => b.type === "tool_use");
 
-    if (!toolCall?.function?.arguments) {
+    if (!toolUse?.input) {
       throw new Error("No structured output from AI");
     }
 
-    const parsed = JSON.parse(toolCall.function.arguments);
-
-    return new Response(JSON.stringify({ parsed }), {
+    return new Response(JSON.stringify({ parsed: toolUse.input }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {

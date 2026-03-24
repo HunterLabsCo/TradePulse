@@ -92,6 +92,15 @@
 }
 
 @layer utilities {
+  .pt-safe-top {
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+  .pb-safe-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  }
+  .safe-area-bottom {
+    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+  }
   .font-display {
     font-family: 'DM Sans', sans-serif;
   }

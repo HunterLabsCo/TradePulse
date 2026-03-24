@@ -8,8 +8,6 @@ interface TradeStore {
   updateTrade: (id: string, updates: Partial<Trade>) => void;
   deleteTrade: (id: string) => void;
   deleteAllTrades: () => void;
-  loadDemoTrades: () => void;
-  clearDemoTrades: () => void;
   getTradeById: (id: string) => Trade | undefined;
   getTradeCount: () => number;
   getNonDemoTradeCount: () => number;
@@ -27,12 +25,6 @@ export const useTradeStore = create<TradeStore>()(
       deleteTrade: (id) =>
         set((s) => ({ trades: s.trades.filter((t) => t.id !== id) })),
       deleteAllTrades: () => set({ trades: [] }),
-      loadDemoTrades: () => {
-        const existing = get().trades.filter((t) => !t.isDemo);
-        set({ trades: [...SAMPLE_TRADES, ...existing] });
-      },
-      clearDemoTrades: () =>
-        set((s) => ({ trades: s.trades.filter((t) => !t.isDemo) })),
       getTradeById: (id) => get().trades.find((t) => t.id === id),
       getTradeCount: () => get().trades.length,
       getNonDemoTradeCount: () =>

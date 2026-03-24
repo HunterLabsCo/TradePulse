@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Trash2, Check } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Check, PlayCircle, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -24,12 +24,15 @@ export default function SettingsPage() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
   const deleteAllTrades = useTradeStore((s) => s.deleteAllTrades);
+  const loadDemoTrades = useTradeStore((s) => s.loadDemoTrades);
+  const clearDemoTrades = useTradeStore((s) => s.clearDemoTrades);
   const getNonDemoTradeCount = useTradeStore((s) => s.getNonDemoTradeCount);
   const { isPro, txSignature } = useSubscriptionStore();
   const [displayName, setDisplayName] = useState("");
   const [defaultChain, setDefaultChain] = useState("SOL");
 
   const nonDemoCount = getNonDemoTradeCount();
+  const hasDemoTrades = trades.some((t) => t.isDemo);
 
   function exportCSV() {
     const headers = "Token,Chain,Status,PnL,Entry Time,Exit Time\n";
@@ -129,6 +132,27 @@ export default function SettingsPage() {
                 {chain === "BNB" ? "BNB / BSC" : chain}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Demo Data */}
+        <div>
+          <p className="section-label mb-2">Demo Data</p>
+          <div className="flex gap-2">
+            <button
+              onClick={loadDemoTrades}
+              disabled={hasDemoTrades}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <PlayCircle className="h-4 w-4" /> Load Demo
+            </button>
+            <button
+              onClick={clearDemoTrades}
+              disabled={!hasDemoTrades}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-muted-foreground active:scale-[0.97] disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <X className="h-4 w-4" /> Clear Demo
+            </button>
           </div>
         </div>
 

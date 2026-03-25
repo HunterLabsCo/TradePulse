@@ -12,7 +12,10 @@ export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  if (["/new-trade", "/paywall"].includes(location.pathname) || location.pathname.startsWith("/trade/")) return null;
+  if (
+    ["/new-trade", "/paywall", "/admin"].includes(location.pathname) ||
+    location.pathname.startsWith("/trade/")
+  ) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background safe-area-bottom">

@@ -17,7 +17,12 @@ export const useTradeStore = create<TradeStore>()(
   persist(
     (set, get) => ({
       trades: [],
-      addTrade: (trade) => set((s) => ({ trades: [trade, ...s.trades] })),
+      addTrade: (trade) =>
+        set((s) => ({
+          trades: trade.isDemo
+            ? [trade, ...s.trades]
+            : [trade, ...s.trades.filter((t) => !t.isDemo)],
+        })),
       updateTrade: (id, updates) =>
         set((s) => ({
           trades: s.trades.map((t) => (t.id === id ? { ...t, ...updates } : t)),

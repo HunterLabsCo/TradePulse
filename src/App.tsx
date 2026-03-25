@@ -16,6 +16,7 @@ import SettingsPage from "./pages/SettingsPage";
 import Upgrade from "./pages/Upgrade";
 import UpgradeSuccess from "./pages/UpgradeSuccess";
 import NotFound from "./pages/NotFound";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/upgrade/success" element={<UpgradeSuccess />} />
+            <Route path="/admin" element={<AdminPanel />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />

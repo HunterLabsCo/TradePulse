@@ -25,10 +25,12 @@ function ProStatusChecker() {
 
   useEffect(() => {
     if (connectedWallet) {
-      checkProStatus(connectedWallet).then(({ isPro, txSignature }) => {
-        setIsPro(isPro);
-        if (txSignature) setTxSignature(txSignature);
-      });
+      checkProStatus(connectedWallet)
+        .then(({ isPro, txSignature }) => {
+          setIsPro(isPro);
+          if (txSignature) setTxSignature(txSignature);
+        })
+        .catch((err) => console.error("[ProStatus] Failed to check:", err));
     }
   }, [connectedWallet, setIsPro, setTxSignature]);
 

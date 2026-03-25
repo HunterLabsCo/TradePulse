@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Wallet, Check, AlertCircle, ChevronRight } from "lucide-react";
+import { ArrowLeft, Wallet, Check, ChevronRight } from "lucide-react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import {
   PublicKey,
@@ -11,8 +11,9 @@ import {
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
+  getAccount,
+  createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
-import { BrowserProvider } from "ethers";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -32,13 +33,10 @@ import {
 
 type PaymentMethod = "SOL" | "USDC" | null;
 
-const METAMASK_ICON = "https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg";
-
 const WALLETS = [
-  { name: "Phantom", bg: "bg-[#ab9ff2]/10 border-[#ab9ff2]/30", type: "solana" },
-  { name: "Solflare", bg: "bg-[#fc8c3c]/10 border-[#fc8c3c]/30", type: "solana" },
-  { name: "Backpack", bg: "bg-[#e33e3f]/10 border-[#e33e3f]/30", type: "solana" },
-  { name: "MetaMask", bg: "bg-[#f6851b]/10 border-[#f6851b]/30", type: "ethereum" },
+  { name: "Phantom", bg: "bg-[#ab9ff2]/10 border-[#ab9ff2]/30" },
+  { name: "Solflare", bg: "bg-[#fc8c3c]/10 border-[#fc8c3c]/30" },
+  { name: "Backpack", bg: "bg-[#e33e3f]/10 border-[#e33e3f]/30" },
 ];
 
 export default function Upgrade() {
@@ -50,15 +48,14 @@ export default function Upgrade() {
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [solPrice, setSolPrice] = useState<number>(0);
-  const [ethWallet, setEthWallet] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
   const [connectedWalletType, setConnectedWalletType] = useState<string | null>(null);
   const [walletDrawerOpen, setWalletDrawerOpen] = useState(false);
 
   useEffect(() => {
-    fetchSolPrice().then(setSolPrice);
+    fetchSolPrice().then(setSolPrice).catch(console.error);
     const interval = setInterval(() => {
-      fetchSolPrice().then(setSolPrice);
+      fetchSolPrice().then(setSolPrice).catch(console.error);
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -84,26 +81,9 @@ export default function Upgrade() {
     [wallets, select, connect]
   );
 
-  const connectMetaMask = useCallback(async () => {
-    if (typeof window === "undefined" || !(window as any).ethereum) {
-      toast.error("MetaMask not detected — please install it first.");
-      return;
-    }
-    try {
-      const provider = new BrowserProvider((window as any).ethereum);
-      const signer = await provider.getSigner();
-      const addr = await signer.getAddress();
-      setEthWallet(addr);
-      setConnectedWalletType("metamask");
-      setWalletDrawerOpen(false);
-    } catch {
-      toast.error("MetaMask connection rejected.");
-    }
-  }, []);
-
-  // Sync Solana wallet state
+  // Sync Solana wallet to store so ProStatusChecker picks it up on next load
   useEffect(() => {
-    if (publicKey && connectedWalletType && connectedWalletType !== "metamask") {
+    if (publicKey && connectedWalletType) {
       setWallet(publicKey.toBase58(), connectedWalletType);
     }
   }, [publicKey, connectedWalletType, setWallet]);
@@ -135,9 +115,25 @@ export default function Upgrade() {
         );
         const amount = 99_000_000;
 
-        tx = new Transaction().add(
-          createTransferInstruction(senderAta, receiverAta, publicKey, amount)
-        );
+        tx = new Transaction();
+
+        // If the receiving wallet has never received USDC its token account
+        // won't exist yet. Create it in the same transaction so the transfer
+        // doesn't fail on-chain. The user pays the one-time rent (~0.002 SOL).
+        try {
+          await getAccount(connection, receiverAta);
+        } catch {
+          tx.add(
+            createAssociatedTokenAccountInstruction(
+              publicKey,
+              receiverAta,
+              receivingPubkey,
+              usdcMint
+            )
+          );
+        }
+
+        tx.add(createTransferInstruction(senderAta, receiverAta, publicKey, amount));
       }
 
       const signature = await sendTransaction(tx, connection);
@@ -159,23 +155,26 @@ export default function Upgrade() {
       });
 
       if (error) {
-        toast.warning(
-          "Payment received but verification pending — please contact support."
+        // Edge function failed (network/timeout) — do NOT grant Pro speculatively.
+        // The tx is on-chain; user can contact support with their signature.
+        toast.error(
+          `Verification failed — your payment is safe. Contact support with your tx: ${signature.slice(0, 8)}…`
         );
-        setIsPro(true);
-        setTxSignature(signature);
-        navigate("/upgrade/success", {
-          state: { txSignature: signature, verified: false },
-        });
         return;
       }
 
-      if (data?.success) {
+      if (data?.success && data?.verified) {
+        // On-chain verification passed
         setIsPro(true);
         setTxSignature(signature);
         navigate("/upgrade/success", {
-          state: { txSignature: signature, verified: data.verified },
+          state: { txSignature: signature, verified: true },
         });
+      } else {
+        // Function ran but payment didn't verify (wrong amount, wrong destination, etc.)
+        toast.error(
+          `Payment verification failed — contact support with tx: ${signature.slice(0, 8)}…`
+        );
       }
     } catch (err: any) {
       if (
@@ -204,20 +203,20 @@ export default function Upgrade() {
     navigate,
   ]);
 
-  const isMetaMaskConnected = ethWallet !== null;
   const isSolanaConnected = connected && publicKey;
-  const isAnyConnected = isSolanaConnected || isMetaMaskConnected;
-  const canPay = isSolanaConnected && paymentMethod !== null && !paying;
+  const canPay =
+    isSolanaConnected &&
+    paymentMethod !== null &&
+    !paying &&
+    (paymentMethod !== "SOL" || solPrice > 0); // block SOL pay until price loads
 
-  const connectedWalletLabel = isAnyConnected
+  const connectedWalletLabel = isSolanaConnected
     ? connectedWalletType
         ? connectedWalletType.charAt(0).toUpperCase() + connectedWalletType.slice(1)
         : "Wallet"
     : null;
 
-  const connectedAddr = connectedWalletType === "metamask"
-    ? ethWallet
-    : publicKey?.toBase58() || null;
+  const connectedAddr = publicKey?.toBase58() || null;
 
   return (
     <div className="flex min-h-screen flex-col pb-24">
@@ -280,18 +279,8 @@ export default function Upgrade() {
           </button>
         </div>
 
-        {/* MetaMask notice */}
-        {isMetaMaskConnected && connectedWalletType === "metamask" && (
-          <div className="flex items-start gap-2 rounded-xl border border-border bg-card p-3">
-            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-[hsl(var(--blue-accent))]" />
-            <p className="font-body text-[12px] font-light text-muted-foreground">
-              ETH payments coming soon. Connect a Solana wallet to pay now.
-            </p>
-          </div>
-        )}
-
         {/* Connect Wallet / Connected status */}
-        {isAnyConnected ? (
+        {isSolanaConnected ? (
           <button
             onClick={() => setWalletDrawerOpen(true)}
             className="flex w-full items-center justify-between rounded-xl border border-border bg-card px-4 py-3.5 transition-all active:scale-[0.97]"
@@ -355,24 +344,17 @@ export default function Upgrade() {
           </DrawerHeader>
           <div className="px-4 pb-6">
             <div className="grid grid-cols-2 gap-3">
-              {WALLETS.map(({ name, bg, type }) => {
+              {WALLETS.map(({ name, bg }) => {
                 const isThisConnected =
-                  (name.toLowerCase() === connectedWalletType && isSolanaConnected) ||
-                  (name === "MetaMask" && isMetaMaskConnected);
-
-                const adapterIcon = wallets.find(
+                  name.toLowerCase() === connectedWalletType && isSolanaConnected;
+                const icon = wallets.find(
                   (w) => w.adapter.name.toLowerCase() === name.toLowerCase()
                 )?.adapter.icon;
-                const icon = name === "MetaMask" ? METAMASK_ICON : adapterIcon;
 
                 return (
                   <button
                     key={name}
-                    onClick={() =>
-                      type === "ethereum"
-                        ? connectMetaMask()
-                        : connectSolanaWallet(name)
-                    }
+                    onClick={() => connectSolanaWallet(name)}
                     className={`relative flex flex-col items-center justify-center gap-2 rounded-2xl border p-5 transition-all active:scale-[0.96] ${bg}`}
                   >
                     {isThisConnected && (

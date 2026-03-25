@@ -11,6 +11,8 @@ import {
 import {
   getAssociatedTokenAddress,
   createTransferInstruction,
+  getAccount,
+  createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -79,9 +81,9 @@ export default function Upgrade() {
     [wallets, select, connect]
   );
 
-  // Sync Solana wallet state
+  // Sync Solana wallet to store so ProStatusChecker picks it up on next load
   useEffect(() => {
-    if (publicKey && connectedWalletType && connectedWalletType !== "metamask") {
+    if (publicKey && connectedWalletType) {
       setWallet(publicKey.toBase58(), connectedWalletType);
     }
   }, [publicKey, connectedWalletType, setWallet]);
@@ -113,9 +115,25 @@ export default function Upgrade() {
         );
         const amount = 99_000_000;
 
-        tx = new Transaction().add(
-          createTransferInstruction(senderAta, receiverAta, publicKey, amount)
-        );
+        tx = new Transaction();
+
+        // If the receiving wallet has never received USDC its token account
+        // won't exist yet. Create it in the same transaction so the transfer
+        // doesn't fail on-chain. The user pays the one-time rent (~0.002 SOL).
+        try {
+          await getAccount(connection, receiverAta);
+        } catch {
+          tx.add(
+            createAssociatedTokenAccountInstruction(
+              publicKey,
+              receiverAta,
+              receivingPubkey,
+              usdcMint
+            )
+          );
+        }
+
+        tx.add(createTransferInstruction(senderAta, receiverAta, publicKey, amount));
       }
 
       const signature = await sendTransaction(tx, connection);
@@ -186,7 +204,11 @@ export default function Upgrade() {
   ]);
 
   const isSolanaConnected = connected && publicKey;
-  const canPay = isSolanaConnected && paymentMethod !== null && !paying;
+  const canPay =
+    isSolanaConnected &&
+    paymentMethod !== null &&
+    !paying &&
+    (paymentMethod !== "SOL" || solPrice > 0); // block SOL pay until price loads
 
   const connectedWalletLabel = isSolanaConnected
     ? connectedWalletType

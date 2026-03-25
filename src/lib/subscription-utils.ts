@@ -4,19 +4,19 @@ export async function checkProStatus(walletAddress: string): Promise<{
   isPro: boolean;
   txSignature: string | null;
 }> {
-  const { data, error } = await supabase
-    .from("subscribers")
-    .select("verified, transaction_signature")
-    .eq("wallet_address", walletAddress)
-    .maybeSingle();
+  // Routed through an edge function so the subscribers table is never
+  // directly readable by the anon key (anyone on the internet).
+  const { data, error } = await supabase.functions.invoke("check-pro-status", {
+    body: { walletAddress },
+  });
 
   if (error || !data) {
     return { isPro: false, txSignature: null };
   }
 
   return {
-    isPro: data.verified === true,
-    txSignature: data.transaction_signature,
+    isPro: data.isPro === true,
+    txSignature: data.txSignature ?? null,
   };
 }
 

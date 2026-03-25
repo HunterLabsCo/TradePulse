@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Trash2, Check, MessageSquare } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Check, MessageSquare, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -54,6 +54,20 @@ export default function SettingsPage() {
     script.src = "https://tally.so/widgets/embed.js";
     script.onload = () => (window as any).Tally?.openPopup(formId, { emoji: { text: "👋", animation: "wave" } });
     document.head.appendChild(script);
+  }
+
+  const [shareCopied, setShareCopied] = useState(false);
+
+  async function shareApp() {
+    const url = "https://tradepulse-app.vercel.app";
+    const text = "Never lose a trade to bad timing. Log entries, exits & PnL with your voice before the moment's gone.";
+    if (navigator.share) {
+      await navigator.share({ title: "TradePulse", text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
   }
 
   function downloadFile(content: string, filename: string, mime: string) {
@@ -174,6 +188,15 @@ export default function SettingsPage() {
           </button>
         )}
 
+        {/* Share */}
+        <button
+          onClick={shareApp}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
+        >
+          <Share2 className="h-4 w-4" />
+          {shareCopied ? "Link copied!" : "Share TradePulse"}
+        </button>
+
         {/* Delete All */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -199,6 +222,14 @@ export default function SettingsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        {/* About */}
+        <div className="rounded-xl bg-card border border-border p-4 text-center">
+          <p className="font-display text-[15px] font-semibold text-foreground">TradePulse</p>
+          <p className="mt-1 font-body text-[12px] font-light text-muted-foreground">
+            Never lose a trade to bad timing.
+          </p>
+          <p className="mt-3 font-mono-label text-[11px] text-[hsl(var(--text-muted))]">v1.0.0</p>
+        </div>
       </div>
     </div>
   );

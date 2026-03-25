@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+
     --bg-base: 220 40% 5%;
     --bg-surface: 0 0% 4%;
     --bg-card: 0 0% 6.7%;
@@ -93,13 +96,16 @@
 
 @layer utilities {
   .pt-safe-top {
-    padding-top: max(env(safe-area-inset-top), 1rem);
+    padding-top: 1rem;
+    padding-top: max(var(--safe-top), 1rem);
   }
   .pb-safe-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+    padding-bottom: 0.5rem;
+    padding-bottom: max(var(--safe-bottom), 0.5rem);
   }
   .safe-area-bottom {
-    padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
+    padding-bottom: 0.5rem;
+    padding-bottom: max(var(--safe-bottom), 0.5rem);
   }
   .font-display {
     font-family: 'DM Sans', sans-serif;

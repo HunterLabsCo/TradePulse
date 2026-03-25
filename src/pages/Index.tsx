@@ -118,7 +118,7 @@ export default function Index() {
       </section>
 
       {/* New Trade FAB */}
-      <div className="fixed left-0 right-0 px-5" style={{ bottom: 'calc(4.5rem + max(var(--safe-bottom), 0px))' }}>
+      <div className="fixed left-0 right-0 px-5" style={{ bottom: 'calc(5.5rem + max(var(--safe-bottom), 0px))' }}>
         <button
           onClick={() => {
             if (nonDemoCount >= FREE_LIMIT && !isPro) {

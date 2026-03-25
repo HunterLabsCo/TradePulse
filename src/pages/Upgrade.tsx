@@ -56,9 +56,9 @@ export default function Upgrade() {
   const [walletDrawerOpen, setWalletDrawerOpen] = useState(false);
 
   useEffect(() => {
-    fetchSolPrice().then(setSolPrice);
+    fetchSolPrice().then(setSolPrice).catch(console.error);
     const interval = setInterval(() => {
-      fetchSolPrice().then(setSolPrice);
+      fetchSolPrice().then(setSolPrice).catch(console.error);
     }, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -159,23 +159,26 @@ export default function Upgrade() {
       });
 
       if (error) {
-        toast.warning(
-          "Payment received but verification pending — please contact support."
+        // Edge function failed (network/timeout) — do NOT grant Pro speculatively.
+        // The tx is on-chain; user can contact support with their signature.
+        toast.error(
+          `Verification failed — your payment is safe. Contact support with your tx: ${signature.slice(0, 8)}…`
         );
-        setIsPro(true);
-        setTxSignature(signature);
-        navigate("/upgrade/success", {
-          state: { txSignature: signature, verified: false },
-        });
         return;
       }
 
-      if (data?.success) {
+      if (data?.success && data?.verified) {
+        // On-chain verification passed
         setIsPro(true);
         setTxSignature(signature);
         navigate("/upgrade/success", {
-          state: { txSignature: signature, verified: data.verified },
+          state: { txSignature: signature, verified: true },
         });
+      } else {
+        // Function ran but payment didn't verify (wrong amount, wrong destination, etc.)
+        toast.error(
+          `Payment verification failed — contact support with tx: ${signature.slice(0, 8)}…`
+        );
       }
     } catch (err: any) {
       if (

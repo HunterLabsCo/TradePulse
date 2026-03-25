@@ -25,9 +25,13 @@ export async function fetchSolPrice(): Promise<number> {
     const res = await fetch(
       "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
     );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    return data.solana.usd as number;
-  } catch {
+    const price = data?.solana?.usd;
+    if (typeof price !== "number" || price <= 0) throw new Error("Invalid price data");
+    return price;
+  } catch (err) {
+    console.error("[fetchSolPrice]", err);
     return 0;
   }
 }

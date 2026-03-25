@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Trash2, Check } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Check, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -41,6 +41,19 @@ export default function SettingsPage() {
 
   function exportJSON() {
     downloadFile(JSON.stringify(trades, null, 2), "tradesnap-export.json", "application/json");
+  }
+
+  function openFeedback() {
+    const formId = import.meta.env.VITE_TALLY_FORM_ID;
+    if (!formId) return;
+    if ((window as any).Tally) {
+      (window as any).Tally.openPopup(formId, { emoji: { text: "👋", animation: "wave" } });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://tally.so/widgets/embed.js";
+    script.onload = () => (window as any).Tally?.openPopup(formId, { emoji: { text: "👋", animation: "wave" } });
+    document.head.appendChild(script);
   }
 
   function downloadFile(content: string, filename: string, mime: string) {
@@ -150,6 +163,16 @@ export default function SettingsPage() {
             </button>
           </div>
         </div>
+
+        {/* Feedback */}
+        {import.meta.env.VITE_TALLY_FORM_ID && (
+          <button
+            onClick={openFeedback}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
+          >
+            <MessageSquare className="h-4 w-4" /> Send Feedback
+          </button>
+        )}
 
         {/* Delete All */}
         <AlertDialog>

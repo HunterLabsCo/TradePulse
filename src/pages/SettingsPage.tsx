@@ -228,6 +228,9 @@ export default function SettingsPage() {
           <p className="mt-1 font-body text-[12px] font-light text-muted-foreground">
             Never lose a trade to bad timing.
           </p>
+          <p className="mt-2 font-body text-[12px] font-light text-muted-foreground">
+            Made by <span className="text-foreground font-normal">TheVeinGhost</span>
+          </p>
           <p className="mt-3 font-mono-label text-[11px] text-[hsl(var(--text-muted))]">v1.0.0</p>
         </div>
       </div>

@@ -110,8 +110,11 @@ export default function Index() {
             </button>
           ))}
           {recentTrades.length === 0 && (
-            <div className="rounded-xl bg-card border border-border p-8 text-center">
-              <p className="font-body text-sm font-light text-muted-foreground">No trades yet. Tap below to log your first trade.</p>
+            <div className="rounded-xl bg-card border border-border p-6 text-center space-y-2">
+              <p className="font-body text-sm font-light text-muted-foreground">No trades yet.</p>
+              <p className="font-body text-[12px] font-light text-muted-foreground leading-relaxed">
+                Tap <span className="text-foreground font-normal">New Trade</span> below, speak your trade — token, entry, chain, mood — and it fills in automatically.
+              </p>
             </div>
           )}
         </div>

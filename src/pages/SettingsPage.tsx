@@ -127,6 +127,24 @@ export default function SettingsPage() {
               >
                 Upgrade to Pro
               </button>
+              <div className="mt-3 rounded-lg border border-[hsl(var(--green-primary)/0.2)] bg-[hsl(var(--green-primary)/0.05)] px-3 py-2.5 space-y-1">
+                <p className="font-display text-[10px] font-semibold text-primary uppercase tracking-wider">Giving Back</p>
+                <p className="font-body text-[11px] font-light text-muted-foreground leading-relaxed">
+                  <span className="text-foreground font-normal">50% of every Pro subscription</span> is donated to:
+                </p>
+                <ul className="space-y-0.5">
+                  {[
+                    "St. Anthony's Church — Prospect, CT (handicapped elevator fund & renovations)",
+                    "Knights of Columbus Council 13459 — Prospect, CT",
+                    "St. Vincent DePaul Mission Soup Kitchen — Waterbury, CT",
+                  ].map((org) => (
+                    <li key={org} className="flex items-start gap-1.5 font-body text-[10px] font-light text-muted-foreground">
+                      <span className="mt-[3px] h-1 w-1 flex-shrink-0 rounded-full bg-primary/60" />
+                      {org}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
         </div>
@@ -147,7 +165,7 @@ export default function SettingsPage() {
         <div>
           <label className="section-label mb-1.5 block">Default Chain</label>
           <div className="flex gap-2 flex-wrap">
-            {["SOL", "ETH", "BASE", "BNB", "ARB"].map((chain) => (
+            {["SOL", "ETH", "BASE", "BNB"].map((chain) => (
               <button
                 key={chain}
                 onClick={() => setDefaultChain(chain)}
@@ -234,25 +252,6 @@ export default function SettingsPage() {
           <p className="mt-3 font-mono-label text-[11px] text-[hsl(var(--text-muted))]">v1.0.0</p>
         </div>
 
-        {/* Giving Back */}
-        <div className="rounded-xl border border-[hsl(var(--green-primary)/0.2)] bg-[hsl(var(--green-primary)/0.05)] px-4 py-3 space-y-1.5">
-          <p className="font-display text-[12px] font-semibold text-primary uppercase tracking-wider">Giving Back</p>
-          <p className="font-body text-[12px] font-light text-muted-foreground leading-relaxed">
-            <span className="text-foreground font-normal">50% of every Pro subscription</span> is donated to:
-          </p>
-          <ul className="space-y-1">
-            {[
-              "St. Anthony's Church — Prospect, CT (handicapped elevator fund & renovations)",
-              "Knights of Columbus Council 13459 — Prospect, CT",
-              "St. Vincent DePaul Mission Soup Kitchen — Waterbury, CT",
-            ].map((org) => (
-              <li key={org} className="flex items-start gap-1.5 font-body text-[11px] font-light text-muted-foreground">
-                <span className="mt-[3px] h-1.5 w-1.5 flex-shrink-0 rounded-full bg-primary/60" />
-                {org}
-              </li>
-            ))}
-          </ul>
-        </div>
       </div>
     </div>
   );

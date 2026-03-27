@@ -59,7 +59,7 @@ export default function SettingsPage() {
   const [shareCopied, setShareCopied] = useState(false);
 
   async function shareApp() {
-    const url = "https://tradepulse-app.vercel.app";
+    const url = "https://tradepulseapp.io";
     const text = "Never lose a trade to bad timing. Log entries, exits & PnL with your voice before the moment's gone.";
     if (navigator.share) {
       await navigator.share({ title: "TradePulse", text, url }).catch(() => {});

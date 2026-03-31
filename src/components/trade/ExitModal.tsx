@@ -75,8 +75,10 @@ function parsePositionPercent(text: string, max: number): number | null {
   if (/\b(full exit|fully exit|fully exited|exited (the|this|my) position|all of it|everything|100%\s*exit|selling 100|closing 100|sold everything)\b/.test(lower)) {
     return Math.min(100, max);
   }
-  const posMatch = lower.match(/(?:selling|closing|exiting)\s+(\d+)\s*(?:percent|%)/);
+  const posMatch = lower.match(/(?:selling|closing|exiting|took|taking|sold)\s+(\d+)\s*(?:percent|%)?/);
   if (posMatch) return Math.min(parseInt(posMatch[1]), max);
+  const pctOutMatch = lower.match(/(\d+)\s*(?:percent|%)\s*(?:out|exit|position|of\s+(?:my\s+)?position)/);
+  if (pctOutMatch) return Math.min(parseInt(pctOutMatch[1]), max);
   if (/\bhalf\b/.test(lower)) return Math.min(50, max);
   if (/\bquarter\b/.test(lower)) return Math.min(25, max);
   const exitPctMatch = lower.match(/(\d+)\s*(?:percent|%)\s*exit/);
@@ -165,7 +167,16 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         const parsedType = parseExitTypeFromText(text);
         if (parsedType) setExitType(parsedType);
         const parsedPos = parsePositionPercent(text, remainingPercent);
-        if (parsedPos !== null) { setPercentClosed(parsedPos); setShowCustomPercent(false); }
+        if (parsedPos !== null) {
+          setPercentClosed(parsedPos);
+          if ([25, 50, 75, 100].includes(parsedPos)) {
+            setShowCustomPercent(false);
+            setCustomPercent("");
+          } else {
+            setShowCustomPercent(true);
+            setCustomPercent(String(parsedPos));
+          }
+        }
         const parsedPnl = parsePnlPercent(text);
         if (parsedPnl !== null) {
           setPnlPercent(parsedPnl);

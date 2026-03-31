@@ -72,40 +72,62 @@ function parseExitTypeFromText(text: string): ExitType | null {
 
 function parsePositionPercent(text: string, max: number): number | null {
   const lower = text.toLowerCase();
-  if (/\b(full exit|fully exit|fully exited|exited (the|this|my) position|all of it|everything|100%\s*exit|selling 100|closing 100|sold everything)\b/.test(lower)) {
+
+  // Full exit phrases
+  if (/\b(full exit|fully exit|fully exited|exited (the|this|my) position|all of it|everything|100%\s*exit|selling 100|closing 100|sold everything|all out|out completely|completely out)\b/.test(lower)) {
     return Math.min(100, max);
   }
-  const posMatch = lower.match(/(?:selling|closing|exiting|took|taking|sold)\s+(\d+)\s*(?:percent|%)?/);
-  if (posMatch) return Math.min(parseInt(posMatch[1]), max);
-  const pctOutMatch = lower.match(/(\d+)\s*(?:percent|%)\s*(?:out|exit|position|of\s+(?:my\s+)?position)/);
-  if (pctOutMatch) return Math.min(parseInt(pctOutMatch[1]), max);
+
+  // "closing/selling/exiting/close/exit/sold/took/taking X" + optional percent
+  const actionMatch = lower.match(/(?:clos(?:e|ing)|sell(?:ing)?|exit(?:ing)?|took|taking|sold|scalin[g]?\s+out)\s+(\d+)\s*(?:percent|%)?/);
+  if (actionMatch) return Math.min(parseInt(actionMatch[1]), max);
+
+  // "X percent out/exit/position/closed/remaining"
+  const pctContextMatch = lower.match(/(\d+)\s*(?:percent|%)\s*(?:out|exit(?:ed)?|position|closed|of\s+(?:my\s+)?position|remaining|of\s+it)/);
+  if (pctContextMatch) return Math.min(parseInt(pctContextMatch[1]), max);
+
+  // "X percent" standalone — only if between 1–100 and no PnL context words nearby
+  const standaloneMatch = lower.match(/\b(\d{1,3})\s*(?:percent|%)/);
+  if (standaloneMatch) {
+    const hasPnlContext = /(?:profit|loss|gain|pnl|up|down|made|lost|minus|plus|green|red)\s*\d|\d\s*(?:profit|loss|gain|pnl|green|red|x\b)/.test(lower);
+    if (!hasPnlContext) {
+      const val = parseInt(standaloneMatch[1]);
+      if (val >= 1 && val <= 100) return Math.min(val, max);
+    }
+  }
+
   if (/\bhalf\b/.test(lower)) return Math.min(50, max);
   if (/\bquarter\b/.test(lower)) return Math.min(25, max);
-  const exitPctMatch = lower.match(/(\d+)\s*(?:percent|%)\s*exit/);
-  if (exitPctMatch) return Math.min(parseInt(exitPctMatch[1]), max);
   return null;
 }
 
 function parsePnlPercent(text: string): number | null {
   const lower = text.toLowerCase();
-  // "30% profit/gain" or "at 30% profit"
+
+  // "X% profit/gain/up/green" or "at X% profit"
   const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain|up|green)/);
   if (profitMatch) return parseInt(profitMatch[1]);
-  // "30% loss/down/red" or "at 30% loss"
+
+  // "X% loss/down/red/negative"
   const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down|red|negative)/);
   if (lossMatch) return -parseInt(lossMatch[1]);
-  // "up/gained/made 30%"
+
+  // "up/gained/made/profited X"
   const upMatch = lower.match(/(?:up|plus|gained|made|profit(?:ed)?|green)\s+(\d+)\s*(?:percent|%)?/);
   if (upMatch) return parseInt(upMatch[1]);
-  // "down/minus/lost/stopped/rugged 30%"
-  const downMatch = lower.match(/(?:down|minus|lost|negative|stopped|rugged|dumped|rekt)\s+(\d+)\s*(?:percent|%)?/);
+
+  // "down/minus/lost/rugged/rekt/stopped/dumped X"
+  const downMatch = lower.match(/(?:down|minus|lost|negative|stopped|rugged|dumped|rekt|red)\s+(\d+)\s*(?:percent|%)?/);
   if (downMatch) return -parseInt(downMatch[1]);
-  // "took a 30% loss / hit a 30% loss"
+
+  // "took/hit a X% loss"
   const tookLoss = lower.match(/(?:took|hit|taking)\s+a\s+(\d+)\s*(?:percent|%)?\s*loss/);
   if (tookLoss) return -parseInt(tookLoss[1]);
-  // "3x / 5x"
+
+  // "Nx" multiplier (e.g. 3x = +200%)
   const xMatch = lower.match(/(\d+)\s*x\b/);
   if (xMatch) return (parseInt(xMatch[1]) - 1) * 100;
+
   return null;
 }
 

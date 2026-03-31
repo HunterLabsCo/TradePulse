@@ -86,14 +86,22 @@ function parsePositionPercent(text: string, max: number): number | null {
 
 function parsePnlPercent(text: string): number | null {
   const lower = text.toLowerCase();
-  const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain)/);
+  // "30% profit/gain" or "at 30% profit"
+  const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain|up|green)/);
   if (profitMatch) return parseInt(profitMatch[1]);
-  const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down)/);
+  // "30% loss/down/red" or "at 30% loss"
+  const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down|red|negative)/);
   if (lossMatch) return -parseInt(lossMatch[1]);
-  const upMatch = lower.match(/(?:up|plus|gained|made)\s+(\d+)\s*(?:percent|%)?/);
+  // "up/gained/made 30%"
+  const upMatch = lower.match(/(?:up|plus|gained|made|profit(?:ed)?|green)\s+(\d+)\s*(?:percent|%)?/);
   if (upMatch) return parseInt(upMatch[1]);
-  const downMatch = lower.match(/(?:down|minus|lost|negative)\s+(\d+)\s*(?:percent|%)?/);
+  // "down/minus/lost/stopped/rugged 30%"
+  const downMatch = lower.match(/(?:down|minus|lost|negative|stopped|rugged|dumped|rekt)\s+(\d+)\s*(?:percent|%)?/);
   if (downMatch) return -parseInt(downMatch[1]);
+  // "took a 30% loss / hit a 30% loss"
+  const tookLoss = lower.match(/(?:took|hit|taking)\s+a\s+(\d+)\s*(?:percent|%)?\s*loss/);
+  if (tookLoss) return -parseInt(tookLoss[1]);
+  // "3x / 5x"
   const xMatch = lower.match(/(\d+)\s*x\b/);
   if (xMatch) return (parseInt(xMatch[1]) - 1) * 100;
   return null;

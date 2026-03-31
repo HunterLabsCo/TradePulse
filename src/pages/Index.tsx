@@ -18,19 +18,6 @@ export default function Index() {
   const totalTrades = realClosedTrades.length;
   const wins = realClosedTrades.filter((t) => (t.finalPnl ?? 0) > 0).length;
   const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0;
-  const avgPnl =
-    totalTrades > 0
-      ? realClosedTrades.reduce((sum, t) => sum + (t.finalPnl ?? 0), 0) / totalTrades
-      : 0;
-
-  const uniqueChains = [...new Set(realClosedTrades.map((t) => t.chain))];
-  const avgPnlChain = uniqueChains.length === 1 ? uniqueChains[0] : null;
-  const showAvgPnl = uniqueChains.length <= 1;
-  const avgPnlValue = totalTrades > 0
-    ? `${avgPnl >= 0 ? "+" : ""}${avgPnl.toFixed(2)}${avgPnlChain ? ` ${avgPnlChain}` : ""}`
-    : "—";
-
-
   const recentTrades = trades.slice(0, 10);
 
   return (
@@ -56,11 +43,10 @@ export default function Index() {
       </header>
 
       {/* Quick Stats */}
-      <section className={cn("grid gap-3 px-5 pb-4", showAvgPnl ? "grid-cols-3" : "grid-cols-2")}>
+      <section className="grid grid-cols-2 gap-3 px-5 pb-4">
         {[
           { label: "Trades", value: totalTrades.toString(), highlight: false },
           { label: "Win Rate", value: `${winRate}%`, highlight: winRate > 0 },
-          ...(showAvgPnl ? [{ label: "Avg PnL", value: avgPnlValue, highlight: avgPnl > 0 }] : []),
         ].map(({ label, value, highlight }) => (
           <div key={label} className="rounded-xl bg-card border border-border p-3 text-center">
             <p className="section-label">{label}</p>

@@ -51,8 +51,7 @@ export default function Index() {
           <div key={label} className="rounded-xl bg-card border border-border p-3 text-center">
             <p className="section-label">{label}</p>
             <p className={cn(
-              "mt-0.5 font-display font-bold tabular-nums leading-none tracking-data",
-              label === "Avg PnL" ? "text-[20px]" : "text-[28px]",
+              "mt-0.5 font-display font-bold tabular-nums leading-none tracking-data text-[28px]",
               highlight ? "text-primary" : "text-foreground"
             )}>{value}</p>
           </div>

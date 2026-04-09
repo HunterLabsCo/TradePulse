@@ -8,6 +8,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { useEffect } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import NewTrade from "./pages/NewTrade";
 import TradeDetail from "./pages/TradeDetail";
@@ -37,6 +38,26 @@ function ProStatusChecker() {
   return null;
 }
 
+function PromoStatusChecker() {
+  const { promoSession, setIsPro, promoLogout } = useSubscriptionStore();
+
+  useEffect(() => {
+    if (!promoSession) return;
+    supabase.functions
+      .invoke("promo-auth", { body: { action: "verify", token: promoSession } })
+      .then(({ data, error }) => {
+        if (error || !data?.valid) {
+          promoLogout();
+        } else {
+          setIsPro(true);
+        }
+      })
+      .catch(() => promoLogout());
+  }, [promoSession, setIsPro, promoLogout]);
+
+  return null;
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <WalletProviderWrapper>
@@ -45,6 +66,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ProStatusChecker />
+          <PromoStatusChecker />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/new-trade" element={<NewTrade />} />

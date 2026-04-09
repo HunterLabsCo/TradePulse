@@ -88,42 +88,99 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
 
 // ── Subscribers tab ───────────────────────────────────────────────────────────
 
+interface PromoUser {
+  id: string;
+  username: string;
+  created_at: string | null;
+}
+
 function SubscribersTab({ secret }: { secret: string }) {
+  // Promo users state
+  const [promoUsers, setPromoUsers] = useState<PromoUser[]>([]);
+  const [promoLoading, setPromoLoading] = useState(true);
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [addingPromo, setAddingPromo] = useState(false);
+  const [promoAction, setPromoAction] = useState<string | null>(null);
+
+  // Wallet subscribers state
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [subsLoading, setSubsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
-  const [newWallet, setNewWallet] = useState("");
-  const [adding, setAdding] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const loadPromoUsers = useCallback(async () => {
+    setPromoLoading(true);
+    try {
+      const res = await adminCall(secret, { action: "list_promo_users" });
+      setPromoUsers(res.data ?? []);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [secret]);
+
+  const loadSubscribers = useCallback(async () => {
+    setSubsLoading(true);
     try {
       const res = await adminCall(secret, { action: "list_subscribers" });
       setSubscribers(res.data ?? []);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
-      setLoading(false);
+      setSubsLoading(false);
     }
   }, [secret]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadPromoUsers(); loadSubscribers(); }, [loadPromoUsers, loadSubscribers]);
 
-  async function addSubscriber(e: React.FormEvent) {
+  async function createPromoUser(e: React.FormEvent) {
     e.preventDefault();
-    const wallet = newWallet.trim();
-    if (!wallet) return;
-    setAdding(true);
+    if (!newUsername.trim() || !newPassword.trim()) return;
+    setAddingPromo(true);
     try {
-      await adminCall(secret, { action: "add_subscriber", wallet_address: wallet });
-      setNewWallet("");
-      await load();
-      toast.success("Subscriber added with Pro access.");
+      await adminCall(secret, { action: "create_promo_user", username: newUsername.trim(), password: newPassword });
+      setNewUsername("");
+      setNewPassword("");
+      await loadPromoUsers();
+      toast.success(`Promo account "${newUsername.trim()}" created.`);
     } catch (e: any) {
       toast.error(e.message);
     } finally {
-      setAdding(false);
+      setAddingPromo(false);
+    }
+  }
+
+  async function deletePromoUser(username: string) {
+    if (!confirm(`Delete promo account "${username}"? They will lose Pro access.`)) return;
+    setPromoAction(username);
+    try {
+      await adminCall(secret, { action: "delete_promo_user", username });
+      setPromoUsers((prev) => prev.filter((u) => u.username !== username));
+      toast.success("Promo account deleted.");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPromoAction(null);
+    }
+  }
+
+  async function resetPromoPassword(username: string) {
+    const newPass = prompt(`New password for "${username}" (min 6 chars):`);
+    if (!newPass || newPass.length < 6) {
+      if (newPass !== null) toast.error("Password must be at least 6 characters.");
+      return;
+    }
+    setPromoAction(username);
+    try {
+      await adminCall(secret, { action: "reset_promo_password", username, newPassword: newPass });
+      toast.success(`Password reset for "${username}".`);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPromoAction(null);
     }
   }
 
@@ -160,133 +217,180 @@ function SubscribersTab({ secret }: { secret: string }) {
     s.wallet_address.toLowerCase().includes(search.toLowerCase())
   );
 
-  if (loading) {
-    return <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>;
-  }
-
   return (
-    <div className="space-y-4">
-      {/* Add subscriber form */}
-      <form onSubmit={addSubscriber} className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
-        <div className="text-xs font-medium text-primary uppercase tracking-wider">Grant Free Pro Access</div>
-        <input
-          type="text"
-          placeholder="Wallet address (e.g. ABC123...)"
-          value={newWallet}
-          onChange={(e) => setNewWallet(e.target.value)}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-        />
-        <button
-          type="submit"
-          disabled={adding || !newWallet.trim()}
-          className="w-full rounded-xl bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
-        >
-          {adding ? "Adding…" : "Add & Grant Pro"}
-        </button>
-      </form>
+    <div className="space-y-6">
+      {/* ── Promo Accounts ──────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="text-xs font-medium text-primary uppercase tracking-wider">Promo Accounts</div>
 
-      <div className="flex items-center gap-3">
-        <input
-          type="text"
-          placeholder="Search wallet…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-        />
-        <button
-          onClick={load}
-          className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground"
-        >
-          Refresh
-        </button>
-      </div>
-
-      <div className="text-xs text-muted-foreground">{filtered.length} subscriber{filtered.length !== 1 ? "s" : ""}</div>
-
-      <div className="space-y-2">
-        {filtered.length === 0 && (
-          <div className="py-8 text-center text-sm text-muted-foreground">No results.</div>
-        )}
-        {filtered.map((s) => (
-          <div
-            key={s.id}
-            className={`rounded-2xl border p-4 space-y-3 ${
-              s.banned ? "border-red-500/40 bg-red-500/5" : "border-border bg-card"
-            }`}
+        {/* Create promo user form */}
+        <form onSubmit={createPromoUser} className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+          <input
+            type="text"
+            placeholder="Username"
+            value={newUsername}
+            onChange={(e) => setNewUsername(e.target.value)}
+            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            autoComplete="off"
+          />
+          <div className="relative">
+            <input
+              type={showNewPassword ? "text" : "password"}
+              placeholder="Password (min 6 chars)"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary pr-16"
+              autoComplete="new-password"
+            />
+            <button
+              type="button"
+              onClick={() => setShowNewPassword((v) => !v)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground hover:text-foreground"
+            >
+              {showNewPassword ? "Hide" : "Show"}
+            </button>
+          </div>
+          <button
+            type="submit"
+            disabled={addingPromo || !newUsername.trim() || newPassword.length < 6}
+            className="w-full rounded-xl bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
-            {/* Wallet + badges */}
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-mono text-xs text-foreground break-all">
-                    {s.wallet_address}
-                  </span>
-                  {s.verified && (
-                    <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">PRO</span>
-                  )}
-                  {s.banned && (
-                    <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">BANNED</span>
+            {addingPromo ? "Creating…" : "Create Promo Account"}
+          </button>
+        </form>
+
+        {/* Promo users list */}
+        {promoLoading ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">Loading…</div>
+        ) : promoUsers.length === 0 ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">No promo accounts yet.</div>
+        ) : (
+          <div className="space-y-2">
+            {promoUsers.map((u) => (
+              <div key={u.id} className="rounded-2xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-mono text-sm text-foreground">{u.username}</div>
+                  {u.created_at && (
+                    <div className="text-[11px] text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</div>
                   )}
                 </div>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
-                  {s.wallet_type && <span>{s.wallet_type}</span>}
-                  {s.payment_currency && (
-                    <span>{s.amount_paid} {s.payment_currency}</span>
-                  )}
-                  {s.created_at && (
-                    <span>{new Date(s.created_at).toLocaleDateString()}</span>
-                  )}
+                <div className="flex gap-2">
+                  <button
+                    disabled={promoAction === u.username}
+                    onClick={() => resetPromoPassword(u.username)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium border border-border bg-card text-muted-foreground hover:text-foreground disabled:opacity-50"
+                  >
+                    Reset PW
+                  </button>
+                  <button
+                    disabled={promoAction === u.username}
+                    onClick={() => deletePromoUser(u.username)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex flex-wrap gap-2">
-              <button
-                disabled={updating === s.wallet_address}
-                onClick={() => patch(s.wallet_address, { verified: !s.verified })}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                  s.verified
-                    ? "bg-primary/15 text-primary hover:bg-primary/25"
-                    : "bg-card border border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {s.verified ? "Revoke Pro" : "Grant Pro"}
-              </button>
-
-              <button
-                disabled={updating === s.wallet_address}
-                onClick={() => patch(s.wallet_address, { banned: !s.banned })}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                  s.banned
-                    ? "bg-card border border-border text-muted-foreground hover:text-foreground"
-                    : "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
-                }`}
-              >
-                {s.banned ? "Unban" : "Ban"}
-              </button>
-
-              <button
-                disabled={updating === s.wallet_address}
-                onClick={() => removeSubscriber(s.wallet_address)}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border bg-card hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
-              >
-                Remove
-              </button>
-
-              {s.transaction_signature && (
-                <a
-                  href={`https://solscan.io/tx/${s.transaction_signature}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
-                >
-                  View Tx
-                </a>
-              )}
-            </div>
+            ))}
           </div>
-        ))}
+        )}
+      </div>
+
+      {/* ── Wallet Subscribers ───────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Wallet Subscribers</div>
+        <div className="flex items-center gap-3">
+          <input
+            type="text"
+            placeholder="Search wallet…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <button
+            onClick={loadSubscribers}
+            className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            Refresh
+          </button>
+        </div>
+
+        {subsLoading ? (
+          <div className="py-4 text-center text-sm text-muted-foreground">Loading…</div>
+        ) : (
+          <>
+            <div className="text-xs text-muted-foreground">{filtered.length} subscriber{filtered.length !== 1 ? "s" : ""}</div>
+            <div className="space-y-2">
+              {filtered.length === 0 && (
+                <div className="py-8 text-center text-sm text-muted-foreground">No results.</div>
+              )}
+              {filtered.map((s) => (
+                <div
+                  key={s.id}
+                  className={`rounded-2xl border p-4 space-y-3 ${
+                    s.banned ? "border-red-500/40 bg-red-500/5" : "border-border bg-card"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-mono text-xs text-foreground break-all">{s.wallet_address}</span>
+                        {s.verified && (
+                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">PRO</span>
+                        )}
+                        {s.banned && (
+                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">BANNED</span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                        {s.wallet_type && <span>{s.wallet_type}</span>}
+                        {s.payment_currency && <span>{s.amount_paid} {s.payment_currency}</span>}
+                        {s.created_at && <span>{new Date(s.created_at).toLocaleDateString()}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      disabled={updating === s.wallet_address}
+                      onClick={() => patch(s.wallet_address, { verified: !s.verified })}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        s.verified ? "bg-primary/15 text-primary hover:bg-primary/25" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {s.verified ? "Revoke Pro" : "Grant Pro"}
+                    </button>
+                    <button
+                      disabled={updating === s.wallet_address}
+                      onClick={() => patch(s.wallet_address, { banned: !s.banned })}
+                      className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
+                        s.banned ? "bg-card border border-border text-muted-foreground hover:text-foreground" : "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
+                      }`}
+                    >
+                      {s.banned ? "Unban" : "Ban"}
+                    </button>
+                    <button
+                      disabled={updating === s.wallet_address}
+                      onClick={() => removeSubscriber(s.wallet_address)}
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border bg-card hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
+                    >
+                      Remove
+                    </button>
+                    {s.transaction_signature && (
+                      <a
+                        href={`https://solscan.io/tx/${s.transaction_signature}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                      >
+                        View Tx
+                      </a>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -1,9 +1,11 @@
-import { ArrowLeft, Download, Trash2, Check, MessageSquare, Share2 } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Check, MessageSquare, Share2, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { truncateAddress, FREE_TRADE_LIMIT } from "@/lib/subscription-utils";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +27,16 @@ export default function SettingsPage() {
   const trades = useTradeStore((s) => s.trades);
   const deleteAllTrades = useTradeStore((s) => s.deleteAllTrades);
   const getNonDemoTradeCount = useTradeStore((s) => s.getNonDemoTradeCount);
-  const { isPro, txSignature } = useSubscriptionStore();
+  const { isPro, txSignature, promoSession, promoUsername, setPromoSession, promoLogout } = useSubscriptionStore();
   const [displayName, setDisplayName] = useState("");
   const [defaultChain, setDefaultChain] = useState("SOL");
+
+  // Change password state (promo users only)
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwVisible, setPwVisible] = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
 
   const nonDemoCount = getNonDemoTradeCount();
 
@@ -78,6 +87,41 @@ export default function SettingsPage() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleChangePassword() {
+    if (!promoSession) return;
+    if (!currentPw || !newPw || !confirmPw) {
+      toast.error("Please fill in all password fields.");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    if (newPw.length < 6) {
+      toast.error("New password must be at least 6 characters.");
+      return;
+    }
+    setSavingPw(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("promo-auth", {
+        body: { action: "change_password", token: promoSession, oldPassword: currentPw, newPassword: newPw },
+      });
+      if (error || !data?.success) {
+        toast.error(data?.error || "Failed to change password.");
+        return;
+      }
+      setPromoSession(data.token, promoUsername || "");
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      toast.success("Password changed successfully.");
+    } catch {
+      toast.error("Failed to change password — please try again.");
+    } finally {
+      setSavingPw(false);
+    }
   }
 
   return (
@@ -160,6 +204,63 @@ export default function SettingsPage() {
             className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-[hsl(var(--text-muted))] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
           />
         </div>
+
+        {/* Change Password — promo users only */}
+        {promoSession && (
+          <div className="rounded-xl bg-card border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="section-label">Change Password</p>
+              {promoUsername && (
+                <span className="font-body text-[11px] font-light text-muted-foreground">
+                  Signed in as <span className="text-foreground font-normal">{promoUsername}</span>
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={pwVisible ? "text" : "password"}
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Current password"
+                className="w-full rounded-xl bg-secondary border border-border px-4 py-3 pr-11 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => setPwVisible((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                {pwVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <input
+              type={pwVisible ? "text" : "password"}
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              placeholder="New password"
+              className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            <input
+              type={pwVisible ? "text" : "password"}
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              placeholder="Confirm new password"
+              className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            <button
+              onClick={handleChangePassword}
+              disabled={savingPw || !currentPw || !newPw || !confirmPw}
+              className="flex w-full items-center justify-center rounded-xl bg-primary py-2.5 font-display text-[13px] font-bold text-primary-foreground active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {savingPw ? <span className="animate-pulse">Saving…</span> : "Save Password"}
+            </button>
+            <button
+              onClick={promoLogout}
+              className="w-full text-center font-body text-[12px] font-light text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign out of promo account
+            </button>
+          </div>
+        )}
 
         {/* Default Chain */}
         <div>

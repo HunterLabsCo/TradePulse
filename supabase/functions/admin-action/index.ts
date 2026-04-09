@@ -6,6 +6,21 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-admin-secret",
 };
 
+async function hashPassword(password: string): Promise<string> {
+  const enc = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]
+  );
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
+    keyMaterial, 256
+  );
+  const hashHex = [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
+  const saltHex = [...salt].map(b => b.toString(16).padStart(2, "0")).join("");
+  return `${saltHex}:${hashHex}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -132,6 +147,57 @@ Deno.serve(async (req) => {
       const { key } = body;
       if (!key) return json({ success: false, error: "Missing key" }, 400);
       const { error } = await db.from("feature_flags").delete().eq("key", key);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    // ── Promo Users ──────────────────────────────────────────────────────────
+
+    if (action === "create_promo_user") {
+      const { username, password } = body;
+      if (!username || !password) {
+        return json({ success: false, error: "Missing username or password" }, 400);
+      }
+      if (password.length < 6) {
+        return json({ success: false, error: "Password must be at least 6 characters" }, 400);
+      }
+      const hash = await hashPassword(password);
+      const { error } = await db
+        .from("promo_users")
+        .insert({ username: username.trim().toLowerCase(), password_hash: hash });
+      if (error) {
+        if (error.code === "23505") return json({ success: false, error: "Username already exists" }, 409);
+        throw error;
+      }
+      return json({ success: true });
+    }
+
+    if (action === "list_promo_users") {
+      const { data, error } = await db
+        .from("promo_users")
+        .select("id, username, created_at")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return json({ success: true, data });
+    }
+
+    if (action === "delete_promo_user") {
+      const { username } = body;
+      if (!username) return json({ success: false, error: "Missing username" }, 400);
+      const { error } = await db.from("promo_users").delete().eq("username", username);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    if (action === "reset_promo_password") {
+      const { username, newPassword } = body;
+      if (!username || !newPassword) return json({ success: false, error: "Missing fields" }, 400);
+      if (newPassword.length < 6) return json({ success: false, error: "Password must be at least 6 characters" }, 400);
+      const hash = await hashPassword(newPassword);
+      const { error } = await db
+        .from("promo_users")
+        .update({ password_hash: hash, session_token: null })
+        .eq("username", username);
       if (error) throw error;
       return json({ success: true });
     }

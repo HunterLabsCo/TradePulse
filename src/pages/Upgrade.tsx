@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Wallet, Check, ChevronRight } from "lucide-react";
+import { ArrowLeft, Wallet, Check, ChevronRight, Eye, EyeOff } from "lucide-react";
 import { useWallet, useConnection } from "@solana/wallet-adapter-react";
 import {
   PublicKey,
@@ -44,13 +44,20 @@ export default function Upgrade() {
   const { publicKey, sendTransaction, connect, select, wallets, connected } =
     useWallet();
   const { connection } = useConnection();
-  const { setWallet, setIsPro, setTxSignature } = useSubscriptionStore();
+  const { setWallet, setIsPro, setTxSignature, setPromoSession } = useSubscriptionStore();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(null);
   const [solPrice, setSolPrice] = useState<number>(0);
   const [paying, setPaying] = useState(false);
   const [connectedWalletType, setConnectedWalletType] = useState<string | null>(null);
   const [walletDrawerOpen, setWalletDrawerOpen] = useState(false);
+
+  // Promo login state
+  const [showPromoLogin, setShowPromoLogin] = useState(false);
+  const [promoUser, setPromoUser] = useState("");
+  const [promoPass, setPromoPass] = useState("");
+  const [promoPassVisible, setPromoPassVisible] = useState(false);
+  const [promoLoading, setPromoLoading] = useState(false);
 
   useEffect(() => {
     fetchSolPrice().then(setSolPrice).catch(console.error);
@@ -203,6 +210,26 @@ export default function Upgrade() {
     navigate,
   ]);
 
+  const handlePromoLogin = useCallback(async () => {
+    if (!promoUser.trim() || !promoPass || promoLoading) return;
+    setPromoLoading(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("promo-auth", {
+        body: { action: "login", username: promoUser.trim().toLowerCase(), password: promoPass },
+      });
+      if (error || !data?.success) {
+        toast.error(data?.error || "Invalid username or password.");
+        return;
+      }
+      setPromoSession(data.token, data.username);
+      navigate("/");
+    } catch {
+      toast.error("Login failed — please try again.");
+    } finally {
+      setPromoLoading(false);
+    }
+  }, [promoUser, promoPass, promoLoading, setPromoSession, navigate]);
+
   const isSolanaConnected = connected && publicKey;
   const canPay =
     isSolanaConnected &&
@@ -352,6 +379,63 @@ export default function Upgrade() {
             )}
           </button>
         )}
+
+        {/* Promo Account Sign In */}
+        <div className="pt-1">
+          {!showPromoLogin ? (
+            <button
+              onClick={() => setShowPromoLogin(true)}
+              className="w-full text-center font-body text-[13px] font-light text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Have a promo account?{" "}
+              <span className="text-primary font-normal underline decoration-primary/40 underline-offset-2">
+                Sign in
+              </span>
+            </button>
+          ) : (
+            <div className="rounded-xl border border-border bg-card p-4 space-y-3">
+              <p className="font-display text-[13px] font-semibold text-foreground">Promo Sign In</p>
+              <input
+                type="text"
+                value={promoUser}
+                onChange={(e) => setPromoUser(e.target.value)}
+                placeholder="Username"
+                autoCapitalize="none"
+                className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              />
+              <div className="relative">
+                <input
+                  type={promoPassVisible ? "text" : "password"}
+                  value={promoPass}
+                  onChange={(e) => setPromoPass(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handlePromoLogin()}
+                  placeholder="Password"
+                  className="w-full rounded-xl bg-secondary border border-border px-4 py-3 pr-11 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPromoPassVisible((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                >
+                  {promoPassVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <button
+                onClick={handlePromoLogin}
+                disabled={promoLoading || !promoUser.trim() || !promoPass}
+                className="flex w-full items-center justify-center rounded-xl bg-primary py-2.5 font-display text-[13px] font-bold text-primary-foreground active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
+              >
+                {promoLoading ? <span className="animate-pulse">Signing in…</span> : "Sign In"}
+              </button>
+              <button
+                onClick={() => { setShowPromoLogin(false); setPromoUser(""); setPromoPass(""); }}
+                className="w-full text-center font-body text-[12px] font-light text-muted-foreground"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Wallet Selection Drawer */}

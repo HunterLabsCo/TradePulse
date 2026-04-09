@@ -93,6 +93,8 @@ function SubscribersTab({ secret }: { secret: string }) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
+  const [newWallet, setNewWallet] = useState("");
+  const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -108,6 +110,23 @@ function SubscribersTab({ secret }: { secret: string }) {
 
   useEffect(() => { load(); }, [load]);
 
+  async function addSubscriber(e: React.FormEvent) {
+    e.preventDefault();
+    const wallet = newWallet.trim();
+    if (!wallet) return;
+    setAdding(true);
+    try {
+      await adminCall(secret, { action: "add_subscriber", wallet_address: wallet });
+      setNewWallet("");
+      await load();
+      toast.success("Subscriber added with Pro access.");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setAdding(false);
+    }
+  }
+
   async function patch(wallet: string, updates: Partial<Subscriber>) {
     setUpdating(wallet);
     try {
@@ -116,6 +135,20 @@ function SubscribersTab({ secret }: { secret: string }) {
         prev.map((s) => (s.wallet_address === wallet ? { ...s, ...updates } : s))
       );
       toast.success("Updated.");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setUpdating(null);
+    }
+  }
+
+  async function removeSubscriber(wallet: string) {
+    if (!confirm(`Remove ${wallet.slice(0, 8)}… from subscribers?`)) return;
+    setUpdating(wallet);
+    try {
+      await adminCall(secret, { action: "delete_subscriber", wallet_address: wallet });
+      setSubscribers((prev) => prev.filter((s) => s.wallet_address !== wallet));
+      toast.success("Subscriber removed.");
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -133,6 +166,25 @@ function SubscribersTab({ secret }: { secret: string }) {
 
   return (
     <div className="space-y-4">
+      {/* Add subscriber form */}
+      <form onSubmit={addSubscriber} className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+        <div className="text-xs font-medium text-primary uppercase tracking-wider">Grant Free Pro Access</div>
+        <input
+          type="text"
+          placeholder="Wallet address (e.g. ABC123...)"
+          value={newWallet}
+          onChange={(e) => setNewWallet(e.target.value)}
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+        />
+        <button
+          type="submit"
+          disabled={adding || !newWallet.trim()}
+          className="w-full rounded-xl bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+        >
+          {adding ? "Adding…" : "Add & Grant Pro"}
+        </button>
+      </form>
+
       <div className="flex items-center gap-3">
         <input
           type="text"
@@ -212,6 +264,14 @@ function SubscribersTab({ secret }: { secret: string }) {
                 }`}
               >
                 {s.banned ? "Unban" : "Ban"}
+              </button>
+
+              <button
+                disabled={updating === s.wallet_address}
+                onClick={() => removeSubscriber(s.wallet_address)}
+                className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border bg-card hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
+              >
+                Remove
               </button>
 
               {s.transaction_signature && (

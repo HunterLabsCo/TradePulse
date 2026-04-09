@@ -47,6 +47,36 @@ Deno.serve(async (req) => {
       return json({ success: true, data });
     }
 
+    if (action === "add_subscriber") {
+      const { wallet_address, wallet_type } = body;
+      if (!wallet_address) return json({ success: false, error: "Missing wallet_address" }, 400);
+      const { error } = await db
+        .from("subscribers")
+        .upsert({
+          wallet_address,
+          wallet_type: wallet_type ?? "manual",
+          plan: "lifetime",
+          verified: true,
+          banned: false,
+          payment_currency: "MANUAL",
+          amount_paid: 0,
+          created_at: new Date().toISOString(),
+        }, { onConflict: "wallet_address" });
+      if (error) throw error;
+      return json({ success: true });
+    }
+
+    if (action === "delete_subscriber") {
+      const { wallet_address } = body;
+      if (!wallet_address) return json({ success: false, error: "Missing wallet_address" }, 400);
+      const { error } = await db
+        .from("subscribers")
+        .delete()
+        .eq("wallet_address", wallet_address);
+      if (error) throw error;
+      return json({ success: true });
+    }
+
     if (action === "update_subscriber") {
       const { wallet_address, updates } = body;
       if (!wallet_address || !updates) {

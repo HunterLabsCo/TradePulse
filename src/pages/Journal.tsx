@@ -32,7 +32,7 @@ export default function Journal() {
     if (filter === "open") return t.status === "open";
     if (filter === "closed") return t.status === "closed";
     if (filter === "wins") return t.status === "closed" && (t.finalPnl ?? 0) > 0;
-    if (filter === "losses") return t.status === "closed" && (t.finalPnl ?? 0) <= 0;
+    if (filter === "losses") return t.status === "closed" && (t.finalPnl ?? 0) < 0;
     return true;
   });
 

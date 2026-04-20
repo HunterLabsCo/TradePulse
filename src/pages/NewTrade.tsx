@@ -481,20 +481,22 @@ export default function NewTrade() {
         <div className="grid grid-cols-[1fr_100px] gap-3">
           <div className="space-y-1.5">
             <label className="section-label">Token *</label>
-            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary focus-visible:border-primary" />
+            {isParsing ? <div className="h-9 animate-pulse rounded-lg bg-secondary" /> : <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary focus-visible:border-primary" />}
           </div>
           <div className="space-y-1.5">
             <label className="section-label">Chain</label>
-            <Select value={chain} onValueChange={setChain}>
-              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SOL">SOL</SelectItem>
-                <SelectItem value="ETH">ETH</SelectItem>
-                <SelectItem value="BASE">BASE</SelectItem>
-                <SelectItem value="BNB">BNB / BSC</SelectItem>
-                <SelectItem value="ARB">ARB</SelectItem>
-              </SelectContent>
-            </Select>
+            {isParsing ? <div className="h-9 animate-pulse rounded-lg bg-secondary" /> : (
+              <Select value={chain} onValueChange={setChain}>
+                <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="SOL">SOL</SelectItem>
+                  <SelectItem value="ETH">ETH</SelectItem>
+                  <SelectItem value="BASE">BASE</SelectItem>
+                  <SelectItem value="BNB">BNB / BSC</SelectItem>
+                  <SelectItem value="ARB">ARB</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
           </div>
         </div>
 
@@ -502,11 +504,11 @@ export default function NewTrade() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="section-label">Entry MC</label>
-            <Input placeholder="80.7K" value={entryMarketCap} onChange={(e) => setEntryMarketCap(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
+            {isParsing ? <div className="h-9 animate-pulse rounded-lg bg-secondary" /> : <Input placeholder="80.7K" value={entryMarketCap} onChange={(e) => setEntryMarketCap(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />}
           </div>
           <div className="space-y-1.5">
             <label className="section-label">Size</label>
-            <Input placeholder="1.4 SOL" value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
+            {isParsing ? <div className="h-9 animate-pulse rounded-lg bg-secondary" /> : <Input placeholder="1.4 SOL" value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />}
           </div>
         </div>
 
@@ -514,21 +516,23 @@ export default function NewTrade() {
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <label className="section-label">Setup Type</label>
-            <Select value={setupType} onValueChange={setSetupType}>
-              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue placeholder="Select setup" /></SelectTrigger>
-              <SelectContent>
-                {SETUP_TYPES.map((st) => (
-                  <SelectItem key={st} value={st}>{st}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            {isParsing ? <div className="h-9 animate-pulse rounded-lg bg-secondary" /> : (
+              <Select value={setupType} onValueChange={setSetupType}>
+                <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue placeholder="Select setup" /></SelectTrigger>
+                <SelectContent>
+                  {SETUP_TYPES.map((st) => (
+                    <SelectItem key={st} value={st}>{st}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
             {setupType === "Custom" && (
               <Input placeholder="Describe setup…" value={customSetupType} onChange={(e) => setCustomSetupType(e.target.value)} className="mt-1.5 bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
             )}
           </div>
           <div className="space-y-1.5">
             <label className="section-label">Narrative</label>
-            <Input placeholder="AI" value={narrativeType} onChange={(e) => setNarrativeType(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
+            {isParsing ? <div className="h-9 animate-pulse rounded-lg bg-secondary" /> : <Input placeholder="AI" value={narrativeType} onChange={(e) => setNarrativeType(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />}
           </div>
         </div>
 

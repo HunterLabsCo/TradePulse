@@ -25,7 +25,7 @@ import { UpdateModal } from "@/components/trade/UpdateModal";
 import { ExitHistory } from "@/components/trade/ExitHistory";
 import { NotesSection } from "@/components/trade/NotesSection";
 import { TradeSummary } from "@/components/trade/TradeSummary";
-import type { ExitEvent, TradeNote, EmotionalState } from "@/lib/sample-data";
+import type { ExitEvent, TradeNote } from "@/lib/sample-data";
 
 function Section({
   title,
@@ -149,7 +149,7 @@ export default function TradeDetail() {
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
-  const handleSaveUpdate = (note: TradeNote, _emotions: EmotionalState[]) => {
+  const handleSaveUpdate = (note: TradeNote) => {
     updateTrade(trade.id, { tradeNotes: [...tradeNotes, note] });
   };
 
@@ -283,9 +283,11 @@ export default function TradeDetail() {
                 <div key={u.id} className="border-l-2 border-border pl-3">
                   <p className="font-body text-[10px] font-300 text-accent tabular-nums tracking-data">{new Date(u.timestamp).toLocaleString()}</p>
                   <p className="mt-1 font-body text-xs font-300 leading-relaxed">{u.note}</p>
+                  {(u.emotionalState?.length ?? 0) > 0 && (
                   <div className="mt-1.5 flex flex-wrap gap-1">
-                    {u.emotionalState.map((e) => (<EmotionBadge key={e} emotion={e} />))}
+                    {u.emotionalState?.map((e) => (<EmotionBadge key={e} emotion={e} />))}
                   </div>
+                  )}
                 </div>
               ))}
             </div>

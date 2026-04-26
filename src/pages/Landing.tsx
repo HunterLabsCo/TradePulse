@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import logo from "@/assets/logo.png";
 import {
   Mic, BookOpen, TrendingUp, Zap, Shield, BarChart2,
   Menu, X, Check, ArrowRight, Clock, Smartphone, ChevronDown,
@@ -207,10 +208,13 @@ export default function Landing() {
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
         <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
-          <span className="font-display text-base font-bold">
-            <span className="text-foreground">Trade</span>
-            <span className="text-primary">Pulse</span>
-          </span>
+          <div className="flex items-center gap-2">
+            <img src={logo} alt="TradePulse" className="h-8 w-8 rounded-xl" />
+            <span className="font-display text-base font-bold">
+              <span className="text-foreground">Trade</span>
+              <span className="text-primary">Pulse</span>
+            </span>
+          </div>
           <button
             onClick={() => setMenuOpen((v) => !v)}
             className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
@@ -514,10 +518,13 @@ export default function Landing() {
         {/* Footer bar */}
         <footer className="border-t border-border px-5 py-6 pb-safe-bottom">
           <div className="mx-auto flex max-w-lg items-center justify-between">
-            <span className="font-display text-sm font-bold">
-              <span className="text-foreground">Trade</span>
-              <span className="text-primary">Pulse</span>
-            </span>
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="TradePulse" className="h-6 w-6 rounded-lg" />
+              <span className="font-display text-sm font-bold">
+                <span className="text-foreground">Trade</span>
+                <span className="text-primary">Pulse</span>
+              </span>
+            </div>
             <p className="font-body text-xs text-muted-foreground">© 2025 TradePulse</p>
           </div>
         </footer>

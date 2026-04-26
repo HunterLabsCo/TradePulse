@@ -1,9 +1,11 @@
-import { ArrowLeft, Download, Trash2, Check } from "lucide-react";
+import { ArrowLeft, Download, Trash2, Check, MessageSquare, Share2, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { truncateAddress, FREE_TRADE_LIMIT } from "@/lib/subscription-utils";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,9 +27,16 @@ export default function SettingsPage() {
   const trades = useTradeStore((s) => s.trades);
   const deleteAllTrades = useTradeStore((s) => s.deleteAllTrades);
   const getNonDemoTradeCount = useTradeStore((s) => s.getNonDemoTradeCount);
-  const { isPro, txSignature } = useSubscriptionStore();
+  const { isPro, txSignature, promoSession, promoUsername, setPromoSession, promoLogout } = useSubscriptionStore();
   const [displayName, setDisplayName] = useState("");
   const [defaultChain, setDefaultChain] = useState("SOL");
+
+  // Change password state (promo users only)
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [pwVisible, setPwVisible] = useState(false);
+  const [savingPw, setSavingPw] = useState(false);
 
   const nonDemoCount = getNonDemoTradeCount();
 
@@ -43,6 +52,33 @@ export default function SettingsPage() {
     downloadFile(JSON.stringify(trades, null, 2), "tradesnap-export.json", "application/json");
   }
 
+  function openFeedback() {
+    const formId = import.meta.env.VITE_TALLY_FORM_ID;
+    if (!formId) return;
+    if ((window as any).Tally) {
+      (window as any).Tally.openPopup(formId, { emoji: { text: "👋", animation: "wave" } });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://tally.so/widgets/embed.js";
+    script.onload = () => (window as any).Tally?.openPopup(formId, { emoji: { text: "👋", animation: "wave" } });
+    document.head.appendChild(script);
+  }
+
+  const [shareCopied, setShareCopied] = useState(false);
+
+  async function shareApp() {
+    const url = "https://tradepulseapp.io";
+    const text = "Never lose a trade to bad timing. Log entries, exits & PnL with your voice before the moment's gone.";
+    if (navigator.share) {
+      await navigator.share({ title: "TradePulse", text, url }).catch(() => {});
+    } else {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    }
+  }
+
   function downloadFile(content: string, filename: string, mime: string) {
     const blob = new Blob([content], { type: mime });
     const url = URL.createObjectURL(blob);
@@ -51,6 +87,41 @@ export default function SettingsPage() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  async function handleChangePassword() {
+    if (!promoSession) return;
+    if (!currentPw || !newPw || !confirmPw) {
+      toast.error("Please fill in all password fields.");
+      return;
+    }
+    if (newPw !== confirmPw) {
+      toast.error("New passwords do not match.");
+      return;
+    }
+    if (newPw.length < 6) {
+      toast.error("New password must be at least 6 characters.");
+      return;
+    }
+    setSavingPw(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("promo-auth", {
+        body: { action: "change_password", token: promoSession, oldPassword: currentPw, newPassword: newPw },
+      });
+      if (error || !data?.success) {
+        toast.error(data?.error || "Failed to change password.");
+        return;
+      }
+      setPromoSession(data.token, promoUsername || "");
+      setCurrentPw("");
+      setNewPw("");
+      setConfirmPw("");
+      toast.success("Password changed successfully.");
+    } catch {
+      toast.error("Failed to change password — please try again.");
+    } finally {
+      setSavingPw(false);
+    }
   }
 
   return (
@@ -100,6 +171,24 @@ export default function SettingsPage() {
               >
                 Upgrade to Pro
               </button>
+              <div className="mt-3 rounded-lg border border-[hsl(var(--green-primary)/0.2)] bg-[hsl(var(--green-primary)/0.05)] px-3 py-2.5 space-y-1">
+                <p className="font-display text-[10px] font-semibold text-primary uppercase tracking-wider">Giving Back</p>
+                <p className="font-body text-[11px] font-light text-muted-foreground leading-relaxed">
+                  <span className="text-foreground font-normal">50% of every Pro subscription</span> is donated to:
+                </p>
+                <ul className="space-y-0.5">
+                  {[
+                    "St. Anthony's Church — Prospect, CT (handicapped elevator fund & renovations)",
+                    "Knights of Columbus Council 13459 — Prospect, CT",
+                    "St. Vincent DePaul Mission Soup Kitchen — Waterbury, CT",
+                  ].map((org) => (
+                    <li key={org} className="flex items-start gap-1.5 font-body text-[10px] font-light text-muted-foreground">
+                      <span className="mt-[3px] h-1 w-1 flex-shrink-0 rounded-full bg-primary/60" />
+                      {org}
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
           )}
         </div>
@@ -116,11 +205,68 @@ export default function SettingsPage() {
           />
         </div>
 
+        {/* Change Password — promo users only */}
+        {promoSession && (
+          <div className="rounded-xl bg-card border border-border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="section-label">Change Password</p>
+              {promoUsername && (
+                <span className="font-body text-[11px] font-light text-muted-foreground">
+                  Signed in as <span className="text-foreground font-normal">{promoUsername}</span>
+                </span>
+              )}
+            </div>
+            <div className="relative">
+              <input
+                type={pwVisible ? "text" : "password"}
+                value={currentPw}
+                onChange={(e) => setCurrentPw(e.target.value)}
+                placeholder="Current password"
+                className="w-full rounded-xl bg-secondary border border-border px-4 py-3 pr-11 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+              />
+              <button
+                type="button"
+                onClick={() => setPwVisible((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              >
+                {pwVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <input
+              type={pwVisible ? "text" : "password"}
+              value={newPw}
+              onChange={(e) => setNewPw(e.target.value)}
+              placeholder="New password"
+              className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            <input
+              type={pwVisible ? "text" : "password"}
+              value={confirmPw}
+              onChange={(e) => setConfirmPw(e.target.value)}
+              placeholder="Confirm new password"
+              className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+            />
+            <button
+              onClick={handleChangePassword}
+              disabled={savingPw || !currentPw || !newPw || !confirmPw}
+              className="flex w-full items-center justify-center rounded-xl bg-primary py-2.5 font-display text-[13px] font-bold text-primary-foreground active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
+            >
+              {savingPw ? <span className="animate-pulse">Saving…</span> : "Save Password"}
+            </button>
+            <button
+              onClick={promoLogout}
+              className="w-full text-center font-body text-[12px] font-light text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Sign out of promo account
+            </button>
+          </div>
+        )}
+
         {/* Default Chain */}
         <div>
           <label className="section-label mb-1.5 block">Default Chain</label>
           <div className="flex gap-2 flex-wrap">
-            {["SOL", "ETH", "BASE", "BNB", "ARB"].map((chain) => (
+            {["SOL", "ETH", "BASE", "BNB"].map((chain) => (
               <button
                 key={chain}
                 onClick={() => setDefaultChain(chain)}
@@ -151,6 +297,25 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Feedback */}
+        {import.meta.env.VITE_TALLY_FORM_ID && (
+          <button
+            onClick={openFeedback}
+            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
+          >
+            <MessageSquare className="h-4 w-4" /> Send Feedback
+          </button>
+        )}
+
+        {/* Share */}
+        <button
+          onClick={shareApp}
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
+        >
+          <Share2 className="h-4 w-4" />
+          {shareCopied ? "Link copied!" : "Share TradePulse"}
+        </button>
+
         {/* Delete All */}
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -176,6 +341,18 @@ export default function SettingsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        {/* About */}
+        <div className="rounded-xl bg-card border border-border p-4 text-center">
+          <p className="font-display text-[15px] font-semibold text-foreground">TradePulse</p>
+          <p className="mt-1 font-body text-[12px] font-light text-muted-foreground">
+            Never lose a trade to bad timing.
+          </p>
+          <p className="mt-2 font-body text-[12px] font-light text-muted-foreground">
+            Made by <span className="text-foreground font-normal">TheVeinGhost</span>
+          </p>
+          <p className="mt-3 font-mono-label text-[11px] text-[hsl(var(--text-muted))]">v1.0.0</p>
+        </div>
+
       </div>
     </div>
   );

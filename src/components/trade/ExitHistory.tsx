@@ -35,9 +35,9 @@ export function ExitHistory({ events }: { events: ExitEvent[] }) {
           {ev.note && (
             <p className="mt-2 font-body text-xs font-300 leading-relaxed text-muted-foreground italic">"{ev.note}"</p>
           )}
-          {(ev.emotionalState?.length ?? 0) > 0 && (
+          {ev.emotionalState.length > 0 && (
             <div className="mt-2 flex flex-wrap gap-1">
-              {ev.emotionalState?.map((e) => (
+              {ev.emotionalState.map((e) => (
                 <EmotionBadge key={e} emotion={e} />
               ))}
             </div>

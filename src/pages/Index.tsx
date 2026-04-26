@@ -18,18 +18,6 @@ export default function Index() {
   const totalTrades = realClosedTrades.length;
   const wins = realClosedTrades.filter((t) => (t.finalPnl ?? 0) > 0).length;
   const winRate = totalTrades > 0 ? Math.round((wins / totalTrades) * 100) : 0;
-  const avgPnl =
-    totalTrades > 0
-      ? realClosedTrades.reduce((sum, t) => sum + (t.finalPnl ?? 0), 0) / totalTrades
-      : 0;
-
-  const uniqueChains = [...new Set(realClosedTrades.map((t) => t.chain))];
-  const avgPnlChain = uniqueChains.length === 1 ? uniqueChains[0] : null;
-  const showAvgPnl = uniqueChains.length <= 1;
-  const avgPnlValue = totalTrades > 0
-    ? `${avgPnl >= 0 ? "+" : ""}${avgPnl.toFixed(2)}${avgPnlChain ? ` ${avgPnlChain}` : ""}`
-    : "—";
-
   const recentTrades = trades.slice(0, 10);
 
   return (
@@ -55,17 +43,15 @@ export default function Index() {
       </header>
 
       {/* Quick Stats */}
-      <section className={cn("grid gap-3 px-5 pb-4", showAvgPnl ? "grid-cols-3" : "grid-cols-2")}>
+      <section className="grid grid-cols-2 gap-3 px-5 pb-4">
         {[
           { label: "Trades", value: totalTrades.toString(), highlight: false },
           { label: "Win Rate", value: `${winRate}%`, highlight: winRate > 0 },
-          ...(showAvgPnl ? [{ label: "Avg PnL", value: avgPnlValue, highlight: avgPnl > 0 }] : []),
         ].map(({ label, value, highlight }) => (
           <div key={label} className="rounded-xl bg-card border border-border p-3 text-center">
             <p className="section-label">{label}</p>
             <p className={cn(
-              "mt-0.5 font-display font-bold tabular-nums leading-none tracking-data",
-              label === "Avg PnL" ? "text-[20px]" : "text-[28px]",
+              "mt-0.5 font-display font-bold tabular-nums leading-none tracking-data text-[28px]",
               highlight ? "text-primary" : "text-foreground"
             )}>{value}</p>
           </div>
@@ -97,8 +83,10 @@ export default function Index() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {trade.status === "closed" && trade.finalPnl !== undefined ? (
-                  <PnlBadge pnl={trade.finalPnl} />
+                {trade.status === "closed" ? (
+                  trade.finalPnl !== undefined
+                    ? <PnlBadge pnl={trade.finalPnl} />
+                    : <span className="rounded-full border border-red-500/30 bg-red-500/10 px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-red-400">CLOSED</span>
                 ) : (
                   <span className="rounded-full border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-primary">OPEN</span>
                 )}
@@ -107,15 +95,18 @@ export default function Index() {
             </button>
           ))}
           {recentTrades.length === 0 && (
-            <div className="rounded-xl bg-card border border-border p-8 text-center">
-              <p className="font-body text-sm font-light text-muted-foreground">No trades yet. Tap below to log your first trade.</p>
+            <div className="rounded-xl bg-card border border-border p-6 text-center space-y-2">
+              <p className="font-body text-sm font-light text-muted-foreground">No trades yet.</p>
+              <p className="font-body text-[12px] font-light text-muted-foreground leading-relaxed">
+                Tap <span className="text-foreground font-normal">New Trade</span> below, speak your trade — token, entry, chain, mood — and it fills in automatically.
+              </p>
             </div>
           )}
         </div>
       </section>
 
       {/* New Trade FAB */}
-      <div className="fixed bottom-20 left-0 right-0 px-5">
+      <div className="fixed left-0 right-0 px-5" style={{ bottom: 'calc(5.5rem + max(var(--safe-bottom), 0px))' }}>
         <button
           onClick={() => {
             if (nonDemoCount >= FREE_LIMIT && !isPro) {

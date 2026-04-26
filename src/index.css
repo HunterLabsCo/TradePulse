@@ -4,6 +4,9 @@
 
 @layer base {
   :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+
     --bg-base: 220 40% 5%;
     --bg-surface: 0 0% 4%;
     --bg-card: 0 0% 6.7%;
@@ -18,9 +21,9 @@
     --red-action: 0 100% 61%;
     --red-destroy: 0 76% 46%;
 
-    --text-primary: 0 0% 94%;
-    --text-secondary: 0 0% 53%;
-    --text-muted: 0 0% 27%;
+    --text-primary: 0 0% 96%;
+    --text-secondary: 0 0% 68%;
+    --text-muted: 0 0% 42%;
     --text-inverse: 0 0% 0%;
 
     --background: var(--bg-base);
@@ -78,7 +81,7 @@
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'DM Sans', sans-serif;
-    font-weight: 400;
+    font-weight: 300;
     line-height: 1.6;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
@@ -92,6 +95,18 @@
 }
 
 @layer utilities {
+  .pt-safe-top {
+    padding-top: 1rem;
+    padding-top: max(var(--safe-top), 1rem);
+  }
+  .pb-safe-bottom {
+    padding-bottom: 0.5rem;
+    padding-bottom: max(var(--safe-bottom), 0.5rem);
+  }
+  .safe-area-bottom {
+    padding-bottom: 0.5rem;
+    padding-bottom: max(var(--safe-bottom), 0.5rem);
+  }
   .font-display {
     font-family: 'DM Sans', sans-serif;
   }

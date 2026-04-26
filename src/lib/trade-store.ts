@@ -16,7 +16,7 @@ interface TradeStore {
 export const useTradeStore = create<TradeStore>()(
   persist(
     (set, get) => ({
-      trades: SAMPLE_TRADES,
+      trades: [],
       addTrade: (trade) =>
         set((s) => ({
           trades: trade.isDemo
@@ -29,7 +29,7 @@ export const useTradeStore = create<TradeStore>()(
         })),
       deleteTrade: (id) =>
         set((s) => ({ trades: s.trades.filter((t) => t.id !== id) })),
-      deleteAllTrades: () => set({ trades: SAMPLE_TRADES }),
+      deleteAllTrades: () => set({ trades: [] }),
       getTradeById: (id) => get().trades.find((t) => t.id === id),
       getTradeCount: () => get().trades.length,
       getNonDemoTradeCount: () =>

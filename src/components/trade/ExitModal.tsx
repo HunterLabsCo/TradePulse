@@ -33,42 +33,101 @@ const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-
 const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
 const chipStopLoss = "bg-red-action border border-red-action text-foreground font-400";
 
+const EMOTION_CHIP_COLORS: Record<string, string> = {
+  confident: "bg-emerald-500/25 text-emerald-300 border-emerald-500/60",
+  calm: "bg-teal-500/25 text-teal-300 border-teal-500/60",
+  focused: "bg-sky-500/25 text-sky-300 border-sky-500/60",
+  "in-the-zone": "bg-emerald-400/25 text-emerald-200 border-emerald-400/60",
+  disciplined: "bg-emerald-600/25 text-emerald-300 border-emerald-600/60",
+  sharp: "bg-sky-600/25 text-sky-200 border-sky-600/60",
+  anxious: "bg-amber-500/25 text-amber-300 border-amber-500/60",
+  nervous: "bg-orange-500/25 text-orange-300 border-orange-500/60",
+  rushed: "bg-red-500/25 text-red-300 border-red-500/60",
+  frustrated: "bg-red-600/25 text-red-300 border-red-600/60",
+  "revenge-mindset": "bg-rose-600/25 text-rose-300 border-rose-600/60",
+  greedy: "bg-yellow-500/25 text-yellow-300 border-yellow-500/60",
+  fearful: "bg-violet-500/25 text-violet-300 border-violet-500/60",
+  overconfident: "bg-amber-600/25 text-amber-300 border-amber-600/60",
+  hesitant: "bg-slate-400/25 text-slate-300 border-slate-400/60",
+  impulsive: "bg-rose-500/25 text-rose-300 border-rose-500/60",
+  euphoric: "bg-pink-500/25 text-pink-300 border-pink-500/60",
+  fomo: "bg-orange-600/25 text-orange-200 border-orange-600/60",
+  distracted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
+  interrupted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
+  uncertain: "bg-indigo-400/25 text-indigo-300 border-indigo-400/60",
+  patient: "bg-cyan-500/25 text-cyan-300 border-cyan-500/60",
+  bored: "bg-indigo-400/25 text-indigo-200 border-indigo-400/60",
+  pressured: "bg-amber-500/25 text-amber-200 border-amber-500/60",
+};
+
 function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
   if (lower.includes("take profit") || lower.includes("taking profit")) return "take-profit";
   if (lower.includes("stop loss") || lower.includes("stopped out") || lower.includes("hit my stop")) return "stop-loss";
-  if (lower.includes("full exit") || lower.includes("closing everything") || lower.includes("all out")) return "full-exit";
+  if (lower.includes("full exit") || lower.includes("fully exit") || lower.includes("fully exited") || lower.includes("exited the position") || lower.includes("exited this position") || lower.includes("exited my position") || lower.includes("closing everything") || lower.includes("all out") || lower.includes("sold everything") || lower.includes("out of it") || lower.includes("out of the")) return "full-exit";
   if (lower.includes("moon bag") || lower.includes("moonbag")) return "moon-bag";
-  if (lower.includes("partial") || lower.includes("scaling out") || lower.includes("taking some")) return "partial-exit";
+  if (lower.includes("partial exit") || lower.includes("partially exited") || lower.includes("scaling out") || lower.includes("taking some") || lower.includes("took some") || lower.includes("sold some") || lower.includes("selling some")) return "partial-exit";
   return null;
 }
 
 function parsePositionPercent(text: string, max: number): number | null {
   const lower = text.toLowerCase();
-  if (/\b(full exit|all of it|everything|100%\s*exit|selling 100|closing 100)\b/.test(lower)) {
+
+  // Full exit phrases
+  if (/\b(full exit|fully exit|fully exited|exited (the|this|my) position|all of it|everything|100%\s*exit|selling 100|closing 100|sold everything|all out|out completely|completely out)\b/.test(lower)) {
     return Math.min(100, max);
   }
-  const posMatch = lower.match(/(?:selling|closing|exiting)\s+(\d+)\s*(?:percent|%)/);
-  if (posMatch) return Math.min(parseInt(posMatch[1]), max);
+
+  // "closing/selling/exiting/close/exit/sold/took/taking X" + optional percent
+  const actionMatch = lower.match(/(?:clos(?:e|ing)|sell(?:ing)?|exit(?:ing)?|took|taking|sold|scalin[g]?\s+out)\s+(\d+)\s*(?:percent|%)?/);
+  if (actionMatch) return Math.min(parseInt(actionMatch[1]), max);
+
+  // "X percent out/exit/position/closed/remaining"
+  const pctContextMatch = lower.match(/(\d+)\s*(?:percent|%)\s*(?:out|exit(?:ed)?|position|closed|of\s+(?:my\s+)?position|remaining|of\s+it)/);
+  if (pctContextMatch) return Math.min(parseInt(pctContextMatch[1]), max);
+
+  // "X percent" standalone — only if between 1–100 and no PnL context words nearby
+  const standaloneMatch = lower.match(/\b(\d{1,3})\s*(?:percent|%)/);
+  if (standaloneMatch) {
+    const hasPnlContext = /(?:profit|loss|gain|pnl|up|down|made|lost|minus|plus|green|red)\s*\d|\d\s*(?:profit|loss|gain|pnl|green|red|x\b)/.test(lower);
+    if (!hasPnlContext) {
+      const val = parseInt(standaloneMatch[1]);
+      if (val >= 1 && val <= 100) return Math.min(val, max);
+    }
+  }
+
   if (/\bhalf\b/.test(lower)) return Math.min(50, max);
   if (/\bquarter\b/.test(lower)) return Math.min(25, max);
-  const exitPctMatch = lower.match(/(\d+)\s*(?:percent|%)\s*exit/);
-  if (exitPctMatch) return Math.min(parseInt(exitPctMatch[1]), max);
   return null;
 }
 
 function parsePnlPercent(text: string): number | null {
   const lower = text.toLowerCase();
-  const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain)/);
+
+  // "X% profit/gain/up/green" or "at X% profit"
+  const profitMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:profit|gain|up|green)/);
   if (profitMatch) return parseInt(profitMatch[1]);
-  const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down)/);
+
+  // "X% loss/down/red/negative"
+  const lossMatch = lower.match(/(?:at\s+)?(\d+)\s*(?:percent|%)\s*(?:loss|down|red|negative)/);
   if (lossMatch) return -parseInt(lossMatch[1]);
-  const upMatch = lower.match(/(?:up|plus|gained|made)\s+(\d+)\s*(?:percent|%)?/);
+
+  // "up/gained/made/profited X"
+  const upMatch = lower.match(/(?:up|plus|gained|made|profit(?:ed)?|green)\s+(\d+)\s*(?:percent|%)?/);
   if (upMatch) return parseInt(upMatch[1]);
-  const downMatch = lower.match(/(?:down|minus|lost|negative)\s+(\d+)\s*(?:percent|%)?/);
+
+  // "down/minus/lost/rugged/rekt/stopped/dumped X"
+  const downMatch = lower.match(/(?:down|minus|lost|negative|stopped|rugged|dumped|rekt|red)\s+(\d+)\s*(?:percent|%)?/);
   if (downMatch) return -parseInt(downMatch[1]);
+
+  // "took/hit a X% loss"
+  const tookLoss = lower.match(/(?:took|hit|taking)\s+a\s+(\d+)\s*(?:percent|%)?\s*loss/);
+  if (tookLoss) return -parseInt(tookLoss[1]);
+
+  // "Nx" multiplier (e.g. 3x = +200%)
   const xMatch = lower.match(/(\d+)\s*x\b/);
   if (xMatch) return (parseInt(xMatch[1]) - 1) * 100;
+
   return null;
 }
 
@@ -130,9 +189,26 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
         const parsedType = parseExitTypeFromText(text);
         if (parsedType) setExitType(parsedType);
         const parsedPos = parsePositionPercent(text, remainingPercent);
-        if (parsedPos !== null) { setPercentClosed(parsedPos); setShowCustomPercent(false); }
+        if (parsedPos !== null) {
+          setPercentClosed(parsedPos);
+          if ([25, 50, 75, 100].includes(parsedPos)) {
+            setShowCustomPercent(false);
+            setCustomPercent("");
+          } else {
+            setShowCustomPercent(true);
+            setCustomPercent(String(parsedPos));
+          }
+        }
         const parsedPnl = parsePnlPercent(text);
-        if (parsedPnl !== null) { setPnlPercent(parsedPnl); setShowCustomPnl(false); }
+        if (parsedPnl !== null) {
+          setPnlPercent(parsedPnl);
+          if (pnlPresets.includes(parsedPnl)) {
+            setShowCustomPnl(false);
+          } else {
+            setShowCustomPnl(true);
+            setCustomPnl(String(parsedPnl));
+          }
+        }
         const detected = detectEmotionsFromText(text);
         if (detected.length > 0) {
           setEmotions((prev) => {
@@ -337,7 +413,12 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 <button
                   key={e}
                   onClick={() => toggleEmotion(e)}
-                  className={cn(chipBase, emotions.includes(e) ? chipOn : chipOff)}
+                  className={cn(
+                    chipBase, "border",
+                    emotions.includes(e)
+                      ? (EMOTION_CHIP_COLORS[e] ?? chipOn)
+                      : chipOff
+                  )}
                 >
                   {e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ")}
                 </button>

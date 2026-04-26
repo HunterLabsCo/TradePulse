@@ -54,7 +54,7 @@ export default function UpgradeSuccess() {
       )}
 
       <button
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/app")}
         className="flex w-full max-w-xs items-center justify-center gap-2 rounded-2xl bg-primary py-4 font-display text-[15px] font-bold text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] transition-all active:scale-[0.97]"
       >
         Start Trading

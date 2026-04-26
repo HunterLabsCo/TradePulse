@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
 import { supabase } from "@/integrations/supabase/client";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import NewTrade from "./pages/NewTrade";
 import TradeDetail from "./pages/TradeDetail";
@@ -68,7 +69,8 @@ const App = () => (
           <ProStatusChecker />
           <PromoStatusChecker />
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Landing />} />
+            <Route path="/app" element={<Index />} />
             <Route path="/new-trade" element={<NewTrade />} />
             <Route path="/trade/:id" element={<TradeDetail />} />
             <Route path="/journal" element={<Journal />} />

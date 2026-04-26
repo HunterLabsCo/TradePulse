@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 const NAV_ITEMS = [
-  { icon: Home, label: "Home", path: "/" },
+  { icon: Home, label: "Home", path: "/app" },
   { icon: BookOpen, label: "Journal", path: "/journal" },
   { icon: Settings, label: "Settings", path: "/settings" },
 ] as const;
@@ -13,7 +13,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   if (
-    ["/new-trade", "/paywall", "/admin"].includes(location.pathname) ||
+    ["/", "/new-trade", "/paywall", "/admin"].includes(location.pathname) ||
     location.pathname.startsWith("/trade/")
   ) return null;
 

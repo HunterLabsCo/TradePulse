@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Mic, ChevronRight } from "lucide-react";
+import logo from "@/assets/logo.png";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { PnlBadge } from "@/components/PnlBadge";
@@ -25,9 +26,12 @@ export default function Index() {
       {/* Header */}
       <header className="px-5 pt-safe-top">
         <div className="flex flex-col items-center py-4 gap-3">
-          <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em]">
-            <span className="text-primary">Trade</span><span className="text-[hsl(var(--blue-accent))]">Pulse</span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="TradePulse" className="h-10 w-10 rounded-2xl" />
+            <h1 className="font-display text-[32px] font-[800] tracking-[-0.01em]">
+              <span className="text-primary">Trade</span><span className="text-[hsl(var(--blue-accent))]">Pulse</span>
+            </h1>
+          </div>
           <p className="mx-auto max-w-[260px] text-center font-body text-[13px] font-normal leading-[1.5] text-[hsl(var(--text-secondary))]">
             Built for active traders. Log your trades on the go — no typing, no friction.
           </p>

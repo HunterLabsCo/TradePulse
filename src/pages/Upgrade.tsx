@@ -222,7 +222,7 @@ export default function Upgrade() {
         return;
       }
       setPromoSession(data.token, data.username);
-      navigate("/");
+      navigate("/app");
     } catch {
       toast.error("Login failed — please try again.");
     } finally {

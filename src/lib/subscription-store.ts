@@ -36,6 +36,16 @@ export const useSubscriptionStore = create<SubscriptionStore>()(
       promoLogout: () =>
         set({ promoSession: null, promoUsername: null, isPro: false }),
     }),
-    { name: "tradepulse-subscription" }
+    {
+      name: "tradepulse-subscription",
+      // isPro is always re-verified from the server on load — never trust localStorage for it
+      partialize: (state) => ({
+        connectedWallet: state.connectedWallet,
+        walletType: state.walletType,
+        txSignature: state.txSignature,
+        promoSession: state.promoSession,
+        promoUsername: state.promoUsername,
+      }),
+    }
   )
 );

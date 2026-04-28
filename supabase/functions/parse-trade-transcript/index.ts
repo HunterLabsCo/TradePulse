@@ -1,10 +1,50 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = [
+  "https://tradepulseapp.io",
+  "https://www.tradepulseapp.io",
+  "http://localhost:8080",
+  "http://localhost:5173",
+];
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
+
+async function validateJWT(req: Request): Promise<boolean> {
+  const auth = req.headers.get("Authorization");
+  if (!auth?.startsWith("Bearer ")) return false;
+  const token = auth.slice(7);
+  const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET");
+  if (!jwtSecret) return false;
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return false;
+    const key = await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(jwtSecret),
+      { name: "HMAC", hash: "SHA-256" },
+      false,
+      ["verify"]
+    );
+    const sig = Uint8Array.from(
+      atob(parts[2].replace(/-/g, "+").replace(/_/g, "/")),
+      (c) => c.charCodeAt(0)
+    );
+    return await crypto.subtle.verify(
+      "HMAC", key, sig,
+      new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
+    );
+  } catch {
+    return false;
+  }
+}
 
 const SYSTEM_PROMPT = `You are a trade journal parser for crypto/memecoin traders. Given a raw voice transcript from a trader logging a trade entry, extract structured data using the parse_trade_entry tool.
 
@@ -95,8 +135,17 @@ const TOOL = {
 };
 
 serve(async (req) => {
+  const hdrs = corsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: hdrs });
+  }
+
+  if (!await validateJWT(req)) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...hdrs, "Content-Type": "application/json" },
+    });
   }
 
   try {
@@ -104,13 +153,13 @@ serve(async (req) => {
     if (!transcript || typeof transcript !== "string") {
       return new Response(JSON.stringify({ error: "transcript is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...hdrs, "Content-Type": "application/json" },
       });
     }
     if (transcript.length > 2000) {
       return new Response(JSON.stringify({ error: "Transcript too long (max 2000 characters)" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...hdrs, "Content-Type": "application/json" },
       });
     }
 
@@ -118,7 +167,7 @@ serve(async (req) => {
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is not configured");
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 25000);
 
     let response: Response;
     try {
@@ -149,11 +198,10 @@ serve(async (req) => {
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limited, please try again shortly." }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...hdrs, "Content-Type": "application/json" },
         });
       }
-      const text = await response.text();
-      throw new Error(`Anthropic API error [${response.status}]: ${text}`);
+      throw new Error(`Anthropic API error [${response.status}]`);
     }
 
     const data = await response.json();
@@ -164,13 +212,13 @@ serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ parsed: toolUse.input }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...hdrs, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("parse-trade error:", e);
+    console.error("parse-trade error:", e instanceof Error ? e.message : e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: "Internal error" }),
+      { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
     );
   }
 });

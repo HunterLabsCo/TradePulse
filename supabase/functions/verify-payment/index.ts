@@ -2,15 +2,28 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+const ALLOWED_ORIGINS = [
+  "https://tradepulseapp.io",
+  "https://www.tradepulseapp.io",
+  "http://localhost:8080",
+  "http://localhost:5173",
+];
+
+function corsHeaders(req: Request) {
+  const origin = req.headers.get("Origin") ?? "";
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Vary": "Origin",
+  };
+}
 
 Deno.serve(async (req) => {
+  const hdrs = corsHeaders(req);
+
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: hdrs });
   }
 
   try {
@@ -20,7 +33,7 @@ Deno.serve(async (req) => {
     if (!txSignature || !walletAddress || !paymentCurrency || !expectedAmount) {
       return new Response(
         JSON.stringify({ success: false, error: "Missing required parameters" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 
@@ -31,11 +44,10 @@ Deno.serve(async (req) => {
       console.error("Missing HELIUS_API_KEY or RECEIVING_WALLET secret");
       return new Response(
         JSON.stringify({ success: false, error: "Server misconfiguration" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 
-    // Use Helius enhanced transactions API for reliable parsed transfer data
     const heliusRes = await fetch(
       `https://api.helius.xyz/v0/transactions?api-key=${heliusApiKey}`,
       {
@@ -46,10 +58,10 @@ Deno.serve(async (req) => {
     );
 
     if (!heliusRes.ok) {
-      console.error("Helius API error:", heliusRes.status, await heliusRes.text());
+      console.error("Helius API error:", heliusRes.status);
       return new Response(
         JSON.stringify({ success: false, error: "Failed to fetch transaction data" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 502, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 
@@ -59,50 +71,50 @@ Deno.serve(async (req) => {
     if (!tx) {
       return new Response(
         JSON.stringify({ success: false, error: "Transaction not found" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 
-    // Reject failed transactions immediately
     if (tx.transactionError !== null && tx.transactionError !== undefined) {
-      console.error("Transaction failed on-chain:", tx.transactionError);
       return new Response(
         JSON.stringify({ success: false, error: "Transaction failed on-chain" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...hdrs, "Content-Type": "application/json" } }
+      );
+    }
+
+    // The feePayer is the account that signed and submitted the tx — must match the
+    // wallet address the client claims to be paying from. Without this check, anyone
+    // could submit a valid tx signature from another user's wallet and steal Pro access.
+    if (tx.feePayer !== walletAddress) {
+      console.warn(`feePayer mismatch: expected ${walletAddress}, got ${tx.feePayer}`);
+      return new Response(
+        JSON.stringify({ success: false, error: "Transaction signer does not match wallet" }),
+        { status: 400, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 
     let verified = false;
 
     if (paymentCurrency === "SOL") {
-      // Verify a native SOL transfer to our receiving wallet
       const nativeTransfers: any[] = tx.nativeTransfers ?? [];
       for (const transfer of nativeTransfers) {
         if (transfer.toUserAccount !== receivingWallet) continue;
         const solReceived = transfer.amount / 1e9;
-        const tolerance = expectedAmount * 0.005; // 0.5% slippage tolerance
+        // 0.1% tolerance — tight enough to prevent underpayment exploits while
+        // still absorbing minor rounding from lamport conversion
+        const tolerance = expectedAmount * 0.001;
         if (Math.abs(solReceived - expectedAmount) <= tolerance) {
           verified = true;
           break;
         } else {
-          console.warn(
-            `SOL amount mismatch: expected ${expectedAmount}, got ${solReceived}`
-          );
+          console.warn(`SOL amount mismatch: expected ${expectedAmount}, got ${solReceived}`);
         }
       }
     } else if (paymentCurrency === "USDC") {
-      // Verify a USDC SPL token transfer to our receiving wallet
-      // Checks: correct mint (real USDC), correct destination wallet, sufficient amount
       const tokenTransfers: any[] = tx.tokenTransfers ?? [];
       for (const transfer of tokenTransfers) {
-        if (transfer.mint !== USDC_MINT) {
-          console.warn(`Wrong mint: ${transfer.mint}`);
-          continue;
-        }
-        if (transfer.toUserAccount !== receivingWallet) {
-          console.warn(`Wrong recipient: ${transfer.toUserAccount}`);
-          continue;
-        }
+        if (transfer.mint !== USDC_MINT) continue;
+        if (transfer.toUserAccount !== receivingWallet) continue;
         const usdcReceived = Number(transfer.tokenAmount);
         if (usdcReceived >= 99) {
           verified = true;
@@ -113,7 +125,6 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Persist the result regardless of verification outcome so admins can review
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
@@ -134,28 +145,22 @@ Deno.serve(async (req) => {
       );
 
     if (dbError) {
-      console.error("DB upsert error:", dbError);
+      console.error("DB upsert error:", dbError.message);
       return new Response(
         JSON.stringify({ success: false, error: "Database error" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    if (!verified) {
-      console.warn(
-        `Payment not verified for wallet ${walletAddress}, tx ${txSignature}, currency ${paymentCurrency}`
+        { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 
     return new Response(
       JSON.stringify({ success: true, verified }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...hdrs, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("verify-payment error:", err);
+    console.error("verify-payment error:", err instanceof Error ? err.message : err);
     return new Response(
       JSON.stringify({ success: false, error: "Internal error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
     );
   }
 });

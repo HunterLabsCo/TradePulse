@@ -1,11 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProviderWrapper } from "@/components/WalletProvider";
 import { BottomNav } from "@/components/BottomNav";
-import { useEffect } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,6 +37,13 @@ function ProStatusChecker() {
   }, [connectedWallet, setIsPro, setTxSignature]);
 
   return null;
+}
+
+// Blocks promo-session users from reaching the admin panel
+function AdminGuard({ children }: { children: ReactNode }) {
+  const promoSession = useSubscriptionStore((s) => s.promoSession);
+  if (promoSession) return <Navigate to="/app" replace />;
+  return <>{children}</>;
 }
 
 function PromoStatusChecker() {
@@ -77,7 +84,7 @@ const App = () => (
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/upgrade/success" element={<UpgradeSuccess />} />
-            <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/admin" element={<AdminGuard><AdminPanel /></AdminGuard>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />

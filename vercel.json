@@ -1,18 +1,12 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "redirects": [
+  "headers": [
     {
       "source": "/(.*)",
-      "has": [
-        {
-          "type": "host",
-          "value": "trade-pulse-.*\\.vercel\\.app"
-        }
-      ],
-      "destination": "https://tradepulse-app.vercel.app/$1",
-      "permanent": false
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" },
+        { "key": "Cross-Origin-Resource-Policy", "value": "same-site" }
+      ]
     }
-  ],
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  ]
 }

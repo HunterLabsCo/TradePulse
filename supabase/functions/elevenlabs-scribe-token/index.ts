@@ -7,11 +7,12 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
 ];
 
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+function corsHeaders(req: Request): Record<string, string> | null {
+  const origin = req.headers.get("Origin");
+  if (!origin) return {};
+  if (!ALLOWED_ORIGINS.includes(origin)) return null;
   return {
-    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Vary": "Origin",
   };
@@ -37,10 +38,17 @@ async function validateJWT(req: Request): Promise<boolean> {
       atob(parts[2].replace(/-/g, "+").replace(/_/g, "/")),
       (c) => c.charCodeAt(0)
     );
-    return await crypto.subtle.verify(
+    const valid = await crypto.subtle.verify(
       "HMAC", key, sig,
       new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
     );
+    if (!valid) return false;
+    // Validate expiration and issuer from the decoded payload
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
+    const now = Math.floor(Date.now() / 1000);
+    if (typeof payload.exp === "number" && payload.exp < now) return false;
+    if (payload.iss && payload.iss !== "supabase") return false;
+    return true;
   } catch {
     return false;
   }
@@ -48,6 +56,10 @@ async function validateJWT(req: Request): Promise<boolean> {
 
 serve(async (req) => {
   const hdrs = corsHeaders(req);
+
+  if (hdrs === null) {
+    return new Response(null, { status: 403 });
+  }
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: hdrs });
@@ -75,8 +87,10 @@ serve(async (req) => {
     );
 
     if (!response.ok) {
+      // Log the full error internally but never send API response details to the client
       const text = await response.text();
-      throw new Error(`ElevenLabs token error [${response.status}]: ${text}`);
+      console.error(`ElevenLabs token error [${response.status}]: ${text}`);
+      throw new Error("Failed to obtain scribe token");
     }
 
     const { token } = await response.json();

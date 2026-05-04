@@ -7,11 +7,12 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
 ];
 
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+function corsHeaders(req: Request): Record<string, string> | null {
+  const origin = req.headers.get("Origin");
+  if (!origin) return {};
+  if (!ALLOWED_ORIGINS.includes(origin)) return null;
   return {
-    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
     "Vary": "Origin",
   };
@@ -34,6 +35,7 @@ async function hashPassword(password: string): Promise<string> {
 
 async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [saltHex, storedHashHex] = stored.split(":");
+  if (!saltHex || !storedHashHex) return false;
   const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
@@ -45,38 +47,50 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   );
   const computed = new Uint8Array(bits);
   const expected = new Uint8Array(storedHashHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
-  // Constant-time comparison — prevents timing attacks that could leak the hash
-  return crypto.subtle.timingSafeEqual
-    ? crypto.subtle.timingSafeEqual(computed, expected)
-    : timingSafeEqualFallback(computed, expected);
-}
-
-// Fallback for environments where timingSafeEqual isn't available
-function timingSafeEqualFallback(a: Uint8Array, b: Uint8Array): boolean {
-  if (a.length !== b.length) return false;
+  if (typeof (crypto.subtle as any).timingSafeEqual === "function") {
+    return (crypto.subtle as any).timingSafeEqual(computed, expected);
+  }
+  if (computed.length !== expected.length) return false;
   let result = 0;
-  for (let i = 0; i < a.length; i++) result |= a[i] ^ b[i];
+  for (let i = 0; i < computed.length; i++) result |= computed[i] ^ expected[i];
   return result === 0;
 }
 
-// In-memory rate limiter: max 5 login attempts per username per 15-minute window.
-// Resets on cold start, but still blocks brute-force within a running instance.
-const loginAttempts = new Map<string, { count: number; resetAt: number }>();
+// Session tokens expire after 7 days
+const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
-function isRateLimited(username: string): boolean {
-  const now = Date.now();
-  const entry = loginAttempts.get(username);
-  if (!entry || now > entry.resetAt) {
-    loginAttempts.set(username, { count: 1, resetAt: now + 15 * 60 * 1000 });
-    return false;
-  }
-  if (entry.count >= 5) return true;
-  entry.count++;
-  return false;
+// DB-backed rate limiting: max 5 login attempts per username per 15-minute window.
+// Survives cold starts and scales across concurrent function instances.
+async function checkRateLimit(db: ReturnType<typeof createClient>, username: string): Promise<boolean> {
+  const windowStart = new Date(Date.now() - 15 * 60 * 1000).toISOString();
+  const { count } = await db
+    .from("login_attempts")
+    .select("*", { count: "exact", head: true })
+    .eq("username", username)
+    .gte("attempted_at", windowStart)
+    .throwOnError()
+    .then(r => ({ count: r.count ?? 0 }))
+    .catch(() => ({ count: 0 }));
+  return (count as number) >= 5;
+}
+
+async function recordLoginAttempt(db: ReturnType<typeof createClient>, username: string): Promise<void> {
+  await db.from("login_attempts").insert({ username, attempted_at: new Date().toISOString() }).throwOnError().catch(() => {});
+}
+
+function json(hdrs: Record<string, string>, body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...hdrs, "Content-Type": "application/json" },
+  });
 }
 
 Deno.serve(async (req) => {
   const hdrs = corsHeaders(req);
+
+  if (hdrs === null) {
+    return new Response(null, { status: 403 });
+  }
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: hdrs });
@@ -97,14 +111,18 @@ Deno.serve(async (req) => {
         return json(hdrs, { success: false, error: "Missing username or password" }, 400);
       }
 
-      if (isRateLimited(username.trim().toLowerCase())) {
+      const normalizedUsername = username.trim().toLowerCase();
+
+      if (await checkRateLimit(db, normalizedUsername)) {
         return json(hdrs, { success: false, error: "Too many attempts — try again later" }, 429);
       }
 
-      const { data: user, error } = await db
+      await recordLoginAttempt(db, normalizedUsername);
+
+      const { data: user } = await db
         .from("promo_users")
         .select("id, username, password_hash")
-        .eq("username", username.trim().toLowerCase())
+        .eq("username", normalizedUsername)
         .single();
 
       // Always run the password check even when user not found to prevent
@@ -113,12 +131,15 @@ Deno.serve(async (req) => {
       const hashToCheck = user?.password_hash ?? dummyHash;
       const valid = await verifyPassword(password, hashToCheck);
 
-      if (error || !user || !valid) {
+      if (!user || !valid) {
         return json(hdrs, { success: false, error: "Invalid username or password" }, 401);
       }
 
       const token = crypto.randomUUID();
-      await db.from("promo_users").update({ session_token: token }).eq("id", user.id);
+      const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
+      await db.from("promo_users")
+        .update({ session_token: token, session_token_expires_at: expiresAt })
+        .eq("id", user.id);
 
       return json(hdrs, { success: true, token, username: user.username });
     }
@@ -128,13 +149,18 @@ Deno.serve(async (req) => {
       const { token } = body;
       if (!token) return json(hdrs, { success: false, valid: false }, 400);
 
-      const { data: user, error } = await db
+      const { data: user } = await db
         .from("promo_users")
-        .select("username")
+        .select("username, session_token_expires_at")
         .eq("session_token", token)
         .single();
 
-      if (error || !user) {
+      if (!user) {
+        return json(hdrs, { success: true, valid: false });
+      }
+
+      // Reject expired tokens
+      if (user.session_token_expires_at && new Date(user.session_token_expires_at) < new Date()) {
         return json(hdrs, { success: true, valid: false });
       }
 
@@ -148,14 +174,18 @@ Deno.serve(async (req) => {
         return json(hdrs, { success: false, error: "Missing required fields" }, 400);
       }
 
-      const { data: user, error } = await db
+      const { data: user } = await db
         .from("promo_users")
-        .select("id, password_hash")
+        .select("id, password_hash, session_token_expires_at")
         .eq("session_token", token)
         .single();
 
-      if (error || !user) {
+      if (!user) {
         return json(hdrs, { success: false, error: "Invalid session" }, 401);
+      }
+
+      if (user.session_token_expires_at && new Date(user.session_token_expires_at) < new Date()) {
+        return json(hdrs, { success: false, error: "Session expired" }, 401);
       }
 
       const valid = await verifyPassword(oldPassword, user.password_hash);
@@ -163,13 +193,16 @@ Deno.serve(async (req) => {
         return json(hdrs, { success: false, error: "Current password is incorrect" }, 401);
       }
 
-      if (newPassword.length < 6) {
-        return json(hdrs, { success: false, error: "New password must be at least 6 characters" }, 400);
+      if (newPassword.length < 12) {
+        return json(hdrs, { success: false, error: "New password must be at least 12 characters" }, 400);
       }
 
       const newHash = await hashPassword(newPassword);
       const newToken = crypto.randomUUID();
-      await db.from("promo_users").update({ password_hash: newHash, session_token: newToken }).eq("id", user.id);
+      const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
+      await db.from("promo_users")
+        .update({ password_hash: newHash, session_token: newToken, session_token_expires_at: expiresAt })
+        .eq("id", user.id);
 
       return json(hdrs, { success: true, token: newToken });
     }
@@ -180,10 +213,3 @@ Deno.serve(async (req) => {
     return json(hdrs, { success: false, error: "Internal error" }, 500);
   }
 });
-
-function json(hdrs: Record<string, string>, body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...hdrs, "Content-Type": "application/json" },
-  });
-}

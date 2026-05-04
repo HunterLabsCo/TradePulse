@@ -7,14 +7,40 @@ const ALLOWED_ORIGINS = [
   "http://localhost:5173",
 ];
 
-function corsHeaders(req: Request) {
-  const origin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+function corsHeaders(req: Request): Record<string, string> | null {
+  const origin = req.headers.get("Origin");
+  if (!origin) return {};
+  if (!ALLOWED_ORIGINS.includes(origin)) return null;
   return {
-    "Access-Control-Allow-Origin": allowedOrigin,
+    "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-admin-secret",
     "Vary": "Origin",
   };
+}
+
+// Constant-time string comparison using HMAC to prevent timing attacks on the admin secret.
+// A simple === comparison leaks secret length and prefix via response-time differences.
+async function timingSafeStringEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    crypto.getRandomValues(new Uint8Array(32)),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const [macA, macB] = await Promise.all([
+    crypto.subtle.sign("HMAC", key, enc.encode(a)),
+    crypto.subtle.sign("HMAC", key, enc.encode(b)),
+  ]);
+  // timingSafeEqual available in Deno; fallback for other runtimes
+  if (typeof (crypto.subtle as any).timingSafeEqual === "function") {
+    return (crypto.subtle as any).timingSafeEqual(macA, macB);
+  }
+  const ua = new Uint8Array(macA), ub = new Uint8Array(macB);
+  let result = 0;
+  for (let i = 0; i < ua.length; i++) result |= ua[i] ^ ub[i];
+  return result === 0;
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -32,8 +58,19 @@ async function hashPassword(password: string): Promise<string> {
   return `${saltHex}:${hashHex}`;
 }
 
+function json(hdrs: Record<string, string>, body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...hdrs, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req) => {
   const hdrs = corsHeaders(req);
+
+  if (hdrs === null) {
+    return new Response(null, { status: 403 });
+  }
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: hdrs });
@@ -41,18 +78,12 @@ Deno.serve(async (req) => {
 
   const adminSecret = Deno.env.get("ADMIN_SECRET");
   if (!adminSecret) {
-    return new Response(
-      JSON.stringify({ success: false, error: "Admin not configured" }),
-      { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
-    );
+    return json(hdrs, { success: false, error: "Admin not configured" }, 500);
   }
 
-  const providedSecret = req.headers.get("x-admin-secret");
-  if (providedSecret !== adminSecret) {
-    return new Response(
-      JSON.stringify({ success: false, error: "Unauthorized" }),
-      { status: 401, headers: { ...hdrs, "Content-Type": "application/json" } }
-    );
+  const providedSecret = req.headers.get("x-admin-secret") ?? "";
+  if (!await timingSafeStringEqual(providedSecret, adminSecret)) {
+    return json(hdrs, { success: false, error: "Unauthorized" }, 401);
   }
 
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -170,8 +201,8 @@ Deno.serve(async (req) => {
       if (!username || !password) {
         return json(hdrs, { success: false, error: "Missing username or password" }, 400);
       }
-      if (password.length < 6) {
-        return json(hdrs, { success: false, error: "Password must be at least 6 characters" }, 400);
+      if (password.length < 12) {
+        return json(hdrs, { success: false, error: "Password must be at least 12 characters" }, 400);
       }
       const hash = await hashPassword(password);
       const { error } = await db
@@ -204,11 +235,11 @@ Deno.serve(async (req) => {
     if (action === "reset_promo_password") {
       const { username, newPassword } = body;
       if (!username || !newPassword) return json(hdrs, { success: false, error: "Missing fields" }, 400);
-      if (newPassword.length < 6) return json(hdrs, { success: false, error: "Password must be at least 6 characters" }, 400);
+      if (newPassword.length < 12) return json(hdrs, { success: false, error: "Password must be at least 12 characters" }, 400);
       const hash = await hashPassword(newPassword);
       const { error } = await db
         .from("promo_users")
-        .update({ password_hash: hash, session_token: null })
+        .update({ password_hash: hash, session_token: null, session_token_expires_at: null })
         .eq("username", username);
       if (error) throw error;
       return json(hdrs, { success: true });
@@ -220,10 +251,3 @@ Deno.serve(async (req) => {
     return json(hdrs, { success: false, error: "Internal error" }, 500);
   }
 });
-
-function json(hdrs: Record<string, string>, body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...hdrs, "Content-Type": "application/json" },
-  });
-}

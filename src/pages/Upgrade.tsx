@@ -22,7 +22,7 @@ import {
   truncateAddress,
   USDC_MINT,
   LIFETIME_PRICE_USD,
-  RECEIVING_WALLET,
+  getReceivingWallet,
 } from "@/lib/subscription-utils";
 import {
   Drawer,
@@ -100,7 +100,7 @@ export default function Upgrade() {
     setPaying(true);
 
     try {
-      const receivingPubkey = new PublicKey(RECEIVING_WALLET);
+      const receivingPubkey = new PublicKey(getReceivingWallet());
 
       let tx: Transaction;
 

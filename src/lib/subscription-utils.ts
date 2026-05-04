@@ -45,9 +45,10 @@ export const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 export const LIFETIME_PRICE_USD = 99;
 export const FREE_TRADE_LIMIT = 20;
 // Must be set via VITE_RECEIVING_WALLET in Vercel env vars — no hardcoded fallback
-// so a misconfigured deploy fails loudly rather than silently routing funds anywhere
-export const RECEIVING_WALLET: string = (() => {
+// so a misconfigured deploy fails loudly rather than silently routing funds anywhere.
+// Validated at call-time (not module load) so a missing env var doesn't crash the whole app.
+export function getReceivingWallet(): string {
   const w = import.meta.env.VITE_RECEIVING_WALLET;
   if (!w) throw new Error("VITE_RECEIVING_WALLET is not set");
   return w;
-})();
+}

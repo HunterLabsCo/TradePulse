@@ -30,6 +30,14 @@
   </head>
 
   <body>
+    <!-- Unregister any stuck service workers so a broken cached bundle can't block recovery -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(reg) { reg.unregister(); });
+        });
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

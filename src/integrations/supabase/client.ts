@@ -5,6 +5,16 @@ import type { Database } from './types';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
+  // Surface a visible error instead of crashing the whole module graph
+  document.body.innerHTML =
+    '<div style="color:#fff;background:#0d0d0d;padding:2rem;font-family:monospace">' +
+    'Configuration error: VITE_SUPABASE_URL or VITE_SUPABASE_PUBLISHABLE_KEY is not set.<br>' +
+    'Check Vercel → Project Settings → Environment Variables.' +
+    '</div>';
+  throw new Error('Missing Supabase environment variables');
+}
+
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 

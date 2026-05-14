@@ -65,16 +65,16 @@ const STEPS = [
 
 const STATS = [
   { value: "12,400+", label: "Trades Logged" },
-  { value: "68%", label: "Avg. User Win Rate" },
+  { value: "100%", label: "Your Data, Your Device" },
   { value: "< 5s", label: "To Log a Trade" },
-  { value: "8+", label: "Chains Supported" },
+  { value: "6", label: "Chains Supported" },
 ];
 
 const ANALYTICS_BULLETS = [
   { icon: TrendingUp, text: "Win rate tracking by token and chain" },
   { icon: Clock, text: "Best and worst trading hours analysis" },
   { icon: BarChart2, text: "P&L breakdown with mood correlation" },
-  { icon: Smartphone, text: "Access your journal on any device" },
+  { icon: Smartphone, text: "Use on mobile and desktop. Install as a PWA on any device." },
 ];
 
 const FREE_FEATURES = [
@@ -153,7 +153,10 @@ function WaveformIllustration() {
 
 function PerformanceChart() {
   return (
-    <div className="rounded-2xl bg-card border border-border p-4">
+    <div className="relative rounded-2xl bg-card border border-border p-4">
+      <div className="absolute right-3 top-3 z-10 rounded-full border border-[hsl(var(--red-action)/0.3)] bg-[hsl(var(--red-action)/0.1)] px-2 py-0.5">
+        <span className="font-mono-label text-[9px] font-medium text-[hsl(var(--red-action))]">SAMPLE DATA — illustration only</span>
+      </div>
       <div className="mb-3 flex items-center justify-between">
         <div>
           <p className="font-body text-xs text-muted-foreground">Performance</p>
@@ -208,6 +211,7 @@ export default function Landing() {
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
         <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
+          {/* Logo */}
           <div className="flex items-center gap-2">
             <img src={logo} alt="TradePulse" className="h-8 w-8 rounded-xl" />
             <span className="font-display text-base font-bold">
@@ -215,21 +219,55 @@ export default function Landing() {
               <span className="text-primary">Pulse</span>
             </span>
           </div>
+
+          {/* Desktop nav (≥1024px) */}
+          <nav className="hidden lg:flex items-center gap-5">
+            {[
+              ["Features", "#features"],
+              ["How It Works", "#how-it-works"],
+              ["Pricing", "#pricing"],
+              ["FAQ", "#faq"],
+              ["Giving", "/giving"],
+              ["About", "/about"],
+            ].map(([label, href]) =>
+              href.startsWith("#") ? (
+                <a key={href} href={href} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">{label}</a>
+              ) : (
+                <a key={href} href={href} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">{label}</a>
+              )
+            )}
+            <a href="/upgrade" className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Sign In
+            </a>
+            <button
+              onClick={() => navigate("/app")}
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-4 font-display text-sm font-bold text-primary-foreground active:scale-[0.97] transition-transform"
+            >
+              Start Free
+            </button>
+          </nav>
+
+          {/* Mobile hamburger (<1024px) */}
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
+            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+
+        {/* Mobile dropdown */}
         {menuOpen && (
-          <div className="border-t border-border bg-background px-5 pb-5 pt-4">
+          <div className="lg:hidden border-t border-border bg-background px-5 pb-5 pt-4">
             <nav className="mb-4">
               {[
                 ["Features", "#features"],
                 ["How It Works", "#how-it-works"],
                 ["Pricing", "#pricing"],
                 ["FAQ", "#faq"],
+                ["Giving", "/giving"],
+                ["About", "/about"],
+                ["Sign In", "/upgrade"],
               ].map(([label, href]) => (
                 <a
                   key={href}
@@ -293,15 +331,20 @@ export default function Landing() {
                 </span>
               ))}
             </div>
+            <p className="mt-4 text-center font-body text-xs text-muted-foreground">
+              Want a 30-second demo first?{" "}
+              <span className="cursor-pointer text-primary hover:underline">Watch →</span>
+              {/* Link to demo video — add URL once recorded */}
+            </p>
           </div>
         </section>
 
         {/* Trusted by chains */}
         <section className="border-y border-border px-5 py-6">
           <div className="mx-auto max-w-lg">
-            <p className="section-label mb-4 text-center">Trusted by Traders on</p>
+            <p className="section-label mb-4 text-center">WORKS ACROSS</p>
             <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-              {["Ethereum", "Solana", "Base", "Arbitrum", "Polygon"].map((c) => (
+              {["Solana", "Ethereum", "Base", "Arbitrum", "BNB/BSC", "Polygon"].map((c) => (
                 <span key={c} className="font-body text-sm font-medium text-muted-foreground">
                   {c}
                 </span>
@@ -496,6 +539,46 @@ export default function Landing() {
           </div>
         </section>
 
+        {/* Giving Back */}
+        <section className="border-t border-border bg-card/40 px-5 py-16">
+          <div className="mx-auto max-w-lg">
+            <p className="section-label mb-3 text-center text-primary">Giving Back</p>
+            <h2 className="mb-2 text-center font-display text-2xl font-bold text-foreground">
+              Built by a small-town trader in Connecticut.
+            </h2>
+            <p className="mb-8 text-center font-body text-sm text-muted-foreground">
+              Funded by traders. For the community that raised him.
+            </p>
+            <p className="mb-5 font-body text-sm leading-relaxed text-muted-foreground">
+              50% of every Pro upgrade is donated to three organizations close to home:
+            </p>
+            <div className="mb-8 space-y-3">
+              {[
+                { name: "St. Anthony's Church", loc: "Prospect, CT", note: "Handicapped elevator fund & renovations" },
+                { name: "Knights of Columbus Council 13459", loc: "Prospect, CT", note: "" },
+                { name: "St. Vincent DePaul Mission Soup Kitchen", loc: "Waterbury, CT", note: "" },
+              ].map(({ name, loc, note }) => (
+                <div key={name} className="rounded-2xl bg-card border border-border p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary" />
+                    <div>
+                      <p className="font-display text-sm font-bold text-foreground">{name}</p>
+                      <p className="font-mono-label text-[10px] text-primary">{loc}</p>
+                      {note && <p className="mt-0.5 font-body text-xs text-muted-foreground">{note}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={() => navigate("/giving")}
+              className="mx-auto flex items-center justify-center gap-2 rounded-xl border border-primary px-6 h-11 font-display text-sm font-bold text-primary hover:bg-[hsl(var(--green-primary)/0.08)] active:scale-[0.97] transition-all"
+            >
+              See every dollar tracked on our Giving page →
+            </button>
+          </div>
+        </section>
+
         {/* Footer CTA */}
         <section className="border-t border-border px-5 py-16">
           <div className="mx-auto max-w-lg text-center">
@@ -515,17 +598,56 @@ export default function Landing() {
           </div>
         </section>
 
-        {/* Footer bar */}
-        <footer className="border-t border-border px-5 py-6 pb-safe-bottom">
-          <div className="mx-auto flex max-w-lg items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src={logo} alt="TradePulse" className="h-6 w-6 rounded-lg" />
-              <span className="font-display text-sm font-bold">
-                <span className="text-foreground">Trade</span>
-                <span className="text-primary">Pulse</span>
-              </span>
+        {/* Footer */}
+        <footer className="border-t border-border px-5 py-10 pb-safe-bottom">
+          <div className="mx-auto max-w-lg">
+            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 mb-8">
+              {/* Col 1 — Brand */}
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <img src={logo} alt="TradePulse" className="h-6 w-6 rounded-lg" />
+                  <span className="font-display text-sm font-bold">
+                    <span className="text-foreground">Trade</span>
+                    <span className="text-primary">Pulse</span>
+                  </span>
+                </div>
+                <p className="font-body text-xs text-muted-foreground">© 2025–2026 TradePulse</p>
+              </div>
+
+              {/* Col 2 — Product */}
+              <div>
+                <p className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">Product</p>
+                <nav className="space-y-2">
+                  {[
+                    ["Features", "#features"],
+                    ["How It Works", "#how-it-works"],
+                    ["Pricing", "#pricing"],
+                    ["FAQ", "#faq"],
+                  ].map(([label, href]) => (
+                    <a key={href} href={href} className="block font-body text-sm text-muted-foreground hover:text-foreground transition-colors">{label}</a>
+                  ))}
+                </nav>
+              </div>
+
+              {/* Col 3 — Company */}
+              <div>
+                <p className="mb-3 font-display text-xs font-bold uppercase tracking-widest text-muted-foreground">Company</p>
+                <nav className="space-y-2">
+                  <a href="/about" className="block font-body text-sm text-muted-foreground hover:text-foreground transition-colors">About</a>
+                  <a href="/giving" className="block font-body text-sm text-muted-foreground hover:text-foreground transition-colors">Giving</a>
+                  <a href="/privacy" className="block font-body text-sm text-muted-foreground hover:text-foreground transition-colors">Privacy</a>
+                  <a href="/terms" className="block font-body text-sm text-muted-foreground hover:text-foreground transition-colors">Terms</a>
+                  <a href="mailto:support@tradepulseapp.io" className="block font-body text-sm text-muted-foreground hover:text-foreground transition-colors">Support</a>
+                </nav>
+              </div>
             </div>
-            <p className="font-body text-xs text-muted-foreground">© 2025 TradePulse</p>
+
+            {/* Disclaimer */}
+            <div className="border-t border-border pt-6">
+              <p className="font-body text-[11px] leading-relaxed text-muted-foreground">
+                TradePulse is a journaling tool, not financial advice. Stats shown are illustrative. Trading crypto carries substantial risk of loss. Do your own research.
+              </p>
+            </div>
           </div>
         </footer>
       </main>

@@ -3,11 +3,23 @@ import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { Menu, X } from "lucide-react";
 
-const NAV_LINKS = [
+const MOBILE_NAV = [
   ["Features", "/#features"],
   ["How It Works", "/#how-it-works"],
   ["Pricing", "/#pricing"],
   ["FAQ", "/#faq"],
+  ["Giving", "/giving"],
+  ["About", "/about"],
+  ["Sign In", "/upgrade"],
+] as const;
+
+const DESKTOP_NAV = [
+  ["Features", "/#features"],
+  ["How It Works", "/#how-it-works"],
+  ["Pricing", "/#pricing"],
+  ["FAQ", "/#faq"],
+  ["Giving", "/giving"],
+  ["About", "/about"],
 ] as const;
 
 export default function MarketingLayout({ children }: { children: ReactNode }) {
@@ -18,6 +30,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
         <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
+          {/* Logo */}
           <button
             onClick={() => navigate("/")}
             className="flex items-center gap-2"
@@ -29,18 +42,40 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
               <span className="text-primary">Pulse</span>
             </span>
           </button>
+
+          {/* Desktop nav (≥1024px) */}
+          <nav className="hidden lg:flex items-center gap-5">
+            {DESKTOP_NAV.map(([label, href]) => (
+              <a key={href} href={href} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
+                {label}
+              </a>
+            ))}
+            <a href="/upgrade" className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Sign In
+            </a>
+            <button
+              onClick={() => navigate("/app")}
+              className="flex h-9 items-center gap-1.5 rounded-xl bg-primary px-4 font-display text-sm font-bold text-primary-foreground active:scale-[0.97] transition-transform"
+            >
+              Start Free
+            </button>
+          </nav>
+
+          {/* Mobile hamburger (<1024px) */}
           <button
             onClick={() => setMenuOpen((v) => !v)}
-            className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
+            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
             aria-label="Toggle menu"
           >
             {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
+
+        {/* Mobile dropdown */}
         {menuOpen && (
-          <div className="border-t border-border bg-background px-5 pb-5 pt-4">
+          <div className="lg:hidden border-t border-border bg-background px-5 pb-5 pt-4">
             <nav className="mb-4">
-              {NAV_LINKS.map(([label, href]) => (
+              {MOBILE_NAV.map(([label, href]) => (
                 <a
                   key={href}
                   href={href}
@@ -63,16 +98,40 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
       <main>{children}</main>
 
-      <footer className="border-t border-border px-5 py-6 pb-safe-bottom">
-        <div className="mx-auto flex max-w-lg items-center justify-between">
-          <div className="flex items-center gap-2">
-            <img src={logo} alt="TradePulse" className="h-6 w-6 rounded-lg" />
-            <span className="font-display text-sm font-bold">
-              <span className="text-foreground">Trade</span>
-              <span className="text-primary">Pulse</span>
-            </span>
+      {/* Footer */}
+      <footer className="border-t border-border px-5 py-8 pb-safe-bottom">
+        <div className="mx-auto max-w-lg">
+          {/* Brand + links row */}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <img src={logo} alt="TradePulse" className="h-6 w-6 rounded-lg" />
+              <span className="font-display text-sm font-bold">
+                <span className="text-foreground">Trade</span>
+                <span className="text-primary">Pulse</span>
+              </span>
+              <span className="font-body text-xs text-muted-foreground">© 2025–2026 TradePulse</span>
+            </div>
+            <nav className="flex flex-wrap gap-x-4 gap-y-1">
+              {([
+                ["About", "/about"],
+                ["Giving", "/giving"],
+                ["Privacy", "/privacy"],
+                ["Terms", "/terms"],
+                ["Support", "mailto:support@tradepulseapp.io"],
+              ] as const).map(([label, href]) => (
+                <a key={href} href={href} className="font-body text-xs text-muted-foreground hover:text-foreground transition-colors">
+                  {label}
+                </a>
+              ))}
+            </nav>
           </div>
-          <p className="font-body text-xs text-muted-foreground">© 2025 TradePulse</p>
+
+          {/* Disclaimer */}
+          <div className="border-t border-border pt-4">
+            <p className="font-body text-[11px] leading-relaxed text-muted-foreground">
+              TradePulse is a journaling tool, not financial advice. Stats shown are illustrative. Trading crypto carries substantial risk of loss. Do your own research.
+            </p>
+          </div>
         </div>
       </footer>
     </div>

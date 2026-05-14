@@ -13,7 +13,7 @@ export function BottomNav() {
   const navigate = useNavigate();
 
   if (
-    ["/", "/new-trade", "/paywall", "/admin"].includes(location.pathname) ||
+    ["/", "/new-trade", "/paywall", "/admin", "/terms", "/privacy", "/about", "/giving"].includes(location.pathname) ||
     location.pathname.startsWith("/trade/")
   ) return null;
 

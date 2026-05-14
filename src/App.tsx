@@ -19,6 +19,10 @@ import Upgrade from "./pages/Upgrade";
 import UpgradeSuccess from "./pages/UpgradeSuccess";
 import NotFound from "./pages/NotFound";
 import AdminPanel from "./pages/AdminPanel";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
+import AboutPage from "./pages/AboutPage";
+import GivingPage from "./pages/GivingPage";
 
 const queryClient = new QueryClient();
 
@@ -85,6 +89,10 @@ const App = () => (
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/upgrade/success" element={<UpgradeSuccess />} />
             <Route path="/admin" element={<AdminGuard><AdminPanel /></AdminGuard>} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/giving" element={<GivingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />

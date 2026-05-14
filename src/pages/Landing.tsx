@@ -611,6 +611,7 @@ export default function Landing() {
                     <span className="text-primary">Pulse</span>
                   </span>
                 </div>
+                <p className="font-body text-xs text-muted-foreground">Voice-powered trade journal.</p>
                 <p className="font-body text-xs text-muted-foreground">© 2025–2026 TradePulse</p>
               </div>
 

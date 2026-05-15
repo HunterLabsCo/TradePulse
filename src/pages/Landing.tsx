@@ -160,8 +160,8 @@ function PerformanceChart() {
       <div className="mb-3 flex items-center justify-between">
         <div>
           <p className="font-body text-xs text-muted-foreground">Performance</p>
-          <p className="font-display text-lg font-bold text-primary">+253.78%</p>
-          <p className="font-body text-[10px] text-muted-foreground">Total Growth</p>
+          <p className="font-display text-lg font-bold text-primary">Your data</p>
+          <p className="font-body text-[10px] text-muted-foreground">appears here</p>
         </div>
         <div className="rounded-lg bg-secondary border border-border px-2 py-1">
           <p className="font-body text-[10px] text-muted-foreground">All Time</p>
@@ -187,9 +187,9 @@ function PerformanceChart() {
       </svg>
       <div className="mt-3 grid grid-cols-3 gap-2">
         {[
-          { label: "Total Trades", value: "1,248", sub: "↑ 12.5%" },
-          { label: "Win Rate", value: "68.4%", sub: "↑ 8.7%" },
-          { label: "Best Streak", value: "18", sub: "New PB" },
+          { label: "Total Trades", value: "Your trades", sub: "logged here" },
+          { label: "Win Rate", value: "Your win rate", sub: "calculated here" },
+          { label: "Best Streak", value: "Your streak", sub: "tracked here" },
         ].map((s) => (
           <div key={s.label} className="rounded-lg bg-secondary border border-border p-2">
             <p className="font-body text-[9px] text-muted-foreground">{s.label}</p>

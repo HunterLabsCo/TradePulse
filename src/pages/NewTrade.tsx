@@ -232,6 +232,7 @@ export default function NewTrade() {
 
   const [isRecording, setIsRecording] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [fullTranscript, setFullTranscript] = useState("");
   const [livePartial, setLivePartial] = useState("");
   const [voiceError, setVoiceError] = useState<string | null>(null);
@@ -475,9 +476,9 @@ export default function NewTrade() {
     setNewCustomTag("");
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!tokenName.trim()) return;
-    const { isPro } = useSubscriptionStore.getState();
+    const { isPro, connectedWallet } = useSubscriptionStore.getState();
     if (getNonDemoTradeCount() >= FREE_LIMIT && !isPro) { navigate("/upgrade"); return; }
 
     const finalSetup = setupType === "Custom" ? (customSetupType || "Custom") : setupType;
@@ -505,6 +506,25 @@ export default function NewTrade() {
       status: "open",
       isDemo: false,
     };
+
+    if (connectedWallet) {
+      setIsSaving(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-trade", {
+          body: { walletAddress: connectedWallet, tradeData: trade },
+        });
+        if (data?.error === "TRADE_LIMIT_REACHED") {
+          navigate("/upgrade");
+          return;
+        }
+        // Use the server-assigned ID so the local record matches the DB row.
+        if (!error && data?.id) {
+          trade.id = data.id;
+        }
+      } finally {
+        setIsSaving(false);
+      }
+    }
 
     addTrade(trade);
     navigate(`/trade/${trade.id}`);
@@ -830,8 +850,8 @@ export default function NewTrade() {
 
       {/* Save button */}
       <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
-        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing} className="h-12 w-full rounded-[14px] bg-primary font-display text-sm font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] active:scale-[0.97]">
-          Save Entry
+        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing || isSaving} className="h-12 w-full rounded-[14px] bg-primary font-display text-sm font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] active:scale-[0.97]">
+          {isSaving ? "Saving…" : "Save Entry"}
         </Button>
       </div>
     </div>

@@ -91,6 +91,18 @@ Deno.serve(async (req) => {
       return json(hdrs, { success: true, verified: existing.verified });
     }
 
+    // Guard: if this wallet already has a verified subscription, do not overwrite it.
+    const { data: verifiedSubscriber } = await supabaseAdmin
+      .from("subscribers")
+      .select("verified")
+      .eq("wallet_address", walletAddress)
+      .eq("verified", true)
+      .maybeSingle();
+
+    if (verifiedSubscriber) {
+      return json(hdrs, { success: true, verified: true });
+    }
+
     const heliusRes = await fetch(
       `https://api.helius.xyz/v0/transactions?api-key=${heliusApiKey}`,
       {

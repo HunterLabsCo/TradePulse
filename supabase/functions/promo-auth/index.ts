@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hash as argon2Hash, verify as argon2Verify } from "https://deno.land/x/argon2@v0.10.3/mod.ts";
 
 const ALLOWED_ORIGINS = [
   "https://tradepulseapp.io",
@@ -19,21 +20,10 @@ function corsHeaders(req: Request): Record<string, string> | null {
 }
 
 async function hashPassword(password: string): Promise<string> {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]
-  );
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    keyMaterial, 256
-  );
-  const hashHex = [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
-  const saltHex = [...salt].map(b => b.toString(16).padStart(2, "0")).join("");
-  return `${saltHex}:${hashHex}`;
+  return await argon2Hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 1 });
 }
 
-async function verifyPassword(password: string, stored: string): Promise<boolean> {
+async function verifyPBKDF2(password: string, stored: string): Promise<boolean> {
   const [saltHex, storedHashHex] = stored.split(":");
   if (!saltHex || !storedHashHex) return false;
   const salt = new Uint8Array(saltHex.match(/.{2}/g)!.map(b => parseInt(b, 16)));
@@ -56,8 +46,21 @@ async function verifyPassword(password: string, stored: string): Promise<boolean
   return result === 0;
 }
 
+async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (stored.startsWith("$argon2id$")) {
+    return await argon2Verify(stored, password);
+  }
+  return await verifyPBKDF2(password, stored);
+}
+
 // Session tokens expire after 7 days
 const TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function generateToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map(b => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 // DB-backed rate limiting: max 5 login attempts per username per 15-minute window.
 // Survives cold starts and scales across concurrent function instances.
@@ -127,7 +130,7 @@ Deno.serve(async (req) => {
 
       // Always run the password check even when user not found to prevent
       // user-enumeration via timing differences
-      const dummyHash = "0000000000000000000000000000000000:0000000000000000000000000000000000000000000000000000000000000000";
+      const dummyHash = "$argon2id$v=19$m=65536,t=3,p=1$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
       const hashToCheck = user?.password_hash ?? dummyHash;
       const valid = await verifyPassword(password, hashToCheck);
 
@@ -135,7 +138,13 @@ Deno.serve(async (req) => {
         return json(hdrs, { success: false, error: "Invalid username or password" }, 401);
       }
 
-      const token = crypto.randomUUID();
+      // Transparently upgrade PBKDF2 hashes to Argon2id on successful login
+      if (!user.password_hash.startsWith("$argon2id$")) {
+        const upgraded = await hashPassword(password);
+        await db.from("promo_users").update({ password_hash: upgraded }).eq("id", user.id);
+      }
+
+      const token = generateToken();
       const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
       await db.from("promo_users")
         .update({ session_token: token, session_token_expires_at: expiresAt })
@@ -198,7 +207,7 @@ Deno.serve(async (req) => {
       }
 
       const newHash = await hashPassword(newPassword);
-      const newToken = crypto.randomUUID();
+      const newToken = generateToken();
       const expiresAt = new Date(Date.now() + TOKEN_TTL_MS).toISOString();
       await db.from("promo_users")
         .update({ password_hash: newHash, session_token: newToken, session_token_expires_at: expiresAt })

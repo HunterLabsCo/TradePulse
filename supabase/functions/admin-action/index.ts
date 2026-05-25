@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { hash as argon2Hash } from "https://deno.land/x/argon2@v0.10.3/mod.ts";
 
 const ALLOWED_ORIGINS = [
   "https://tradepulseapp.io",
@@ -44,18 +45,7 @@ async function timingSafeStringEqual(a: string, b: string): Promise<boolean> {
 }
 
 async function hashPassword(password: string): Promise<string> {
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    "raw", enc.encode(password), "PBKDF2", false, ["deriveBits"]
-  );
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const bits = await crypto.subtle.deriveBits(
-    { name: "PBKDF2", salt, iterations: 100000, hash: "SHA-256" },
-    keyMaterial, 256
-  );
-  const hashHex = [...new Uint8Array(bits)].map(b => b.toString(16).padStart(2, "0")).join("");
-  const saltHex = [...salt].map(b => b.toString(16).padStart(2, "0")).join("");
-  return `${saltHex}:${hashHex}`;
+  return await argon2Hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 1 });
 }
 
 function json(hdrs: Record<string, string>, body: unknown, status = 200) {

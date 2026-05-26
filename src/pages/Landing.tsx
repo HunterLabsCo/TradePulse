@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { getReferral, setReferral } from "@/lib/referral-utils";
 import logo from "@/assets/logo.png";
 import {
   Mic, BookOpen, TrendingUp, Zap, Shield, BarChart2,
@@ -204,7 +205,19 @@ function PerformanceChart() {
 
 export default function Landing() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [referral, setReferralState] = useState<string | null>(null);
+
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      setReferral(ref);
+      setReferralState(ref.toLowerCase());
+    } else {
+      setReferralState(getReferral());
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -293,6 +306,13 @@ export default function Landing() {
         {/* Hero */}
         <section className="px-5 pb-16 pt-12">
           <div className="mx-auto max-w-lg">
+            {referral && (
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1">
+                <span className="text-[10px] font-medium text-amber-400">
+                  👋 Welcome from {referral.charAt(0).toUpperCase() + referral.slice(1)} community!
+                </span>
+              </div>
+            )}
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               <span className="font-mono-label text-[10px] font-medium uppercase tracking-widest text-primary">

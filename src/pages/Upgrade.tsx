@@ -24,6 +24,7 @@ import {
   LIFETIME_PRICE_USD,
   getReceivingWallet,
 } from "@/lib/subscription-utils";
+import { getReferral } from "@/lib/referral-utils";
 import {
   Drawer,
   DrawerContent,
@@ -158,6 +159,7 @@ export default function Upgrade() {
           walletType: connectedWalletType,
           paymentCurrency: paymentMethod,
           expectedAmount: paymentMethod === "USDC" ? 99 : solAmount,
+          referral: getReferral(),
         },
       });
 

@@ -3,17 +3,7 @@ import { useNavigate } from "react-router-dom";
 import logo from "@/assets/logo.png";
 import { Menu, X } from "lucide-react";
 
-const MOBILE_NAV = [
-  ["Features", "/#features"],
-  ["How It Works", "/#how-it-works"],
-  ["Pricing", "/#pricing"],
-  ["FAQ", "/#faq"],
-  ["Giving", "/giving"],
-  ["About", "/about"],
-  ["Sign In", "/upgrade"],
-] as const;
-
-const DESKTOP_NAV = [
+const NAV_LINKS = [
   ["Features", "/#features"],
   ["How It Works", "/#how-it-works"],
   ["Pricing", "/#pricing"],
@@ -43,14 +33,12 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             </span>
           </button>
 
-          {/* Desktop nav (≥1024px) */}
-          <nav className="hidden lg:flex items-center gap-5">
-            {DESKTOP_NAV.map(([label, href]) => (
-              <a key={href} href={href} className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
-                {label}
-              </a>
-            ))}
-            <a href="/upgrade" className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors">
+          {/* Nav links — drawer only, never a horizontal bar */}
+          <nav className="hidden" aria-hidden="true" />
+
+          {/* Right-side controls: always visible at all screen sizes */}
+          <div className="flex items-center gap-2">
+            <a href="/upgrade" className="font-body text-sm text-muted-foreground hover:text-foreground transition-colors px-1">
               Sign In
             </a>
             <button
@@ -59,23 +47,21 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
             >
               Start Free
             </button>
-          </nav>
-
-          {/* Mobile hamburger (<1024px) */}
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+            <button
+              onClick={() => setMenuOpen((v) => !v)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
-        {/* Mobile dropdown */}
+        {/* Drawer menu — visible at all screen sizes when open */}
         {menuOpen && (
-          <div className="lg:hidden border-t border-border bg-background px-5 pb-5 pt-4">
+          <div className="border-t border-border bg-background px-5 pb-5 pt-4">
             <nav className="mb-4">
-              {MOBILE_NAV.map(([label, href]) => (
+              {NAV_LINKS.map(([label, href]) => (
                 <a
                   key={href}
                   href={href}

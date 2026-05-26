@@ -205,9 +205,34 @@ function PerformanceChart() {
 export default function Landing() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showBanner, setShowBanner] = useState(true);
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Announcement banner */}
+      {showBanner && (
+        <div className="relative flex items-center justify-center gap-4 border-b border-border bg-card px-4 py-2 text-center">
+          <p className="font-body text-sm text-muted-foreground">
+            🔥{" "}
+            <span className="font-medium text-primary">Founding Price: $99 Lifetime</span>
+            {" "}— Raises to $149 after the first 10 customers. Secure your spot.
+          </p>
+          <a
+            href="#pricing"
+            className="hidden whitespace-nowrap text-xs font-medium text-primary hover:underline sm:inline-block"
+          >
+            Upgrade Now →
+          </a>
+          <button
+            onClick={() => setShowBanner(false)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Dismiss banner"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
@@ -331,6 +356,9 @@ export default function Landing() {
                 </span>
               ))}
             </div>
+            <p className="mt-2 text-center font-body text-xs text-amber-400">
+              ⚡ Founding price of $99 ends after 10 customers — 10 spots available
+            </p>
             <p className="mt-4 text-center font-body text-xs text-muted-foreground">
               Want a 30-second demo first?{" "}
               <span className="cursor-pointer text-primary hover:underline">Watch →</span>

@@ -210,7 +210,7 @@ export default function Landing() {
     <div className="min-h-screen bg-background">
       {/* Navbar */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
-        <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
             <img src={logo} alt="TradePulse" className="h-8 w-8 rounded-xl" />

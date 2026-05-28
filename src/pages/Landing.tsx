@@ -6,6 +6,10 @@ import {
   Menu, X, Check, ArrowRight, Clock, Smartphone, ChevronDown,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+
+const DEMO_DESKTOP_VIDEO_ID = "AsiAb6l3ZTw";
+const DEMO_MOBILE_VIDEO_ID = "1gLe1stVITA";
 
 const FEATURES = [
   {
@@ -205,6 +209,7 @@ function PerformanceChart() {
 export default function Landing() {
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [demoOpen, setDemoOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -333,8 +338,7 @@ export default function Landing() {
             </div>
             <p className="mt-4 text-center font-body text-xs text-muted-foreground">
               Want a 30-second demo first?{" "}
-              <span className="cursor-pointer text-primary hover:underline">Watch →</span>
-              {/* Link to demo video — add URL once recorded */}
+              <button onClick={() => setDemoOpen(true)} className="text-primary hover:underline font-body text-xs">Watch →</button>
             </p>
           </div>
         </section>
@@ -403,6 +407,24 @@ export default function Landing() {
               ))}
             </div>
             <WaveformIllustration />
+            <div className="mt-12 text-center">
+              <h3 className="mb-1 font-display text-base font-bold text-foreground">See it on mobile →</h3>
+              <p className="mb-6 font-body text-sm text-muted-foreground">
+                TradePulse works natively on your phone — record trades anywhere
+              </p>
+              <div className="mx-auto" style={{ maxWidth: 320 }}>
+                <div style={{ position: "relative", paddingBottom: "177.78%", height: 0 }}>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${DEMO_MOBILE_VIDEO_ID}`}
+                    style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", borderRadius: 12 }}
+                    frameBorder="0"
+                    allow="fullscreen"
+                    allowFullScreen
+                    title="TradePulse Mobile Demo"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -652,6 +674,22 @@ export default function Landing() {
           </div>
         </footer>
       </main>
+
+      <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
+        <DialogContent className="max-w-[840px] w-full p-0 bg-black border-border">
+          <DialogTitle className="sr-only">Desktop Demo Video</DialogTitle>
+          <div style={{ position: "relative", paddingBottom: "56.25%", height: 0 }}>
+            <iframe
+              src={`https://www.youtube.com/embed/${DEMO_DESKTOP_VIDEO_ID}?autoplay=1`}
+              style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+              frameBorder="0"
+              allow="autoplay; fullscreen"
+              allowFullScreen
+              title="TradePulse Desktop Demo"
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

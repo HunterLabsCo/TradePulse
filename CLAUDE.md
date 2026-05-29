@@ -127,9 +127,10 @@ Supabase edge functions can be tested locally with `supabase functions serve <na
 
 ## Git
 
-- **Active branch**: `claude/stoic-gauss-kNrov`
+- **Active branch (redesign)**: `feat/mist-redesign` — all "mist" redesign work lives here
 - **Remote**: `hunterlabsco/tradepulse` on GitHub
-- Always push to the active branch: `git push -u origin claude/stoic-gauss-kNrov`
+- Always push redesign work to the active branch: `git push -u origin feat/mist-redesign`
+- Do NOT push redesign work to `claude/eager-albattani-AuXmV`
 - Never push to `main` without explicit user confirmation
 
 ---

@@ -2,6 +2,44 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-display: 'Manrope', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Mist palette */
+  --mist-bg: #0e1311;
+  --mist-bg-raised: #161c19;
+  --mist-bg-sunk: #0a0e0c;
+  --mist-border: #222a25;
+  --mist-border-bright: #36413a;
+  --mist-primary: #8ec2dd;
+  --mist-primary-dim: #5a7e95;
+  --mist-text: #d8e0d2;
+  --mist-text-dim: #7a8a75;
+  --mist-win: #a8d4ad;
+  --mist-loss: #e89a8a;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--mist-bg);
+  color: var(--mist-text);
+}
+
+@keyframes termblink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+@keyframes termpulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  @keyframes termblink { 0%, 100% { opacity: 1; } }
+  @keyframes termpulse { 0%, 100% { opacity: 1; } }
+}
+
 @layer base {
   :root {
     --safe-top: env(safe-area-inset-top, 0px);

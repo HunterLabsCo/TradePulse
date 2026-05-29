@@ -14,10 +14,25 @@ export default {
     },
     extend: {
       fontFamily: {
-        display: ["Syne", "sans-serif"],
+        sans: ["Manrope", "system-ui", "sans-serif"],
+        display: ["Manrope", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono", "IBM Plex Mono", "ui-monospace", "monospace"],
         body: ["DM Sans", "sans-serif"],
       },
       colors: {
+        mist: {
+          bg: "#0e1311",
+          "bg-raised": "#161c19",
+          "bg-sunk": "#0a0e0c",
+          border: "#222a25",
+          "border-bright": "#36413a",
+          primary: "#8ec2dd",
+          "primary-dim": "#5a7e95",
+          text: "#d8e0d2",
+          "text-dim": "#7a8a75",
+          win: "#a8d4ad",
+          loss: "#e89a8a",
+        },
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -70,8 +85,20 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        "mist-sm": "3px",
+        mist: "4px",
+        "mist-md": "6px",
+        "mist-lg": "8px",
       },
       keyframes: {
+        termblink: {
+          "0%, 50%": { opacity: "1" },
+          "51%, 100%": { opacity: "0" },
+        },
+        termpulse: {
+          "0%, 100%": { opacity: "0.5" },
+          "50%": { opacity: "1" },
+        },
         "accordion-down": {
           from: { height: "0" },
           to: { height: "var(--radix-accordion-content-height)" },
@@ -90,6 +117,8 @@ export default {
         },
       },
       animation: {
+        termblink: "termblink 1s infinite",
+        termpulse: "termpulse 2s infinite ease-in-out",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "pulse-glow": "pulse-glow 2s ease-in-out infinite",

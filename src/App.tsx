@@ -23,6 +23,7 @@ import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import GivingPage from "./pages/GivingPage";
+import DesignTest from "./pages/DesignTest";
 
 const queryClient = new QueryClient();
 
@@ -93,6 +94,7 @@ const App = () => (
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/giving" element={<GivingPage />} />
+            {import.meta.env.DEV && <Route path="/_design-test" element={<DesignTest />} />}
             <Route path="*" element={<NotFound />} />
           </Routes>
           <BottomNav />

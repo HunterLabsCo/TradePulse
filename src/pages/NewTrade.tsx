@@ -1,14 +1,16 @@
-import { useState, useCallback, useRef, useEffect } from "react";
-import { ArrowLeft, Mic, Square, Loader2, Check, AlertTriangle, ChevronDown, Plus, X, MicOff } from "lucide-react";
+import { useState, useCallback, useRef, type MutableRefObject } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { supabase } from "@/integrations/supabase/client";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
-import { createVoiceRecorder, detectEmotionsFromText, detectSignalsFromText, detectIndicatorsFromText, detectSessionTypeFromText } from "@/lib/voice-utils";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+import {
+  createVoiceRecorder,
+  detectEmotionsFromText,
+  detectSignalsFromText,
+  detectIndicatorsFromText,
+  detectSessionTypeFromText,
+} from "@/lib/voice-utils";
 import {
   Select,
   SelectContent,
@@ -17,10 +19,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Label } from "@/components/design/Label";
+import { Pill } from "@/components/design/Pill";
+import { Kbd } from "@/components/design/Kbd";
+import { Waveform } from "@/components/design/Waveform";
+import { AppSidebar } from "@/components/design/AppSidebar";
 
+// ── Constants ────────────────────────────────────────────────────────
 const FREE_LIMIT = 20;
 
 const EMOTIONS: { value: EmotionalState; label: string }[] = [
@@ -30,7 +36,7 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "patient", label: "Patient" },
   { value: "in-the-zone", label: "In the Zone" },
   { value: "disciplined", label: "Disciplined" },
-  { value: "sharp", label: "Sharp / Clear-headed" },
+  { value: "sharp", label: "Sharp" },
   { value: "anxious", label: "Anxious" },
   { value: "nervous", label: "Nervous" },
   { value: "rushed", label: "Rushed" },
@@ -47,129 +53,45 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "interrupted", label: "Interrupted" },
   { value: "uncertain", label: "Uncertain" },
   { value: "conflicted", label: "Conflicted" },
-  { value: "detached", label: "Detached / Numb" },
-  { value: "tired", label: "Tired / Fatigued" },
+  { value: "detached", label: "Detached" },
+  { value: "tired", label: "Tired" },
   { value: "bored", label: "Bored" },
   { value: "pressured", label: "Pressured" },
 ];
 
+const POSITIVE_EMOTIONS = new Set(["confident", "calm", "focused", "patient", "in-the-zone", "disciplined", "sharp"]);
+const NEGATIVE_EMOTIONS = new Set(["anxious", "nervous", "rushed", "frustrated", "revenge-mindset", "greedy", "fearful", "overconfident", "fomo", "impulsive", "euphoric"]);
+
+function emotionColor(e: EmotionalState): { color: string; bg: string } {
+  if (POSITIVE_EMOTIONS.has(e)) return { color: "#a8d4ad", bg: "rgba(168,212,173,0.08)" };
+  if (NEGATIVE_EMOTIONS.has(e)) return { color: "#e89a8a", bg: "rgba(232,154,138,0.08)" };
+  return { color: "#8ec2dd", bg: "rgba(142,194,221,0.08)" };
+}
+
 const QUICK_TAGS = [
-  "Interrupted",
-  "Full session",
-  "Pre-set orders",
-  "Above MC ceiling",
-  "Non-compliant",
-  "Chased / FOMO",
-  "Best setup",
-  "Clean execution",
-  "Re-Entry",
-  "Sized Up",
-  "Sized Down",
-  "Early Entry",
-  "Late Entry",
-  "Revenge Trade",
-  "Low Conviction",
-  "High Conviction",
-  "Deviated From Plan",
+  "Interrupted", "Full session", "Pre-set orders", "Above MC ceiling", "Non-compliant",
+  "Chased / FOMO", "Best setup", "Clean execution", "Re-Entry", "Sized Up",
+  "Sized Down", "Early Entry", "Late Entry", "Revenge Trade", "Low Conviction",
+  "High Conviction", "Deviated From Plan",
 ];
 
 const SETUP_TYPES = [
-  "Migrated Confirmation",
-  "Pre-Migration PVP",
-  "Wallet Signal",
-  "Narrative Play",
-  "Breakout",
-  "Dip Buy / Pullback",
-  "Volume Spike",
-  "Momentum Chase",
-  "Custom",
+  "Migrated Confirmation", "Pre-Migration PVP", "Wallet Signal", "Narrative Play",
+  "Breakout", "Dip Buy / Pullback", "Volume Spike", "Momentum Chase", "Custom",
 ];
 
 const CONFIRMATION_SIGNALS = [
-  "Volume",
-  "Wallets",
-  "Social / Twitter",
-  "Chart Pattern",
-  "Gut / Intuition",
-  "EMA Cross",
-  "RSI",
-  "Migration Confirmed",
-  "Dev History",
-  "Trending / Listed",
-  "Other",
+  "Volume", "Wallets", "Social / Twitter", "Chart Pattern", "Gut / Intuition",
+  "EMA Cross", "RSI", "Migration Confirmed", "Dev History", "Trending / Listed", "Other",
 ];
 
-const SIGNAL_COLORS: Record<string, string> = {
-  "Volume": "bg-blue-500/20 text-blue-300 border-blue-500/50",
-  "Wallets": "bg-purple-500/20 text-purple-300 border-purple-500/50",
-  "Social / Twitter": "bg-sky-500/20 text-sky-300 border-sky-500/50",
-  "Chart Pattern": "bg-amber-500/20 text-amber-300 border-amber-500/50",
-  "Gut / Intuition": "bg-orange-500/20 text-orange-300 border-orange-500/50",
-  "EMA Cross": "bg-cyan-500/20 text-cyan-300 border-cyan-500/50",
-  "RSI": "bg-green-500/20 text-green-300 border-green-500/50",
-  "Migration Confirmed": "bg-emerald-500/20 text-emerald-300 border-emerald-500/50",
-  "Dev History": "bg-teal-500/20 text-teal-300 border-teal-500/50",
-  "Trending / Listed": "bg-pink-500/20 text-pink-300 border-pink-500/50",
-  "Other": "bg-zinc-500/20 text-zinc-300 border-zinc-500/50",
-};
-
-const EMOTION_CHIP_COLORS: Record<string, string> = {
-  confident: "bg-emerald-500/25 text-emerald-300 border-emerald-500/60",
-  calm: "bg-teal-500/25 text-teal-300 border-teal-500/60",
-  focused: "bg-sky-500/25 text-sky-300 border-sky-500/60",
-  patient: "bg-cyan-500/25 text-cyan-300 border-cyan-500/60",
-  "in-the-zone": "bg-emerald-400/25 text-emerald-200 border-emerald-400/60",
-  disciplined: "bg-emerald-600/25 text-emerald-300 border-emerald-600/60",
-  sharp: "bg-sky-600/25 text-sky-200 border-sky-600/60",
-  anxious: "bg-amber-500/25 text-amber-300 border-amber-500/60",
-  nervous: "bg-orange-500/25 text-orange-300 border-orange-500/60",
-  rushed: "bg-red-500/25 text-red-300 border-red-500/60",
-  frustrated: "bg-red-600/25 text-red-300 border-red-600/60",
-  "revenge-mindset": "bg-rose-600/25 text-rose-300 border-rose-600/60",
-  greedy: "bg-yellow-500/25 text-yellow-300 border-yellow-500/60",
-  fearful: "bg-violet-500/25 text-violet-300 border-violet-500/60",
-  overconfident: "bg-amber-600/25 text-amber-300 border-amber-600/60",
-  hesitant: "bg-slate-400/25 text-slate-300 border-slate-400/60",
-  impulsive: "bg-rose-500/25 text-rose-300 border-rose-500/60",
-  euphoric: "bg-pink-500/25 text-pink-300 border-pink-500/60",
-  fomo: "bg-orange-600/25 text-orange-200 border-orange-600/60",
-  distracted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
-  interrupted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
-  uncertain: "bg-indigo-400/25 text-indigo-300 border-indigo-400/60",
-  conflicted: "bg-purple-500/25 text-purple-300 border-purple-500/60",
-  detached: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
-  tired: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
-  bored: "bg-indigo-400/25 text-indigo-200 border-indigo-400/60",
-  pressured: "bg-amber-500/25 text-amber-200 border-amber-500/60",
-};
-
-const TAG_COLORS: Record<string, string> = {
-  "Interrupted": "bg-zinc-500/20 text-zinc-200 border-zinc-500/50",
-  "Full session": "bg-emerald-500/20 text-emerald-300 border-emerald-500/50",
-  "Pre-set orders": "bg-blue-500/20 text-blue-300 border-blue-500/50",
-  "Above MC ceiling": "bg-orange-500/20 text-orange-300 border-orange-500/50",
-  "Non-compliant": "bg-red-500/20 text-red-300 border-red-500/50",
-  "Chased / FOMO": "bg-orange-600/20 text-orange-300 border-orange-600/50",
-  "Best setup": "bg-emerald-400/20 text-emerald-200 border-emerald-400/50",
-  "Clean execution": "bg-cyan-500/20 text-cyan-300 border-cyan-500/50",
-  "Re-Entry": "bg-sky-500/20 text-sky-300 border-sky-500/50",
-  "Sized Up": "bg-green-500/20 text-green-300 border-green-500/50",
-  "Sized Down": "bg-red-400/20 text-red-300 border-red-400/50",
-  "Early Entry": "bg-blue-400/20 text-blue-300 border-blue-400/50",
-  "Late Entry": "bg-amber-500/20 text-amber-300 border-amber-500/50",
-  "Revenge Trade": "bg-rose-600/20 text-rose-300 border-rose-600/50",
-  "Low Conviction": "bg-zinc-400/20 text-zinc-300 border-zinc-400/50",
-  "High Conviction": "bg-emerald-600/20 text-emerald-300 border-emerald-600/50",
-  "Deviated From Plan": "bg-red-600/20 text-red-300 border-red-600/50",
-};
-
 const SESSION_STATUSES: { value: SessionType; label: string; desc: string }[] = [
-  { value: "full-session", label: "Full session", desc: "Full attention, uninterrupted" },
-  { value: "partially-interrupted", label: "Partially interrupted", desc: "Brief interruptions, mostly focused" },
+  { value: "full-session", label: "Full session", desc: "Full attention" },
+  { value: "partially-interrupted", label: "Partially interrupted", desc: "Brief interruptions" },
   { value: "intermittently-interrupted", label: "Intermittently interrupted", desc: "Frequent interruptions" },
   { value: "work-trade", label: "Work trade", desc: "Trading during work" },
-  { value: "mobile-only", label: "Mobile only", desc: "Phone trading, limited screen" },
-  { value: "forced-exit-risk", label: "Forced exit risk", desc: "Known interruption coming" },
+  { value: "mobile-only", label: "Mobile only", desc: "Phone trading" },
+  { value: "forced-exit-risk", label: "Forced exit risk", desc: "Interruption coming" },
 ];
 
 const SpeechRecognition =
@@ -178,9 +100,8 @@ const SpeechRecognition =
     : null;
 
 function getCustomTags(): string[] {
-  try {
-    return JSON.parse(localStorage.getItem("tradesnap-custom-tags") || "[]");
-  } catch { return []; }
+  try { return JSON.parse(localStorage.getItem("tradesnap-custom-tags") || "[]"); }
+  catch { return []; }
 }
 function saveCustomTag(tag: string) {
   const tags = getCustomTags();
@@ -190,57 +111,26 @@ function saveCustomTag(tag: string) {
   }
 }
 
-/* Chip style helpers */
-const chipBase = "rounded-full font-body text-[11px] font-300 transition-colors active:scale-[0.96]";
-const chipDefault = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipSelected = "bg-primary text-primary-foreground border border-primary font-400";
-const chipBlue = "bg-accent text-accent-foreground border border-accent font-400";
-
-const EMOTION_CHIP_SELECTED: Record<string, string> = {
-  confident:        "bg-emerald-500/25 text-emerald-300 border border-emerald-500/60 font-400",
-  calm:             "bg-teal-500/25 text-teal-300 border border-teal-500/60 font-400",
-  focused:          "bg-sky-500/25 text-sky-300 border border-sky-500/60 font-400",
-  patient:          "bg-cyan-500/25 text-cyan-300 border border-cyan-500/60 font-400",
-  "in-the-zone":    "bg-emerald-400/25 text-emerald-200 border border-emerald-400/60 font-400",
-  disciplined:      "bg-emerald-600/25 text-emerald-300 border border-emerald-600/60 font-400",
-  sharp:            "bg-sky-600/25 text-sky-200 border border-sky-500/60 font-400",
-  anxious:          "bg-amber-500/25 text-amber-300 border border-amber-500/60 font-400",
-  nervous:          "bg-orange-500/25 text-orange-300 border border-orange-500/60 font-400",
-  rushed:           "bg-red-500/25 text-red-300 border border-red-500/60 font-400",
-  frustrated:       "bg-red-600/25 text-red-300 border border-red-600/60 font-400",
-  "revenge-mindset":"bg-rose-600/25 text-rose-300 border border-rose-500/60 font-400",
-  greedy:           "bg-yellow-500/25 text-yellow-300 border border-yellow-500/60 font-400",
-  fearful:          "bg-violet-500/25 text-violet-300 border border-violet-500/60 font-400",
-  overconfident:    "bg-amber-600/25 text-amber-300 border border-amber-500/60 font-400",
-  hesitant:         "bg-slate-400/25 text-slate-300 border border-slate-400/60 font-400",
-  impulsive:        "bg-rose-500/25 text-rose-300 border border-rose-500/60 font-400",
-  euphoric:         "bg-pink-500/25 text-pink-300 border border-pink-500/60 font-400",
-  fomo:             "bg-orange-600/25 text-orange-200 border border-orange-500/60 font-400",
-  distracted:       "bg-zinc-500/25 text-zinc-300 border border-zinc-500/60 font-400",
-  interrupted:      "bg-zinc-600/25 text-zinc-300 border border-zinc-600/60 font-400",
-  uncertain:        "bg-slate-500/25 text-slate-300 border border-slate-500/60 font-400",
-  conflicted:       "bg-purple-500/25 text-purple-300 border border-purple-500/60 font-400",
-  detached:         "bg-zinc-400/25 text-zinc-300 border border-zinc-400/60 font-400",
-  tired:            "bg-stone-500/25 text-stone-300 border border-stone-500/60 font-400",
-  bored:            "bg-zinc-500/25 text-zinc-200 border border-zinc-400/60 font-400",
-  pressured:        "bg-amber-500/25 text-amber-200 border border-amber-400/60 font-400",
-};
-
+// ── Component ─────────────────────────────────────────────────────────
 export default function NewTrade() {
   const navigate = useNavigate();
   const { addTrade, getNonDemoTradeCount } = useTradeStore();
 
+  // ── Voice state ──
   const [isRecording, setIsRecording] = useState(false);
   const [isParsing, setIsParsing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [fullTranscript, setFullTranscript] = useState("");
   const [livePartial, setLivePartial] = useState("");
   const [voiceError, setVoiceError] = useState<string | null>(null);
+  const [elapsedSecs, setElapsedSecs] = useState(0);
 
   const recognitionRef = useRef<any>(null);
   const fullTranscriptRef = useRef("");
   const livePartialRef = useRef("");
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // ── Form state ──
   const [tokenName, setTokenName] = useState("");
   const [chain, setChain] = useState("SOL");
   const [entryMarketCap, setEntryMarketCap] = useState("");
@@ -263,15 +153,17 @@ export default function NewTrade() {
   const [rawTranscript, setRawTranscript] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
 
+  // Secondary voice refs
   const [isRecordingEmotion, setIsRecordingEmotion] = useState(false);
   const emotionRecRef = useRef<any>(null);
   const [isRecordingNotes, setIsRecordingNotes] = useState(false);
   const notesRecRef = useRef<any>(null);
 
+  // ── Recording ──────────────────────────────────────────────────────
   const startRecording = useCallback(() => {
     setVoiceError(null);
     if (!SpeechRecognition) {
-      setVoiceError("Speech recognition is not supported in this browser. Please use Chrome.");
+      setVoiceError("Speech recognition not supported. Use Chrome.");
       toast.error("Voice recording unavailable");
       return;
     }
@@ -296,7 +188,7 @@ export default function NewTrade() {
           committed = committed ? `${committed} ${final}` : final;
           setFullTranscript(committed);
           fullTranscriptRef.current = committed;
-          // Real-time auto-fill as words come in
+          // Real-time auto-fill
           const detectedSignals = detectSignalsFromText(committed);
           if (detectedSignals.length > 0) {
             setConfirmationSignals((prev) => {
@@ -314,10 +206,7 @@ export default function NewTrade() {
             });
           }
           const detectedIndicators = detectIndicatorsFromText(committed);
-          if (detectedIndicators) {
-            setIndicatorsUsed(detectedIndicators);
-            setShowIndicators(true);
-          }
+          if (detectedIndicators) { setIndicatorsUsed(detectedIndicators); setShowIndicators(true); }
           const detectedSession = detectSessionTypeFromText(committed);
           if (detectedSession) setSessionType(detectedSession as any);
         }
@@ -327,24 +216,23 @@ export default function NewTrade() {
 
       recognition.onerror = (event: any) => {
         if (event.error === "no-speech") return;
-        console.error("[WebSpeech] Error:", event.error);
         setVoiceError(event.error === "not-allowed"
-          ? "Microphone permission denied. Please allow mic access and try again."
-          : `Speech recognition error: ${event.error}`);
+          ? "Microphone permission denied."
+          : `Speech error: ${event.error}`);
         setIsRecording(false);
       };
 
       recognition.onend = () => {
-        if (recognitionRef.current) {
-          try { recognition.start(); } catch {}
-        }
+        if (recognitionRef.current) { try { recognition.start(); } catch {} }
       };
 
       recognition.start();
       setLivePartial("");
       setIsRecording(true);
+      setElapsedSecs(0);
+      timerRef.current = setInterval(() => setElapsedSecs((s) => s + 1), 1000);
     } catch (err: any) {
-      setVoiceError(`Failed to start recording: ${err.message}`);
+      setVoiceError(`Failed to start: ${err.message}`);
     }
   }, []);
 
@@ -358,15 +246,13 @@ export default function NewTrade() {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
 
     setIsRecording(false);
     setLivePartial("");
     livePartialRef.current = "";
 
-    if (!finalTranscript) {
-      toast.error("No speech detected");
-      return;
-    }
+    if (!finalTranscript) { toast.error("No speech detected"); return; }
 
     setRawTranscript(finalTranscript);
     setIsParsing(true);
@@ -377,7 +263,6 @@ export default function NewTrade() {
       });
 
       if (error || !data?.parsed) {
-        console.error("[Parse] Error:", error, data);
         toast.error("AI parsing failed — fill in fields manually");
         setIsParsing(false);
         return;
@@ -389,25 +274,15 @@ export default function NewTrade() {
       if (p.entryMarketCap) setEntryMarketCap(p.entryMarketCap);
       if (p.positionSize) setPositionSize(p.positionSize);
       if (p.setupType) {
-        if (SETUP_TYPES.includes(p.setupType)) {
-          setSetupType(p.setupType);
-        } else {
-          setSetupType("Custom");
-          setCustomSetupType(p.setupType);
-        }
+        if (SETUP_TYPES.includes(p.setupType)) setSetupType(p.setupType);
+        else { setSetupType("Custom"); setCustomSetupType(p.setupType); }
       }
       if (p.narrativeType) setNarrativeType(p.narrativeType);
       if (p.confirmationSignals?.length) setConfirmationSignals(p.confirmationSignals);
-      if (p.indicatorsUsed) {
-        setIndicatorsUsed(p.indicatorsUsed);
-        setShowIndicators(true);
-      } else {
-        // Client-side fallback for indicators the AI may have missed
+      if (p.indicatorsUsed) { setIndicatorsUsed(p.indicatorsUsed); setShowIndicators(true); }
+      else {
         const clientIndicators = detectIndicatorsFromText(finalTranscript);
-        if (clientIndicators) {
-          setIndicatorsUsed(clientIndicators);
-          setShowIndicators(true);
-        }
+        if (clientIndicators) { setIndicatorsUsed(clientIndicators); setShowIndicators(true); }
       }
       if (p.sessionType) setSessionType(p.sessionType);
       if (p.emotionalStates?.length) setEmotions(p.emotionalStates);
@@ -415,43 +290,40 @@ export default function NewTrade() {
 
       toast.success("Trade parsed — review & save");
     } catch (err: any) {
-      console.error("[Parse] Error:", err);
       toast.error("AI parsing failed");
     } finally {
       setIsParsing(false);
     }
   }, []);
 
+  // ── Secondary voice ────────────────────────────────────────────────
   const startSecondaryVoice = (
-    setRecording: (v: boolean) => void,
-    recRef: React.MutableRefObject<any>,
+    setRec: (v: boolean) => void,
+    recRef: MutableRefObject<any>,
     setText: (fn: (prev: string) => string) => void,
   ) => {
     const recorder = createVoiceRecorder({
-      onText: (text: string) => {
-        setText((prev: string) => (prev + " " + text).trim());
-      },
-      onStop: () => setRecording(false),
+      onText: (text: string) => setText((prev) => (prev + " " + text).trim()),
+      onStop: () => setRec(false),
     });
     recRef.current = recorder;
     recorder.start();
-    setRecording(true);
+    setRec(true);
   };
 
   const stopSecondaryVoice = (
-    setRecording: (v: boolean) => void,
-    recRef: React.MutableRefObject<any>,
+    setRec: (v: boolean) => void,
+    recRef: MutableRefObject<any>,
   ) => {
     recRef.current?.stop();
     recRef.current = null;
   };
 
+  // ── Toggles ────────────────────────────────────────────────────────
   const toggleEmotion = (e: EmotionalState) =>
     setEmotions((prev) => prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]);
-
   const toggleTag = (t: string) =>
     setQuickTags((prev) => prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]);
-
   const toggleSignal = (s: string) =>
     setConfirmationSignals((prev) => prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]);
 
@@ -476,6 +348,7 @@ export default function NewTrade() {
     setNewCustomTag("");
   };
 
+  // ── Save ───────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!tokenName.trim()) return;
     const { isPro, connectedWallet } = useSubscriptionStore.getState();
@@ -513,14 +386,8 @@ export default function NewTrade() {
         const { data, error } = await supabase.functions.invoke("create-trade", {
           body: { walletAddress: connectedWallet, tradeData: trade },
         });
-        if (data?.error === "TRADE_LIMIT_REACHED") {
-          navigate("/upgrade");
-          return;
-        }
-        // Use the server-assigned ID so the local record matches the DB row.
-        if (!error && data?.id) {
-          trade.id = data.id;
-        }
+        if (data?.error === "TRADE_LIMIT_REACHED") { navigate("/upgrade"); return; }
+        if (!error && data?.id) trade.id = data.id;
       } finally {
         setIsSaving(false);
       }
@@ -530,329 +397,459 @@ export default function NewTrade() {
     navigate(`/trade/${trade.id}`);
   };
 
+  // ── Derived ────────────────────────────────────────────────────────
   const displayTranscript = [fullTranscript, livePartial].filter(Boolean).join(" ");
+
+  // Highlight parsed entities in transcript (heuristic: tokenName, chain, entryMC)
+  const highlightTranscript = (text: string) => {
+    if (!text) return null;
+    const highlights = [tokenName, chain, entryMarketCap].filter(Boolean).map((s) => s.toLowerCase());
+    const words = text.split(/\s+/);
+    return words.map((word, i) => {
+      const clean = word.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const isHighlighted = highlights.some((h) => clean.includes(h.replace(/[^a-z0-9]/g, "")));
+      return isHighlighted ? (
+        <span key={i} className="text-[#8ec2dd] font-medium">{word} </span>
+      ) : (
+        <span key={i} className="text-[#d8e0d2]">{word} </span>
+      );
+    });
+  };
+
+  const parsedFieldCount = [tokenName, chain, entryMarketCap, positionSize, setupType, narrativeType]
+    .filter(Boolean).length;
 
   const allQuickTags = [...QUICK_TAGS, ...customTags.filter((t) => !QUICK_TAGS.includes(t))];
 
+  const timerStr = `${String(Math.floor(elapsedSecs / 60)).padStart(2, "0")}:${String(elapsedSecs % 60).padStart(2, "0")}`;
+
+  const MicIcon = ({ size = 22 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <rect x="9" y="3" width="6" height="11" rx="3" fill="#0e1311" />
+      <path d="M5 11a7 7 0 0 0 14 0 M12 18v3" stroke="#0e1311" strokeWidth="2.4" strokeLinecap="round" fill="none" />
+    </svg>
+  );
+
+  const MicOffIcon = ({ size = 14 }: { size?: number }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <line x1="2" y1="2" x2="22" y2="22" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M9 9v4a3 3 0 0 0 5.12 2.12M15 9.34V6a3 3 0 0 0-5.94-.6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23M12 19v3M8 23h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+
+  // ── Render ────────────────────────────────────────────────────────
   return (
-    <div className="flex min-h-screen flex-col bg-background pb-28">
-      <header className="flex items-center gap-3 px-5 py-4 pt-safe-top">
-        <button onClick={() => navigate(-1)} className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card text-accent">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <h1 className="font-display text-base font-600">New Trade — Entry</h1>
-      </header>
+    <div className="flex min-h-screen bg-[#0e1311]">
+      <AppSidebar activePage="new-trade" />
 
-      <div className="flex flex-col gap-6 px-5">
-        {/* Voice section */}
-        <div className="flex flex-col items-center gap-4 rounded-2xl bg-card border border-border p-6">
-          {voiceError && (
-            <Alert variant="destructive" className="w-full">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription className="font-body text-xs font-300">{voiceError}</AlertDescription>
-            </Alert>
-          )}
+      <div className="flex flex-col flex-1 pb-28">
+        <div className="md:max-w-[640px] md:mx-auto w-full">
 
-          {isRecording && (
-            <p className="font-body text-[10px] font-300 text-muted-foreground">Using browser speech recognition</p>
-          )}
+          {/* Back Row */}
+          <div className="flex items-center gap-3 px-[22px] pt-1.5 py-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-transparent text-[#8ec2dd] border border-[#222a25] py-[5px] px-2.5 font-mono text-[11px] rounded-[3px] min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Go back"
+            >
+              ← esc
+            </button>
+            <Label>New trade</Label>
+          </div>
 
-          <button
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isParsing}
-            className={cn(
-              "group relative flex h-28 w-28 items-center justify-center rounded-full transition-all active:scale-[0.93]",
-              isRecording ? "bg-[hsl(var(--red-action)/0.15)]" : isParsing ? "bg-muted" : "bg-[hsl(var(--green-primary)/0.1)]"
+          {/* Recording Hero */}
+          <section className="px-[22px] pt-7 relative">
+            {/* Glow */}
+            <div
+              className="absolute pointer-events-none"
+              style={{
+                width: 300, height: 110,
+                left: "50%", top: 78,
+                transform: "translateX(-50%)",
+                background: "radial-gradient(ellipse, rgba(142,194,221,0.14) 0%, transparent 70%)",
+                filter: "blur(6px)",
+              }}
+            />
+
+            {/* Status row */}
+            <div className="relative flex items-center gap-2 mb-[18px]">
+              {isRecording ? (
+                <>
+                  <span
+                    className="inline-block w-2 h-2 rounded-[4px] bg-[#e89a8a]"
+                    style={{ animation: "termblink 1s infinite" }}
+                  />
+                  <span className="font-mono text-[11px] text-[#e89a8a] font-medium tracking-[0.12em]">RECORDING</span>
+                </>
+              ) : (
+                <>
+                  <span
+                    className="inline-block w-2 h-2 rounded-[4px] bg-[#8ec2dd]"
+                    style={{ animation: "termpulse 2s ease-in-out infinite" }}
+                  />
+                  <span className="font-mono text-[11px] text-[#8ec2dd] font-medium tracking-[0.12em]">
+                    {isParsing ? "PARSING" : "READY"}
+                  </span>
+                </>
+              )}
+              {isRecording && (
+                <span className="ml-auto font-mono text-[11px] text-[#7a8a75] tabular-nums">{timerStr}</span>
+              )}
+            </div>
+
+            {/* Waveform */}
+            <div className="relative py-2">
+              <Waveform bars={36} color="#8ec2dd" height={72} width={3} gap={4} rounded={false} active={isRecording} />
+            </div>
+
+            {/* Live transcript */}
+            {(isRecording || displayTranscript) && (
+              <div className="relative mt-6">
+                <p className="font-sans text-[16px] text-[#d8e0d2] leading-[1.55] tracking-[-0.005em]">
+                  {highlightTranscript(displayTranscript)}
+                  {livePartial && (
+                    <span className="text-[#7a8a75]">{livePartial.length > 0 ? "" : ""}</span>
+                  )}
+                  {isRecording && (
+                    <span
+                      className="text-[#8ec2dd] ml-0.5"
+                      style={{ animation: "termblink 1s infinite" }}
+                    >
+                      ▮
+                    </span>
+                  )}
+                </p>
+              </div>
             )}
-          >
-            <div className={cn(
-              "flex h-20 w-20 items-center justify-center rounded-full transition-colors",
-              isRecording ? "bg-destructive animate-pulse-red-glow" : isParsing ? "bg-muted-foreground/30" : "bg-primary animate-pulse-glow"
-            )}>
-              {isParsing ? <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                : isRecording ? <Square className="h-7 w-7 text-foreground" fill="currentColor" />
-                : <Mic className="h-8 w-8 text-primary-foreground" />}
+
+            {voiceError && (
+              <p className="mt-3 font-mono text-[10.5px] text-[#e89a8a]">{voiceError}</p>
+            )}
+          </section>
+
+          {/* Record / Stop button (center, below waveform area) */}
+          <div className="px-[22px] mt-6">
+            <button
+              onClick={isRecording ? stopRecording : startRecording}
+              disabled={isParsing}
+              className={`w-full flex items-center justify-center gap-3 py-4 font-sans font-medium text-[16px] rounded-[6px] transition-opacity ${
+                isParsing ? "opacity-50 cursor-not-allowed bg-[#7a8a75] text-[#0e1311]" :
+                isRecording
+                  ? "bg-[#e89a8a] text-[#0e1311]"
+                  : "bg-[#8ec2dd] text-[#0e1311]"
+              }`}
+              style={!isRecording && !isParsing ? { boxShadow: "0 8px 32px -8px rgba(142,194,221,0.33)" } : {}}
+              aria-label={isRecording ? "Stop recording" : "Start recording"}
+            >
+              {isParsing ? (
+                <span className="font-mono text-[12px]">Parsing…</span>
+              ) : isRecording ? (
+                <>
+                  <span className="inline-block w-4 h-4 bg-[#0e1311] rounded-[2px]" />
+                  Stop recording
+                </>
+              ) : (
+                <>
+                  <MicIcon size={20} />
+                  Start recording
+                </>
+              )}
+            </button>
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-[#222a25] my-7 mx-[22px]" />
+
+          {/* Parsed Fields */}
+          <section className="px-[22px]">
+            <div className="flex items-center justify-between mb-3.5">
+              <Label>Parsed</Label>
+              <Pill color="#a8d4ad">✓ {parsedFieldCount} fields</Pill>
             </div>
-          </button>
 
-          <p className="font-body text-xs font-300 text-muted-foreground">
-            {isParsing ? "Parsing your trade…" : isRecording ? "Listening — tap to stop" : "Tap to record your trade entry"}
-          </p>
-
-          {(isRecording || displayTranscript) && (
-            <div className="w-full rounded-xl bg-secondary border border-border p-4">
-              <p className="font-body text-sm font-300 leading-relaxed text-foreground">
-                {displayTranscript || <span className="text-[hsl(var(--text-muted))] italic">Waiting for speech…</span>}
-              </p>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-3.5">
+              {/* Token — editable, highlighted */}
+              <div>
+                <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Token</p>
+                <input
+                  value={tokenName}
+                  onChange={(e) => setTokenName(e.target.value)}
+                  placeholder="—"
+                  className="mt-1 font-sans text-[22px] font-medium text-[#8ec2dd] tracking-[-0.01em] leading-[1.1] bg-transparent border-none outline-none w-full"
+                  style={{ caretColor: "#8ec2dd" }}
+                />
+              </div>
+              <div>
+                <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Chain</p>
+                <Select value={chain} onValueChange={setChain}>
+                  <SelectTrigger className="mt-1 bg-transparent border-none outline-none p-0 h-auto font-sans text-[16px] font-medium text-[#d8e0d2] [&>svg]:text-[#7a8a75]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#161c19] border-[#222a25]">
+                    {["SOL", "ETH", "BASE", "BNB", "ARB"].map((c) => (
+                      <SelectItem key={c} value={c} className="text-[#d8e0d2] focus:bg-[#222a25] focus:text-[#8ec2dd] font-mono text-[13px]">{c}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Entry MC</p>
+                <input
+                  value={entryMarketCap}
+                  onChange={(e) => setEntryMarketCap(e.target.value)}
+                  placeholder="—"
+                  className="mt-1 font-sans text-[16px] font-medium text-[#d8e0d2] tracking-[-0.01em] leading-[1.1] bg-transparent border-none outline-none w-full"
+                  style={{ caretColor: "#8ec2dd" }}
+                />
+              </div>
+              <div>
+                <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Size</p>
+                <input
+                  value={positionSize}
+                  onChange={(e) => setPositionSize(e.target.value)}
+                  placeholder="—"
+                  className="mt-1 font-sans text-[16px] font-medium text-[#d8e0d2] tracking-[-0.01em] leading-[1.1] bg-transparent border-none outline-none w-full"
+                  style={{ caretColor: "#8ec2dd" }}
+                />
+              </div>
+              {/* Setup — wide */}
+              <div className="col-span-2">
+                <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Setup</p>
+                <Select value={setupType} onValueChange={setSetupType}>
+                  <SelectTrigger className="mt-1 bg-transparent border-none outline-none p-0 h-auto font-sans text-[16px] font-medium text-[#d8e0d2] [&>svg]:text-[#7a8a75]">
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-[#161c19] border-[#222a25]">
+                    {SETUP_TYPES.map((st) => (
+                      <SelectItem key={st} value={st} className="text-[#d8e0d2] focus:bg-[#222a25] focus:text-[#8ec2dd] font-mono text-[13px]">{st}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {setupType === "Custom" && (
+                  <input
+                    value={customSetupType}
+                    onChange={(e) => setCustomSetupType(e.target.value)}
+                    placeholder="Describe setup…"
+                    className="mt-1 font-sans text-[14px] text-[#d8e0d2] bg-transparent border-none outline-none w-full"
+                    style={{ caretColor: "#8ec2dd" }}
+                  />
+                )}
+              </div>
+              {/* Narrative — wide */}
+              <div className="col-span-2">
+                <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Narrative</p>
+                <input
+                  value={narrativeType}
+                  onChange={(e) => setNarrativeType(e.target.value)}
+                  placeholder="—"
+                  className="mt-1 font-sans text-[16px] font-medium text-[#d8e0d2] tracking-[-0.01em] leading-[1.1] bg-transparent border-none outline-none w-full"
+                  style={{ caretColor: "#8ec2dd" }}
+                />
+              </div>
             </div>
-          )}
-        </div>
+          </section>
 
-        {/* Form fields */}
-        {(tokenName || rawTranscript) && (
-          <p className="section-label">Review & correct</p>
-        )}
+          {/* Indicators (collapsible) */}
+          <div className="px-[22px] mt-4">
+            <Collapsible open={showIndicators} onOpenChange={setShowIndicators}>
+              <CollapsibleTrigger className="flex items-center gap-1.5 font-mono text-[10px] text-[#7a8a75] hover:text-[#d8e0d2] transition-colors">
+                <span className={`transition-transform ${showIndicators ? "rotate-45" : ""}`}>+</span>
+                {showIndicators ? "Hide" : "Add"} indicators
+              </CollapsibleTrigger>
+              <CollapsibleContent className="mt-2">
+                <input
+                  placeholder="e.g. RSI, MACD, VWAP…"
+                  value={indicatorsUsed}
+                  onChange={(e) => setIndicatorsUsed(e.target.value)}
+                  className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd]"
+                  style={{ caretColor: "#8ec2dd" }}
+                />
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
 
-        {/* Token + Chain */}
-        <div className="grid grid-cols-[1fr_100px] gap-3">
-          <div className="space-y-1.5">
-            <label className="section-label">Token *</label>
-            <Input placeholder="e.g. BONK" value={tokenName} onChange={(e) => setTokenName(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary focus-visible:border-primary" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="section-label">Chain</label>
-            <Select value={chain} onValueChange={setChain}>
-              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="SOL">SOL</SelectItem>
-                <SelectItem value="ETH">ETH</SelectItem>
-                <SelectItem value="BASE">BASE</SelectItem>
-                <SelectItem value="BNB">BNB / BSC</SelectItem>
-                <SelectItem value="ARB">ARB</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          {/* Divider */}
+          <div className="h-px bg-[#222a25] my-6 mx-[22px]" />
 
-        {/* Entry MC + Size */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="section-label">Entry MC</label>
-            <Input placeholder="80.7K" value={entryMarketCap} onChange={(e) => setEntryMarketCap(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="section-label">Size</label>
-            <Input placeholder={`1.4 ${chain}`} value={positionSize} onChange={(e) => setPositionSize(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
-          </div>
-        </div>
+          {/* Emotional State */}
+          <section className="px-[22px]">
+            <Label className="mb-2.5 block">State</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {EMOTIONS.map((em) => {
+                const selected = emotions.includes(em.value);
+                const ec = emotionColor(em.value);
+                return (
+                  <button
+                    key={em.value}
+                    onClick={() => toggleEmotion(em.value)}
+                    className="transition-opacity active:opacity-70 min-h-[36px]"
+                  >
+                    <Pill
+                      color={selected ? ec.color : "#7a8a75"}
+                      bg={selected ? ec.bg : undefined}
+                    >
+                      {em.label}
+                    </Pill>
+                  </button>
+                );
+              })}
+              {/* Voice emotion */}
+              <button
+                onClick={() =>
+                  isRecordingEmotion
+                    ? stopSecondaryVoice(setIsRecordingEmotion, emotionRecRef)
+                    : startSecondaryVoice(setIsRecordingEmotion, emotionRecRef, setEmotionFreeText)
+                }
+                className="min-h-[36px]"
+                aria-label={isRecordingEmotion ? "Stop emotion voice" : "Add emotion by voice"}
+              >
+                <Pill color={isRecordingEmotion ? "#e89a8a" : "#7a8a75"}>
+                  {isRecordingEmotion ? "● stop" : "+ add voice"}
+                </Pill>
+              </button>
+            </div>
+            {emotionFreeText && (
+              <p className="mt-2 font-mono text-[10.5px] text-[#7a8a75] leading-[1.5]">"{emotionFreeText}"</p>
+            )}
+          </section>
 
-        {/* Setup Type dropdown + Narrative */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <label className="section-label">Setup Type</label>
-            <Select value={setupType} onValueChange={setSetupType}>
-              <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue placeholder="Select setup" /></SelectTrigger>
-              <SelectContent>
-                {SETUP_TYPES.map((st) => (
-                  <SelectItem key={st} value={st}>{st}</SelectItem>
+          {/* Session Status */}
+          <div className="px-[22px] mt-6">
+            <Label className="mb-2 block">Session</Label>
+            <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
+              <SelectTrigger className="bg-[#161c19] border-[#222a25] text-[#d8e0d2] font-mono text-[12px] rounded-[4px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#161c19] border-[#222a25]">
+                {SESSION_STATUSES.map((s) => (
+                  <SelectItem key={s.value} value={s.value} className="text-[#d8e0d2] focus:bg-[#222a25] focus:text-[#8ec2dd] font-mono text-[12px]">
+                    {s.label} — {s.desc}
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
-            {setupType === "Custom" && (
-              <Input placeholder="Describe setup…" value={customSetupType} onChange={(e) => setCustomSetupType(e.target.value)} className="mt-1.5 bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
-            )}
           </div>
-          <div className="space-y-1.5">
-            <label className="section-label">Narrative</label>
-            <Input placeholder="AI" value={narrativeType} onChange={(e) => setNarrativeType(e.target.value)} className="bg-secondary border-border font-body font-300 focus-visible:ring-primary" />
-          </div>
-        </div>
 
-        {/* Collapsible Indicators */}
-        <Collapsible open={showIndicators} onOpenChange={setShowIndicators}>
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center gap-1.5 font-body text-xs font-300 text-muted-foreground hover:text-foreground transition-colors">
-              <Plus className={cn("h-3.5 w-3.5 transition-transform", showIndicators && "rotate-45")} />
-              Add indicators
-              <span className="font-body text-[10px] font-300 text-[hsl(var(--text-muted))]">— optional</span>
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-2">
-            <Input
-              placeholder="e.g. RSI, MACD, VWAP…"
-              value={indicatorsUsed}
-              onChange={(e) => setIndicatorsUsed(e.target.value)}
-              className="bg-secondary border-border font-body font-300 focus-visible:ring-primary"
-            />
-          </CollapsibleContent>
-        </Collapsible>
-
-        {/* Confirmation Signals */}
-        <div className="space-y-2">
-          <label className="section-label">Confirmation Signals</label>
-          <div className="flex flex-wrap gap-1.5">
-            {CONFIRMATION_SIGNALS.map((sig) => (
-              <button
-                key={sig}
-                onClick={() => toggleSignal(sig)}
-                className={cn(
-                  chipBase, "px-2.5 py-1 border",
-                  confirmationSignals.includes(sig)
-                    ? (SIGNAL_COLORS[sig] ?? chipSelected)
-                    : chipDefault
-                )}
-              >
-                {confirmationSignals.includes(sig) && <Check className="mr-1 inline h-3 w-3" />}
-                {sig}
-              </button>
-            ))}
-            {customSignals.map((sig) => (
-              <span
-                key={sig}
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-[hsl(var(--green-primary)/0.4)] bg-[hsl(var(--green-primary)/0.1)] px-2.5 py-1 font-body text-[11px] font-300 text-primary"
-              >
-                {sig}
-                <button onClick={() => removeCustomSignal(sig)} className="hover:text-destructive">
-                  <X className="h-3 w-3" />
+          {/* Confirmation Signals */}
+          <div className="px-[22px] mt-6">
+            <Label className="mb-2 block">Signals</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {CONFIRMATION_SIGNALS.map((sig) => {
+                const on = confirmationSignals.includes(sig);
+                return (
+                  <button key={sig} onClick={() => toggleSignal(sig)} className="min-h-[36px]">
+                    <Pill color={on ? "#8ec2dd" : "#7a8a75"} bg={on ? "rgba(142,194,221,0.08)" : undefined}>
+                      {on ? "✓ " : ""}{sig}
+                    </Pill>
+                  </button>
+                );
+              })}
+              {customSignals.map((sig) => (
+                <button key={sig} onClick={() => removeCustomSignal(sig)} className="min-h-[36px]">
+                  <Pill color="#a8d4ad">✓ {sig} ×</Pill>
                 </button>
-              </span>
-            ))}
-          </div>
-          {confirmationSignals.includes("Other") && (
-            <Input
-              placeholder="Describe signal…"
-              value={confirmationSignalOther}
-              onChange={(e) => setConfirmationSignalOther(e.target.value)}
-              className="mt-1.5 bg-secondary border-border font-body font-300 focus-visible:ring-primary"
-            />
-          )}
-          <div className="flex items-center gap-2 mt-1">
-            <Input
-              placeholder="+ Add your own"
-              value={newCustomSignal}
-              onChange={(e) => setNewCustomSignal(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addCustomSignal()}
-              className="h-8 bg-secondary border-border font-body text-xs font-300 flex-1 focus-visible:ring-primary"
-            />
-            <Button variant="ghost" size="sm" onClick={addCustomSignal} disabled={!newCustomSignal.trim()} className="h-8 px-2 font-body text-xs font-400">
-              Add
-            </Button>
-          </div>
-        </div>
-
-        {/* Session Status */}
-        <div className="space-y-1.5">
-          <label className="section-label">Session Status</label>
-          <Select value={sessionType} onValueChange={(v) => setSessionType(v as SessionType)}>
-            <SelectTrigger className="bg-secondary border-border font-body font-300"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {SESSION_STATUSES.map((s) => (
-                <SelectItem key={s.value} value={s.value}>
-                  <span className="font-body font-400">{s.label}</span>
-                  <span className="ml-1.5 font-body text-[10px] font-300 text-muted-foreground">— {s.desc}</span>
-                </SelectItem>
               ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        {/* Emotional State */}
-        <div className="space-y-2">
-          <label className="section-label">Emotional State</label>
-          <div className="flex flex-wrap gap-1.5">
-            {EMOTIONS.map((em) => (
-              <button
-                key={em.value}
-                onClick={() => toggleEmotion(em.value)}
-                className={cn(
-                  chipBase, "px-2.5 py-1 border",
-                  emotions.includes(em.value)
-                    ? (EMOTION_CHIP_COLORS[em.value] ?? chipSelected)
-                    : chipDefault
-                )}
-              >
-                {em.label}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() =>
-              isRecordingEmotion
-                ? stopSecondaryVoice(setIsRecordingEmotion, emotionRecRef)
-                : startSecondaryVoice(setIsRecordingEmotion, emotionRecRef, setEmotionFreeText)
-            }
-            className={cn(
-              "mt-2 flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingEmotion ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
+            </div>
+            {confirmationSignals.includes("Other") && (
+              <input
+                placeholder="Describe signal…"
+                value={confirmationSignalOther}
+                onChange={(e) => setConfirmationSignalOther(e.target.value)}
+                className="mt-2 w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd]"
+              />
             )}
-          >
-            {isRecordingEmotion ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
-          </button>
-          <p className="font-body text-[10px] font-300 text-muted-foreground">
-            {isRecordingEmotion ? "Recording — tap to stop" : "Tap to describe by voice"}
-          </p>
-          <Textarea
-            placeholder="Describe your emotional state in your own words (optional)"
-            value={emotionFreeText}
-            onChange={(e) => setEmotionFreeText(e.target.value)}
-            className="min-h-[60px] bg-secondary border-border font-body text-xs font-300 focus-visible:ring-primary"
-          />
-        </div>
-
-        {/* Quick Tags */}
-        <div className="space-y-2">
-          <label className="section-label">Quick Tags</label>
-          <div className="flex flex-wrap gap-1.5">
-            {allQuickTags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => toggleTag(tag)}
-                className={cn(
-                  chipBase, "px-2.5 py-1 border",
-                  quickTags.includes(tag)
-                    ? (TAG_COLORS[tag] ?? chipBlue)
-                    : chipDefault
-                )}
-              >
-                {tag}
-              </button>
-            ))}
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                placeholder="+ Custom signal"
+                value={newCustomSignal}
+                onChange={(e) => setNewCustomSignal(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCustomSignal()}
+                className="flex-1 font-mono text-[11px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-1.5 outline-none focus:border-[#8ec2dd]"
+              />
+              <button onClick={addCustomSignal} className="font-mono text-[11px] text-[#8ec2dd] px-3 py-1.5 border border-[#8ec2dd] rounded-[4px]">Add</button>
+            </div>
           </div>
-          <div className="flex items-center gap-2 mt-1">
-            <Input
-              placeholder="+ Add custom tag"
-              value={newCustomTag}
-              onChange={(e) => setNewCustomTag(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && addCustomTag()}
-              className="h-8 bg-secondary border-border font-body text-xs font-300 flex-1 focus-visible:ring-primary"
+
+          {/* Quick Tags */}
+          <div className="px-[22px] mt-6">
+            <Label className="mb-2 block">Tags</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {allQuickTags.map((tag) => {
+                const on = quickTags.includes(tag);
+                return (
+                  <button key={tag} onClick={() => toggleTag(tag)} className="min-h-[36px]">
+                    <Pill color={on ? "#8ec2dd" : "#7a8a75"} bg={on ? "rgba(142,194,221,0.08)" : undefined}>
+                      {on ? "✓ " : ""}{tag}
+                    </Pill>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <input
+                placeholder="+ Custom tag"
+                value={newCustomTag}
+                onChange={(e) => setNewCustomTag(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addCustomTag()}
+                className="flex-1 font-mono text-[11px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-1.5 outline-none focus:border-[#8ec2dd]"
+              />
+              <button onClick={addCustomTag} className="font-mono text-[11px] text-[#8ec2dd] px-3 py-1.5 border border-[#8ec2dd] rounded-[4px]">Add</button>
+            </div>
+          </div>
+
+          {/* Raw Transcript */}
+          {rawTranscript && (
+            <div className="px-[22px] mt-6">
+              <Label className="mb-2 block">Transcript</Label>
+              <p className="font-mono text-[11px] text-[#7a8a75] leading-[1.6] italic border-l-2 border-[#8ec2dd] pl-3">
+                "{rawTranscript}"
+              </p>
+            </div>
+          )}
+
+          {/* Additional Notes */}
+          <div className="px-[22px] mt-6 mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <Label>Notes</Label>
+              <button
+                onClick={() =>
+                  isRecordingNotes
+                    ? stopSecondaryVoice(setIsRecordingNotes, notesRecRef)
+                    : startSecondaryVoice(setIsRecordingNotes, notesRecRef, setAdditionalNotes)
+                }
+                className="min-h-[36px]"
+                aria-label={isRecordingNotes ? "Stop notes voice" : "Add notes by voice"}
+              >
+                <Pill color={isRecordingNotes ? "#e89a8a" : "#7a8a75"}>
+                  {isRecordingNotes ? "● stop" : "🎤 voice note"}
+                </Pill>
+              </button>
+            </div>
+            <textarea
+              placeholder="Add any extra context…"
+              value={additionalNotes}
+              onChange={(e) => setAdditionalNotes(e.target.value)}
+              rows={3}
+              className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd] resize-none leading-[1.6]"
+              style={{ caretColor: "#8ec2dd" }}
             />
-            <Button variant="ghost" size="sm" onClick={addCustomTag} disabled={!newCustomTag.trim()} className="h-8 px-2 font-body text-xs font-400">
-              Add
-            </Button>
           </div>
-        </div>
 
-        {/* Raw Transcript */}
-        {rawTranscript && (
-          <div className="space-y-1.5">
-            <label className="section-label">Raw Transcript</label>
-            <p className="rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">{rawTranscript}</p>
-          </div>
-        )}
-
-        {/* Additional Notes */}
-        <div className="space-y-1.5">
-          <label className="section-label">Additional Notes — your thoughts, context, or anything the voice missed</label>
-          <button
-            onClick={() =>
-              isRecordingNotes
-                ? stopSecondaryVoice(setIsRecordingNotes, notesRecRef)
-                : startSecondaryVoice(setIsRecordingNotes, notesRecRef, setAdditionalNotes)
-            }
-            className={cn(
-              "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-              isRecordingNotes ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
-            )}
-          >
-            {isRecordingNotes ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
-          </button>
-          <p className="font-body text-[10px] font-300 text-muted-foreground">
-            {isRecordingNotes ? "Recording — tap to stop" : "Tap to add notes by voice"}
-          </p>
-          <Textarea
-            placeholder="Add any extra context…"
-            value={additionalNotes}
-            onChange={(e) => setAdditionalNotes(e.target.value)}
-            className="min-h-[80px] bg-secondary border-border font-body font-300 focus-visible:ring-primary"
-          />
         </div>
       </div>
 
-      {/* Save button */}
-      <div className="fixed inset-x-0 bottom-0 border-t border-border bg-background/80 px-5 pb-safe-bottom pt-3 backdrop-blur-md">
-        <Button onClick={handleSave} disabled={!tokenName.trim() || isParsing || isSaving} className="h-12 w-full rounded-[14px] bg-primary font-display text-sm font-700 text-primary-foreground shadow-[0_0_20px_hsl(var(--green-primary)/0.3)] active:scale-[0.97]">
-          {isSaving ? "Saving…" : "Save Entry"}
-        </Button>
+      {/* Save Button — fixed bottom */}
+      <div className="fixed left-[22px] right-[22px] bottom-[22px] md:left-[calc(220px+22px)]">
+        <button
+          onClick={handleSave}
+          disabled={!tokenName.trim() || isParsing || isSaving}
+          className="w-full flex items-center justify-center gap-2.5 bg-[#8ec2dd] text-[#0e1311] py-3.5 px-5 rounded-[4px] font-sans font-medium text-[15px] disabled:opacity-40 disabled:cursor-not-allowed"
+          style={tokenName.trim() ? { boxShadow: "0 8px 32px -8px rgba(142,194,221,0.33)" } : {}}
+        >
+          {isSaving ? "Saving…" : "Save entry"}
+          {!isSaving && <Kbd>⏎</Kbd>}
+        </button>
       </div>
     </div>
   );

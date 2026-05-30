@@ -1,126 +1,155 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, ChevronRight } from "lucide-react";
 import { useTradeStore } from "@/lib/trade-store";
-import { PnlBadge } from "@/components/PnlBadge";
-import { EmotionBadge } from "@/components/EmotionBadge";
-import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
+import { Label } from "@/components/design/Label";
+import { Pill } from "@/components/design/Pill";
+import { Kbd } from "@/components/design/Kbd";
+import { TradeRowFull } from "@/components/design/TradeRowFull";
+import { AppSidebar } from "@/components/design/AppSidebar";
 
-type Filter = "all" | "open" | "closed" | "wins" | "losses";
-
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "open", label: "Open" },
-  { value: "closed", label: "Closed" },
-  { value: "wins", label: "Wins" },
-  { value: "losses", label: "Losses" },
-];
-
-const chipBase = "rounded-full px-3 py-1.5 font-body text-xs font-light transition-colors active:scale-[0.97]";
-const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipOn = "bg-primary border border-primary text-primary-foreground font-normal";
+type Filter = "all" | "open" | "wins" | "losses";
 
 export default function Journal() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // Keyboard shortcut: / focuses search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement !== searchRef.current) {
+        e.preventDefault();
+        searchRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, []);
 
   const filtered = trades.filter((t) => {
     if (search && !t.tokenName.toLowerCase().includes(search.toLowerCase())) return false;
     if (filter === "open") return t.status === "open";
-    if (filter === "closed") return t.status === "closed";
     if (filter === "wins") return t.status === "closed" && (t.finalPnl ?? 0) > 0;
     if (filter === "losses") return t.status === "closed" && (t.finalPnl ?? 0) <= 0;
     return true;
   });
 
+  const realTrades = trades.filter((t) => !t.isDemo);
+  const openCount = realTrades.filter((t) => t.status === "open").length;
+  const winsCount = realTrades.filter((t) => t.status === "closed" && (t.finalPnl ?? 0) > 0).length;
+  const lossesCount = realTrades.filter((t) => t.status === "closed" && (t.finalPnl ?? 0) <= 0 && t.finalPnl !== undefined).length;
+
+  const filterDefs: { value: Filter; label: string; count: number }[] = [
+    { value: "all", label: "All", count: realTrades.length },
+    { value: "open", label: "Open", count: openCount },
+    { value: "wins", label: "Wins", count: winsCount },
+    { value: "losses", label: "Losses", count: lossesCount },
+  ];
+
   return (
-    <div className="flex min-h-screen flex-col pb-24">
-      <header className="px-5 pt-safe-top">
-        <div className="py-4">
-          <h1 className="font-display text-[22px] font-bold tracking-[-0.01em] text-foreground">Journal</h1>
-          <p className="font-body text-[12px] font-normal text-muted-foreground">Full trade history</p>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-[#0e1311]">
+      <AppSidebar activePage="journal" />
 
-      <div className="px-5 pb-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[hsl(var(--text-muted))]" />
-          <Input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by token name..."
-            className="h-10 pl-9 font-body text-sm font-light bg-secondary border-border focus-visible:ring-primary focus-visible:border-primary"
-          />
-        </div>
-      </div>
-
-      <div className="flex gap-1.5 px-5 pb-4 overflow-x-auto">
-        {FILTERS.map((f) => (
-          <button
-            key={f.value}
-            onClick={() => setFilter(f.value)}
-            className={cn(chipBase, filter === f.value ? chipOn : chipOff)}
-          >
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      <section className="flex-1 px-5">
-        <div className="space-y-2">
-          {filtered.map((trade) => (
+      {/* Mobile tab bar */}
+      <nav className="md:hidden fixed left-0 right-0 bottom-0 bg-[#161c19] border-t border-[#222a25] py-3 px-5 pb-[26px] flex justify-around z-50">
+        {[
+          { label: "home", path: "/app" },
+          { label: "journal", path: "/journal" },
+          { label: "settings", path: "/settings" },
+        ].map(({ label, path }) => {
+          const active = label === "journal";
+          return (
             <button
-              key={trade.id}
-              onClick={() => navigate(`/trade/${trade.id}`)}
-              className="flex w-full items-center gap-3 rounded-xl bg-card border border-border p-4 text-left transition-colors hover:border-[hsl(var(--border-default))] active:scale-[0.98]"
+              key={label}
+              onClick={() => navigate(path)}
+              className={`flex flex-col items-center gap-1 font-mono min-w-[44px] min-h-[44px] justify-center ${
+                active ? "text-[#8ec2dd]" : "text-[#7a8a75]"
+              }`}
+              aria-current={active ? "page" : undefined}
             >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-display text-[15px] font-semibold truncate text-foreground">{trade.tokenName}</span>
-                  <span className="rounded-full border border-[hsl(0_0%_20%)] px-[7px] py-[2px] font-body text-[10px] font-medium tracking-[0.05em] text-[hsl(var(--text-secondary))]">{trade.chain}</span>
-                  {trade.isDemo && (
-                    <span className="rounded-full border border-[hsl(0_0%_20%)] px-[7px] py-[2px] font-body text-[10px] font-medium tracking-[0.05em] text-[hsl(var(--text-secondary))]">DEMO</span>
-                  )}
-                </div>
-                <div className="mt-1 flex items-center gap-2 font-body text-[12px] font-light text-muted-foreground">
-                  {trade.entryMarketCap && <span>MC: {trade.entryMarketCap}</span>}
-                  {trade.setupType && <span>• {trade.setupType}</span>}
-                </div>
-                <div className="mt-1 flex items-center gap-2 font-body text-[11px] font-light text-[hsl(220_80%_70%)] tabular-nums tracking-data">
-                  <span>{new Date(trade.entryTime).toLocaleDateString()}</span>
-                </div>
-                {trade.emotionalStateAtEntry.length > 0 && (
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {trade.emotionalStateAtEntry.slice(0, 3).map((e) => (
-                      <EmotionBadge key={e} emotion={e} />
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {trade.status === "closed" ? (
-                  trade.finalPnl !== undefined
-                    ? <PnlBadge pnl={trade.finalPnl} />
-                    : <span className="rounded-full border border-red-500/30 bg-red-500/10 px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-red-400">CLOSED</span>
-                ) : (
-                  <span className="rounded-full border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] px-[7px] py-[2px] font-body text-[10px] font-semibold tracking-[0.06em] text-primary">OPEN</span>
-                )}
-                <ChevronRight className="h-4 w-4 text-[hsl(var(--text-muted))]" />
-              </div>
+              <span className={`w-[5px] h-[5px] rounded-[3px] ${active ? "bg-[#8ec2dd]" : "bg-transparent border border-[#7a8a75]"}`} />
+              <span className="text-[11px] font-medium tracking-[0.04em]">{label}</span>
             </button>
-          ))}
-          {filtered.length === 0 && (
-            <div className="rounded-xl bg-card border border-border p-8 text-center">
-              <p className="font-body text-sm font-light text-muted-foreground">
-                {trades.length === 0 ? "No trades logged yet. Tap New Trade to get started." : "No trades match your filters."}
-              </p>
+          );
+        })}
+      </nav>
+
+      <div className="flex flex-col flex-1 pb-[100px]">
+        <div className="md:max-w-[680px] md:mx-auto w-full">
+
+          {/* Header */}
+          <header className="pt-3.5 px-[22px]">
+            <Label>Vol. 1 · {realTrades.length} entries</Label>
+            <h1 className="font-sans text-[30px] font-medium text-[#d8e0d2] tracking-[-0.025em] leading-none mt-1.5">
+              Journal
+            </h1>
+          </header>
+
+          {/* Search */}
+          <div className="pt-[22px] px-[22px]">
+            <div className="flex items-center gap-2 py-2.5 border-b border-[#222a25]">
+              <span className="font-mono text-[14px] text-[#7a8a75]">⌕</span>
+              <input
+                ref={searchRef}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by token…"
+                className="flex-1 font-sans text-[14px] text-[#d8e0d2] bg-transparent border-none outline-none placeholder:text-[#7a8a75]"
+                style={{ caretColor: "#8ec2dd" }}
+              />
+              <Kbd>/</Kbd>
             </div>
-          )}
+          </div>
+
+          {/* Filter pills */}
+          <div className="pt-[18px] px-[22px] flex gap-2 flex-wrap">
+            {filterDefs.map(({ value, label, count }) => {
+              const active = filter === value;
+              return (
+                <button
+                  key={value}
+                  onClick={() => setFilter(value)}
+                  className="min-h-[36px]"
+                >
+                  <Pill
+                    color={active ? "#8ec2dd" : "#7a8a75"}
+                    bg={active ? "rgba(142,194,221,0.09)" : undefined}
+                  >
+                    {label} · {count}
+                  </Pill>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* List */}
+          <section className="pt-5 px-[22px]">
+            {filtered.length === 0 ? (
+              <p className="font-mono text-[10.5px] text-[#7a8a75] text-center py-12">
+                {trades.length === 0
+                  ? "No trades logged yet · speak your first"
+                  : "No matches · adjust filter"}
+              </p>
+            ) : (
+              filtered.map((t, i) => (
+                <button
+                  key={t.id}
+                  onClick={() => navigate(`/trade/${t.id}`)}
+                  className="w-full text-left"
+                >
+                  <TradeRowFull
+                    trade={t}
+                    idx={i}
+                    last={i === filtered.length - 1}
+                  />
+                </button>
+              ))
+            )}
+          </section>
         </div>
-      </section>
+      </div>
     </div>
   );
 }

@@ -1,8 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* ── Mist Design System ─────────────────────────────────────────── */
 :root {
   --font-sans: 'Manrope', system-ui, sans-serif;
   --font-display: 'Manrope', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Mist palette */
   --mist-bg: #0e1311;
   --mist-bg-raised: #161c19;
   --mist-bg-sunk: #0a0e0c;
@@ -15,6 +21,7 @@
   --mist-win: #a8d4ad;
   --mist-loss: #e89a8a;
 }
+
 @keyframes termblink {
   0%, 50% { opacity: 1; }
   51%, 100% { opacity: 0; }
@@ -28,10 +35,6 @@
   @keyframes termpulse { 0%, 100% { opacity: 1; } }
 }
 /* ── End Mist ───────────────────────────────────────────────────── */
-
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
 
 @layer base {
   :root {
@@ -110,16 +113,18 @@
   }
 
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply antialiased;
     font-family: var(--font-sans);
-    font-weight: 300;
+    background: var(--mist-bg);
+    color: var(--mist-text);
+    font-weight: 400;
     line-height: 1.6;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'DM Sans', sans-serif;
+    font-family: var(--font-display);
     font-weight: 600;
     line-height: 1.3;
   }

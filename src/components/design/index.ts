@@ -12,3 +12,4 @@ export { ToggleRow } from './ToggleRow';
 export { TradeRow } from './TradeRow';
 export { TradeRowFull } from './TradeRowFull';
 export { SettingsGroup } from './SettingsGroup';
+export { AppSidebar } from './AppSidebar';

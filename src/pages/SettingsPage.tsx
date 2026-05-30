@@ -1,4 +1,4 @@
-import { ArrowLeft, Download, Trash2, Check, MessageSquare, Share2, Eye, EyeOff } from "lucide-react";
+import { Download, Trash2, Check, MessageSquare, Share2, Eye, EyeOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
@@ -7,51 +7,72 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
+  AlertDialogTitle, AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { Label } from "@/components/design/Label";
+import { Pill } from "@/components/design/Pill";
+import { ToggleRow } from "@/components/design/ToggleRow";
+import { SettingsGroup } from "@/components/design/SettingsGroup";
+import { AppSidebar } from "@/components/design/AppSidebar";
 
-const chipBase = "rounded-full px-4 py-2.5 font-body text-xs font-light transition-colors active:scale-[0.96]";
-const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipOn = "bg-primary border border-primary text-primary-foreground font-normal";
+function shortenWallet(addr: string): string {
+  if (!addr || addr.length < 8) return addr;
+  return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
+}
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const trades = useTradeStore((s) => s.trades);
   const deleteAllTrades = useTradeStore((s) => s.deleteAllTrades);
   const getNonDemoTradeCount = useTradeStore((s) => s.getNonDemoTradeCount);
-  const { isPro, txSignature, promoSession, promoUsername, setPromoSession, promoLogout } = useSubscriptionStore();
-  const [displayName, setDisplayName] = useState("");
-  const [defaultChain, setDefaultChain] = useState("SOL");
+  const { isPro, txSignature, promoSession, promoUsername, setPromoSession, promoLogout, connectedWallet } = useSubscriptionStore();
 
-  // Change password state (promo users only)
+  // Settings toggles — backed by localStorage
+  const [autoParse, setAutoParse] = useState(() => localStorage.getItem("tp_auto_parse") !== "false");
+  const [continuousListen, setContinuousListen] = useState(() => localStorage.getItem("tp_continuous_listen") !== "false");
+  const [haptic, setHaptic] = useState(() => localStorage.getItem("tp_haptic") !== "false");
+  const [streakAlerts, setStreakAlerts] = useState(() => localStorage.getItem("tp_streak_alerts") !== "false");
+  const [shutdownRitual, setShutdownRitual] = useState(() => localStorage.getItem("tp_shutdown_ritual") !== "false");
+  const [interruptionTracking, setInterruptionTracking] = useState(() => localStorage.getItem("tp_interruption_tracking") !== "false");
+
+  function saveToggle(key: string, val: boolean) {
+    localStorage.setItem(key, String(val));
+  }
+
+  const [defaultChain, setDefaultChain] = useState("SOL");
   const [currentPw, setCurrentPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [confirmPw, setConfirmPw] = useState("");
   const [pwVisible, setPwVisible] = useState(false);
   const [savingPw, setSavingPw] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const nonDemoCount = getNonDemoTradeCount();
+  const initials = promoUsername
+    ? promoUsername.slice(0, 2).toUpperCase()
+    : connectedWallet
+    ? connectedWallet.slice(0, 2).toUpperCase()
+    : "DG";
 
   function exportCSV() {
     const headers = "Token,Chain,Status,PnL,Entry Time,Exit Time\n";
-    const rows = trades
-      .map((t) => `${t.tokenName},${t.chain},${t.status},${t.finalPnl ?? ""},${t.entryTime},${t.exitTime ?? ""}`)
-      .join("\n");
-    downloadFile(headers + rows, "tradesnap-export.csv", "text/csv");
+    const rows = trades.map((t) =>
+      `${t.tokenName},${t.chain},${t.status},${t.finalPnl ?? ""},${t.entryTime},${t.exitTime ?? ""}`
+    ).join("\n");
+    downloadFile(headers + rows, "tradepulse-export.csv", "text/csv");
   }
-
   function exportJSON() {
-    downloadFile(JSON.stringify(trades, null, 2), "tradesnap-export.json", "application/json");
+    downloadFile(JSON.stringify(trades, null, 2), "tradepulse-export.json", "application/json");
   }
-
+  function downloadFile(content: string, filename: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
   function openFeedback() {
     const formId = import.meta.env.VITE_TALLY_FORM_ID;
     if (!formId) return;
@@ -64,12 +85,9 @@ export default function SettingsPage() {
     script.onload = () => (window as any).Tally?.openPopup(formId, { emoji: { text: "👋", animation: "wave" } });
     document.head.appendChild(script);
   }
-
-  const [shareCopied, setShareCopied] = useState(false);
-
   async function shareApp() {
     const url = "https://tradepulseapp.io";
-    const text = "Never lose a trade to bad timing. Log entries, exits & PnL with your voice before the moment's gone.";
+    const text = "Never lose a trade to bad timing. Log entries, exits & PnL with your voice.";
     if (navigator.share) {
       await navigator.share({ title: "TradePulse", text, url }).catch(() => {});
     } else {
@@ -78,281 +96,316 @@ export default function SettingsPage() {
       setTimeout(() => setShareCopied(false), 2000);
     }
   }
-
-  function downloadFile(content: string, filename: string, mime: string) {
-    const blob = new Blob([content], { type: mime });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   async function handleChangePassword() {
     if (!promoSession) return;
-    if (!currentPw || !newPw || !confirmPw) {
-      toast.error("Please fill in all password fields.");
-      return;
-    }
-    if (newPw !== confirmPw) {
-      toast.error("New passwords do not match.");
-      return;
-    }
-    if (newPw.length < 6) {
-      toast.error("New password must be at least 6 characters.");
-      return;
-    }
+    if (!currentPw || !newPw || !confirmPw) { toast.error("Fill in all password fields."); return; }
+    if (newPw !== confirmPw) { toast.error("New passwords don't match."); return; }
+    if (newPw.length < 6) { toast.error("Password must be at least 6 characters."); return; }
     setSavingPw(true);
     try {
       const { data, error } = await supabase.functions.invoke("promo-auth", {
         body: { action: "change_password", token: promoSession, oldPassword: currentPw, newPassword: newPw },
       });
-      if (error || !data?.success) {
-        toast.error(data?.error || "Failed to change password.");
-        return;
-      }
+      if (error || !data?.success) { toast.error(data?.error || "Failed to change password."); return; }
       setPromoSession(data.token, promoUsername || "");
-      setCurrentPw("");
-      setNewPw("");
-      setConfirmPw("");
-      toast.success("Password changed successfully.");
+      setCurrentPw(""); setNewPw(""); setConfirmPw("");
+      toast.success("Password changed.");
     } catch {
-      toast.error("Failed to change password — please try again.");
+      toast.error("Failed to change password.");
     } finally {
       setSavingPw(false);
     }
   }
 
-  return (
-    <div className="flex min-h-screen flex-col pb-24">
-      <header className="flex items-center gap-3 px-5 py-4 pt-safe-top">
+  // ── Row helpers ──────────────────────────────────────────────────
+  function ActionRow({ label, sublabel, actionLabel, onClick }: {
+    label: string; sublabel?: string; actionLabel: string; onClick: () => void;
+  }) {
+    return (
+      <div className="flex items-center py-[14px] border-b border-[#222a25]">
+        <div className="flex-1">
+          <p className="font-sans text-[14.5px] text-[#d8e0d2] tracking-[-0.005em]">{label}</p>
+          {sublabel && <p className="font-mono text-[10px] text-[#7a8a75] mt-0.5">{sublabel}</p>}
+        </div>
         <button
-          onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl active:scale-[0.96] hover:bg-card text-accent"
+          onClick={onClick}
+          className="font-mono text-[11px] text-[#8ec2dd] hover:text-[#d8e0d2] transition-colors"
         >
-          <ArrowLeft className="h-5 w-5" />
+          {actionLabel}
         </button>
-        <h1 className="font-display text-[18px] font-semibold">Settings</h1>
-      </header>
+      </div>
+    );
+  }
 
-      <div className="space-y-6 px-5">
-        {/* Subscription Status */}
-        <div className="rounded-xl bg-card border border-border p-4">
-          <p className="section-label">Subscription</p>
-          {isPro ? (
-            <div className="mt-1">
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1.5 rounded-full bg-[hsl(var(--green-primary)/0.15)] border border-[hsl(var(--green-primary)/0.3)] px-3 py-1">
-                  <Check className="h-3 w-3 text-primary" />
-                  <span className="font-display text-[13px] font-semibold text-primary">Pro — Lifetime</span>
-                </div>
-              </div>
-              {txSignature && (
-                <a
-                  href={`https://solscan.io/tx/${txSignature}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-2 block font-mono-label text-[11px] text-[hsl(var(--blue-accent))] underline decoration-[hsl(var(--blue-accent)/0.3)] underline-offset-2"
-                >
-                  Tx: {truncateAddress(txSignature)}
-                </a>
-              )}
+  return (
+    <div className="flex min-h-screen bg-[#0e1311]">
+      <AppSidebar activePage="settings" />
+
+      {/* Mobile tab bar */}
+      <nav className="md:hidden fixed left-0 right-0 bottom-0 bg-[#161c19] border-t border-[#222a25] py-3 px-5 pb-[26px] flex justify-around z-50">
+        {[
+          { label: "home", path: "/app" },
+          { label: "journal", path: "/journal" },
+          { label: "settings", path: "/settings" },
+        ].map(({ label, path }) => {
+          const active = label === "settings";
+          return (
+            <button
+              key={label}
+              onClick={() => navigate(path)}
+              className={`flex flex-col items-center gap-1 font-mono min-w-[44px] min-h-[44px] justify-center ${
+                active ? "text-[#8ec2dd]" : "text-[#7a8a75]"
+              }`}
+              aria-current={active ? "page" : undefined}
+            >
+              <span className={`w-[5px] h-[5px] rounded-[3px] ${active ? "bg-[#8ec2dd]" : "bg-transparent border border-[#7a8a75]"}`} />
+              <span className="text-[11px] font-medium tracking-[0.04em]">{label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      <div className="flex flex-col flex-1 pb-[100px]">
+        <div className="md:max-w-[640px] md:mx-auto w-full">
+
+          {/* Header */}
+          <header className="pt-3.5 px-[22px]">
+            <Label>Configuration</Label>
+            <h1 className="font-sans text-[30px] font-medium text-[#d8e0d2] tracking-[-0.025em] leading-none mt-1.5">
+              Settings
+            </h1>
+          </header>
+
+          {/* Profile Row */}
+          <div className="pt-[22px] px-[22px] flex items-center gap-3.5">
+            <div className="w-12 h-12 flex-shrink-0 rounded-[4px] flex items-center justify-center text-[#8ec2dd] font-mono text-[16px] font-medium border-[1.5px] border-[#8ec2dd]">
+              {initials}
             </div>
-          ) : (
-            <div className="mt-1">
-              <p className="font-display text-[15px] font-semibold text-foreground">Free Tier</p>
-              <p className="font-body text-[12px] font-light text-muted-foreground">
-                {nonDemoCount} / {FREE_TRADE_LIMIT} free trades used
+            <div className="flex-1 min-w-0">
+              <p className="font-sans text-[16px] font-medium text-[#d8e0d2] tracking-[-0.01em] truncate">
+                {promoUsername ?? (connectedWallet ? shortenWallet(connectedWallet) : "Anon Trader")}
               </p>
+              <p className="font-mono text-[10.5px] text-[#7a8a75] mt-0.5">
+                {connectedWallet ? `SOL · ${shortenWallet(connectedWallet)}` : "no wallet connected"}
+              </p>
+            </div>
+            {isPro ? (
+              <Pill color="#a8d4ad">PRO</Pill>
+            ) : (
+              <Pill color="#7a8a75">FREE</Pill>
+            )}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-[#222a25] my-6 mx-[22px]" />
+
+          {/* Voice settings */}
+          <SettingsGroup title="Voice">
+            <ToggleRow
+              label="Auto-parse from voice"
+              on={autoParse}
+              onChange={() => { const v = !autoParse; setAutoParse(v); saveToggle("tp_auto_parse", v); }}
+            />
+            <ToggleRow
+              label="Continuous listening"
+              on={continuousListen}
+              onChange={() => { const v = !continuousListen; setContinuousListen(v); saveToggle("tp_continuous_listen", v); }}
+            />
+            <ToggleRow
+              label="Haptic on save"
+              on={haptic}
+              onChange={() => { const v = !haptic; setHaptic(v); saveToggle("tp_haptic", v); }}
+              last
+            />
+          </SettingsGroup>
+
+          {/* Session settings */}
+          <SettingsGroup title="Session">
+            <ToggleRow
+              label="Streak alerts"
+              on={streakAlerts}
+              onChange={() => { const v = !streakAlerts; setStreakAlerts(v); saveToggle("tp_streak_alerts", v); }}
+            />
+            <ToggleRow
+              label="Shutdown ritual"
+              on={shutdownRitual}
+              onChange={() => { const v = !shutdownRitual; setShutdownRitual(v); saveToggle("tp_shutdown_ritual", v); }}
+            />
+            <ToggleRow
+              label="Interruption tracking"
+              on={interruptionTracking}
+              onChange={() => { const v = !interruptionTracking; setInterruptionTracking(v); saveToggle("tp_interruption_tracking", v); }}
+              last
+            />
+          </SettingsGroup>
+
+          {/* Plan */}
+          <SettingsGroup title="Plan">
+            <div className="flex items-center py-[14px]">
+              <div className="flex-1">
+                <p className="font-sans text-[14.5px] font-medium text-[#d8e0d2]">
+                  {isPro ? "Pro · unlimited" : "Free"}
+                </p>
+                <p className="font-mono text-[10px] text-[#7a8a75] mt-0.5">
+                  {isPro
+                    ? `lifetime · $99${txSignature ? ` · tx: ${truncateAddress(txSignature)}` : ""}`
+                    : `${nonDemoCount} / ${FREE_TRADE_LIMIT} free trades used`}
+                </p>
+              </div>
               <button
                 onClick={() => navigate("/upgrade")}
-                className="mt-3 flex w-full items-center justify-center rounded-xl bg-primary py-2.5 font-display text-[13px] font-bold text-primary-foreground active:scale-[0.97]"
+                className="font-mono text-[11px] text-[#8ec2dd] hover:text-[#d8e0d2] transition-colors"
               >
-                Upgrade to Pro
+                {isPro ? "manage →" : "upgrade →"}
               </button>
-              <div className="mt-3 rounded-lg border border-[hsl(var(--green-primary)/0.2)] bg-[hsl(var(--green-primary)/0.05)] px-3 py-2.5 space-y-1">
-                <p className="font-display text-[10px] font-semibold text-primary uppercase tracking-wider">Giving Back</p>
-                <p className="font-body text-[11px] font-light text-muted-foreground leading-relaxed">
-                  <span className="text-foreground font-normal">50% of every Pro subscription</span> is donated to:
-                </p>
-                <ul className="space-y-0.5">
-                  {[
-                    "St. Anthony's Church — Prospect, CT (handicapped elevator fund & renovations)",
-                    "Knights of Columbus Council 13459 — Prospect, CT",
-                    "St. Vincent DePaul Mission Soup Kitchen — Waterbury, CT",
-                  ].map((org) => (
-                    <li key={org} className="flex items-start gap-1.5 font-body text-[10px] font-light text-muted-foreground">
-                      <span className="mt-[3px] h-1 w-1 flex-shrink-0 rounded-full bg-primary/60" />
-                      {org}
-                    </li>
-                  ))}
-                </ul>
+            </div>
+          </SettingsGroup>
+
+          {/* Account */}
+          <SettingsGroup title="Account">
+            {/* Default chain */}
+            <div className="py-[14px] border-b border-[#222a25]">
+              <p className="font-sans text-[14.5px] text-[#d8e0d2] mb-2">Default chain</p>
+              <div className="flex gap-2 flex-wrap">
+                {["SOL", "ETH", "BASE", "BNB"].map((chain) => (
+                  <button
+                    key={chain}
+                    onClick={() => setDefaultChain(chain)}
+                    className="min-h-[36px]"
+                  >
+                    <Pill
+                      color={defaultChain === chain ? "#8ec2dd" : "#7a8a75"}
+                      bg={defaultChain === chain ? "rgba(142,194,221,0.09)" : undefined}
+                    >
+                      {chain === "BNB" ? "BNB / BSC" : chain}
+                    </Pill>
+                  </button>
+                ))}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Display Name */}
-        <div>
-          <label className="section-label mb-1.5 block">Display Name</label>
-          <input
-            type="text"
-            value={displayName}
-            onChange={(e) => setDisplayName(e.target.value)}
-            placeholder="Anon Trader"
-            className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-[hsl(var(--text-muted))] outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-          />
-        </div>
-
-        {/* Change Password — promo users only */}
-        {promoSession && (
-          <div className="rounded-xl bg-card border border-border p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <p className="section-label">Change Password</p>
-              {promoUsername && (
-                <span className="font-body text-[11px] font-light text-muted-foreground">
-                  Signed in as <span className="text-foreground font-normal">{promoUsername}</span>
-                </span>
-              )}
+            {/* Export */}
+            <div className="py-[14px] border-b border-[#222a25]">
+              <p className="font-sans text-[14.5px] text-[#d8e0d2] mb-2">Export data</p>
+              <div className="flex gap-2">
+                <button
+                  onClick={exportCSV}
+                  className="flex flex-1 items-center justify-center gap-1.5 py-2 bg-[#161c19] border border-[#222a25] rounded-[4px] font-mono text-[11px] text-[#d8e0d2] hover:border-[#8ec2dd] transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" /> CSV
+                </button>
+                <button
+                  onClick={exportJSON}
+                  className="flex flex-1 items-center justify-center gap-1.5 py-2 bg-[#161c19] border border-[#222a25] rounded-[4px] font-mono text-[11px] text-[#d8e0d2] hover:border-[#8ec2dd] transition-colors"
+                >
+                  <Download className="h-3.5 w-3.5" /> JSON
+                </button>
+              </div>
             </div>
-            <div className="relative">
-              <input
-                type={pwVisible ? "text" : "password"}
-                value={currentPw}
-                onChange={(e) => setCurrentPw(e.target.value)}
-                placeholder="Current password"
-                className="w-full rounded-xl bg-secondary border border-border px-4 py-3 pr-11 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-              />
-              <button
-                type="button"
-                onClick={() => setPwVisible((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-              >
-                {pwVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-            <input
-              type={pwVisible ? "text" : "password"}
-              value={newPw}
-              onChange={(e) => setNewPw(e.target.value)}
-              placeholder="New password"
-              className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+
+            {/* Feedback */}
+            {import.meta.env.VITE_TALLY_FORM_ID && (
+              <ActionRow label="Send feedback" actionLabel="open →" onClick={openFeedback} />
+            )}
+
+            {/* Share */}
+            <ActionRow
+              label="Share TradePulse"
+              sublabel="tradepulseapp.io"
+              actionLabel={shareCopied ? "copied!" : "share →"}
+              onClick={shareApp}
             />
-            <input
-              type={pwVisible ? "text" : "password"}
-              value={confirmPw}
-              onChange={(e) => setConfirmPw(e.target.value)}
-              placeholder="Confirm new password"
-              className="w-full rounded-xl bg-secondary border border-border px-4 py-3 font-body text-[14px] font-light text-foreground placeholder:text-muted-foreground outline-none focus:ring-1 focus:ring-primary focus:border-primary"
-            />
-            <button
-              onClick={handleChangePassword}
-              disabled={savingPw || !currentPw || !newPw || !confirmPw}
-              className="flex w-full items-center justify-center rounded-xl bg-primary py-2.5 font-display text-[13px] font-bold text-primary-foreground active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none"
-            >
-              {savingPw ? <span className="animate-pulse">Saving…</span> : "Save Password"}
-            </button>
-            <button
-              onClick={promoLogout}
-              className="w-full text-center font-body text-[12px] font-light text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Sign out of promo account
-            </button>
+
+            {/* Promo password change */}
+            {promoSession && (
+              <div className="py-[14px] border-b border-[#222a25] space-y-2">
+                <p className="font-sans text-[14.5px] text-[#d8e0d2]">
+                  Change password
+                  {promoUsername && (
+                    <span className="ml-2 font-mono text-[10px] text-[#7a8a75]">({promoUsername})</span>
+                  )}
+                </p>
+                <div className="relative">
+                  <input
+                    type={pwVisible ? "text" : "password"}
+                    value={currentPw}
+                    onChange={(e) => setCurrentPw(e.target.value)}
+                    placeholder="Current password"
+                    className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 pr-10 outline-none focus:border-[#8ec2dd] placeholder:text-[#7a8a75]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPwVisible((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a8a75]"
+                  >
+                    {pwVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <input
+                  type={pwVisible ? "text" : "password"}
+                  value={newPw}
+                  onChange={(e) => setNewPw(e.target.value)}
+                  placeholder="New password"
+                  className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd] placeholder:text-[#7a8a75]"
+                />
+                <input
+                  type={pwVisible ? "text" : "password"}
+                  value={confirmPw}
+                  onChange={(e) => setConfirmPw(e.target.value)}
+                  placeholder="Confirm new password"
+                  className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd] placeholder:text-[#7a8a75]"
+                />
+                <button
+                  onClick={handleChangePassword}
+                  disabled={savingPw || !currentPw || !newPw || !confirmPw}
+                  className="w-full bg-[#8ec2dd] text-[#0e1311] py-2 rounded-[4px] font-sans text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {savingPw ? "Saving…" : "Save password"}
+                </button>
+                <button
+                  onClick={promoLogout}
+                  className="w-full text-center font-mono text-[11px] text-[#7a8a75] hover:text-[#d8e0d2] transition-colors py-1"
+                >
+                  Sign out of promo account
+                </button>
+              </div>
+            )}
+
+            {/* Delete all */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <button className="w-full flex items-center justify-center gap-1.5 py-[14px] font-mono text-[11px] text-[#e89a8a] hover:text-[#d8e0d2] transition-colors">
+                  <Trash2 className="h-3.5 w-3.5" /> Delete all data
+                </button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="bg-[#161c19] border-[#222a25] max-w-sm">
+                <AlertDialogHeader>
+                  <AlertDialogTitle className="font-sans font-medium text-[#d8e0d2]">Delete everything?</AlertDialogTitle>
+                  <AlertDialogDescription className="font-mono text-[11px] text-[#7a8a75]">
+                    This permanently deletes all your trades and data. Cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel className="bg-transparent border-[#222a25] text-[#7a8a75] hover:bg-[#222a25] hover:text-[#d8e0d2] font-mono text-[12px]">
+                    Cancel
+                  </AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={deleteAllTrades}
+                    className="bg-[#e89a8a] text-[#0e1311] hover:bg-[#e89a8a]/80 font-mono text-[12px]"
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </SettingsGroup>
+
+          {/* About */}
+          <div className="px-[22px] pb-8 text-center">
+            <p className="font-mono text-[10px] text-[#7a8a75]">tradepulse · v1.0.0 · by TheVeinGhost</p>
           </div>
-        )}
 
-        {/* Default Chain */}
-        <div>
-          <label className="section-label mb-1.5 block">Default Chain</label>
-          <div className="flex gap-2 flex-wrap">
-            {["SOL", "ETH", "BASE", "BNB"].map((chain) => (
-              <button
-                key={chain}
-                onClick={() => setDefaultChain(chain)}
-                className={`${chipBase} ${defaultChain === chain ? chipOn : chipOff}`}
-              >
-                {chain === "BNB" ? "BNB / BSC" : chain}
-              </button>
-            ))}
-          </div>
         </div>
-
-        {/* Export */}
-        <div>
-          <p className="section-label mb-2">Export Data</p>
-          <div className="flex gap-2">
-            <button
-              onClick={exportCSV}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
-            >
-              <Download className="h-4 w-4" /> CSV
-            </button>
-            <button
-              onClick={exportJSON}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
-            >
-              <Download className="h-4 w-4" /> JSON
-            </button>
-          </div>
-        </div>
-
-        {/* Feedback */}
-        {import.meta.env.VITE_TALLY_FORM_ID && (
-          <button
-            onClick={openFeedback}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
-          >
-            <MessageSquare className="h-4 w-4" /> Send Feedback
-          </button>
-        )}
-
-        {/* Share */}
-        <button
-          onClick={shareApp}
-          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-card border border-border py-3 font-body text-xs font-normal text-foreground active:scale-[0.97]"
-        >
-          <Share2 className="h-4 w-4" />
-          {shareCopied ? "Link copied!" : "Share TradePulse"}
-        </button>
-
-        {/* Delete All */}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <button className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--red-destroy)/0.1)] border border-[hsl(var(--red-destroy)/0.3)] py-3 font-body text-xs font-normal text-red-destroy active:scale-[0.97]">
-              <Trash2 className="h-4 w-4" /> Delete All Data
-            </button>
-          </AlertDialogTrigger>
-          <AlertDialogContent className="bg-popover border-border max-w-sm">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="font-display font-semibold">Delete everything?</AlertDialogTitle>
-              <AlertDialogDescription className="font-body font-light">
-                This will permanently delete all your trades and data. This action cannot be undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel className="bg-secondary text-foreground border-border font-body font-normal">Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={deleteAllTrades}
-                className="bg-red-destroy text-foreground hover:bg-[hsl(var(--red-destroy)/0.8)] font-body font-normal"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-        {/* About */}
-        <div className="rounded-xl bg-card border border-border p-4 text-center">
-          <p className="font-display text-[15px] font-semibold text-foreground">TradePulse</p>
-          <p className="mt-1 font-body text-[12px] font-light text-muted-foreground">
-            Never lose a trade to bad timing.
-          </p>
-          <p className="mt-2 font-body text-[12px] font-light text-muted-foreground">
-            Made by <span className="text-foreground font-normal">TheVeinGhost</span>
-          </p>
-          <p className="mt-3 font-mono-label text-[11px] text-[hsl(var(--text-muted))]">v1.0.0</p>
-        </div>
-
       </div>
     </div>
   );

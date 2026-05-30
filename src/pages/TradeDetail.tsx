@@ -1,21 +1,9 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, LogOut, ChevronDown, Trash2 } from "lucide-react";
+import { Plus, LogOut, ChevronDown, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useTradeStore } from "@/lib/trade-store";
-import { PnlBadge } from "@/components/PnlBadge";
-import { EmotionBadge } from "@/components/EmotionBadge";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -25,44 +13,58 @@ import { UpdateModal } from "@/components/trade/UpdateModal";
 import { ExitHistory } from "@/components/trade/ExitHistory";
 import { NotesSection } from "@/components/trade/NotesSection";
 import { TradeSummary } from "@/components/trade/TradeSummary";
+import { EmotionBadge } from "@/components/EmotionBadge";
 import type { ExitEvent, TradeNote, EmotionalState } from "@/lib/sample-data";
+import { Label } from "@/components/design/Label";
+import { Pill } from "@/components/design/Pill";
+import { Pnl } from "@/components/design/Pnl";
+import { Candles } from "@/components/design/Candles";
+import { Waveform } from "@/components/design/Waveform";
+import { AppSidebar } from "@/components/design/AppSidebar";
 
-function Section({
+function formatRelativeTime(ts: string): string {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 60) return `${m}m ago`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+}
+
+// Mist-styled collapsible section
+function MistSection({
   title,
-  icon,
   children,
   defaultOpen = false,
 }: {
   title: string;
-  icon?: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger className="flex w-full items-center justify-between rounded-xl bg-card border border-border px-4 py-3 text-left active:scale-[0.98]">
-        <span className="section-label">
-          {icon && <span className="mr-1">{icon}</span>}{title}
-        </span>
+      <CollapsibleTrigger className="flex w-full items-center justify-between py-3 border-b border-[#222a25] text-left">
+        <Label>{title}</Label>
         <ChevronDown
           className={cn(
-            "h-4 w-4 text-[hsl(var(--text-muted))] transition-transform",
+            "h-3.5 w-3.5 text-[#7a8a75] transition-transform",
             open && "rotate-180"
           )}
         />
       </CollapsibleTrigger>
-      <CollapsibleContent className="px-4 py-3">{children}</CollapsibleContent>
+      <CollapsibleContent className="py-4">{children}</CollapsibleContent>
     </Collapsible>
   );
 }
 
-function Field({ label, value }: { label: string; value?: string | boolean | null }) {
+// Field row for detail view
+function DetailField({ label, value }: { label: string; value?: string | boolean | null }) {
   if (value === undefined || value === null) return null;
   return (
     <div className="flex items-start justify-between gap-4 py-1.5">
-      <span className="font-body text-xs font-300 text-muted-foreground whitespace-nowrap">{label}</span>
-      <span className="font-body text-xs font-400 text-foreground text-right tracking-data">
+      <span className="font-mono text-[10px] text-[#7a8a75] tracking-[0.1em] uppercase whitespace-nowrap">{label}</span>
+      <span className="font-mono text-[12px] text-[#d8e0d2] text-right">
         {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
       </span>
     </div>
@@ -71,36 +73,27 @@ function Field({ label, value }: { label: string; value?: string | boolean | nul
 
 function UpdatesFeed({ updates }: { updates: TradeNote[] }) {
   if (updates.length === 0) {
-    return <p className="font-body text-xs font-300 text-muted-foreground italic">No updates logged yet.</p>;
+    return <p className="font-mono text-[10.5px] text-[#7a8a75] italic">No updates logged yet.</p>;
   }
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
       {[...updates].reverse().map((n) => (
-        <div key={n.id} className="rounded-xl bg-card border-l-2 border-l-primary border border-border p-3">
-          <div className="mb-1 flex items-center gap-2 flex-wrap">
-            <span className="font-body text-[11px] font-500 text-primary">⚡ Trade Update</span>
+        <div key={n.id} className="border-l-2 border-[#8ec2dd] pl-3 bg-[#161c19] rounded-r-[4px] py-2.5 pr-3">
+          <div className="flex items-center gap-2 flex-wrap mb-1">
+            <span className="font-mono text-[10px] text-[#8ec2dd] tracking-[0.1em]">⚡ UPDATE</span>
             {n.sizeAdded && (
-              <span className="rounded-full bg-[hsl(var(--green-primary)/0.15)] border border-[hsl(var(--green-primary)/0.35)] px-2 py-0.5 font-body text-[10px] font-500 text-primary">
-                +{n.sizeAdded} added
-              </span>
+              <Pill color="#a8d4ad">+{n.sizeAdded} added</Pill>
             )}
           </div>
-          <p className="font-body text-xs font-300 leading-relaxed whitespace-pre-line text-foreground">{n.text}</p>
+          <p className="font-sans text-[13px] text-[#d8e0d2] leading-[1.5] whitespace-pre-line">{n.text}</p>
           {n.emotions && n.emotions.length > 0 && (
             <div className="mt-1.5 flex flex-wrap gap-1">
-              {n.emotions.map((e) => (
-                <EmotionBadge key={e} emotion={e} />
-              ))}
+              {n.emotions.map((e) => <EmotionBadge key={e} emotion={e} />)}
             </div>
           )}
-          <div className="mt-1.5 flex items-center gap-2">
-            <span className="font-body text-[10px] font-300 text-accent tabular-nums tracking-data">
-              {new Date(n.timestamp).toLocaleString()}
-            </span>
-            <span className="font-body text-[9px] font-400 rounded-full px-1.5 py-0.5 bg-[hsl(var(--blue-accent)/0.1)] text-accent border border-[hsl(var(--blue-accent)/0.25)]">
-              Mid-trade update
-            </span>
-          </div>
+          <p className="mt-1.5 font-mono text-[10px] text-[#7a8a75]">
+            {new Date(n.timestamp).toLocaleString()}
+          </p>
         </div>
       ))}
     </div>
@@ -117,28 +110,29 @@ export default function TradeDetail() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [editLesson, setEditLesson] = useState("");
+  const [savingLesson, setSavingLesson] = useState(false);
 
   if (!trade) {
-    return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="font-body text-sm font-300 text-muted-foreground">Trade not found.</p>
-      </div>
-    );
+    navigate("/journal");
+    return null;
   }
 
   const isOpen = trade.status === "open";
   const isClosed = trade.status === "closed";
   const exitEvents = trade.exitEvents ?? [];
   const tradeNotes = trade.tradeNotes ?? [];
-
   const updateNotes = tradeNotes.filter((n) => n.noteType === "update");
   const directNotes = tradeNotes.filter((n) => n.noteType !== "update");
-
   const totalPercentClosed = exitEvents.reduce((s, e) => s + e.percentClosed, 0);
   const remainingPercent = Math.max(0, 100 - totalPercentClosed);
+  const confirmationSignals = trade.confirmationSignals ?? [];
+
+  // Compute index (simplified — just position in store)
+  const allTrades = useTradeStore.getState().trades;
+  const tradeIdx = allTrades.findIndex((t) => t.id === trade.id);
 
   const handleSaveExit = (event: ExitEvent) => {
-    // Read fresh from store to avoid stale closure bugs
     const freshTrade = useTradeStore.getState().getTradeById(trade.id);
     if (!freshTrade) return;
     const freshExitEvents = freshTrade.exitEvents ?? [];
@@ -155,7 +149,7 @@ export default function TradeDetail() {
     }
     updateTrade(trade.id, updates);
     setShowExitModal(false);
-    toast.success("Exit logged ✓", { duration: 2000 });
+    toast.success("Exit logged ✓");
     navigate("/journal");
   };
 
@@ -179,212 +173,331 @@ export default function TradeDetail() {
     updateTrade(trade.id, updates);
   };
 
-  const confirmationSignals = trade.confirmationSignals ?? [];
-  const confirmationOther = trade.confirmationSignalOther;
+  const handleSaveLesson = () => {
+    if (!editLesson.trim()) return;
+    updateTrade(trade.id, { reflectionLesson: editLesson.trim() });
+    setSavingLesson(false);
+  };
 
   return (
-    <div className="flex min-h-screen flex-col pb-40">
-      {/* Header */}
-      <header className="px-5 py-4 pt-safe-top">
-        <button
-          onClick={() => navigate(-1)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl transition-colors active:scale-[0.96] hover:bg-card mb-3 text-accent"
-        >
-          <ArrowLeft className="h-5 w-5" />
-        </button>
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display text-xl font-600 text-foreground">{trade.tokenName}</h1>
-              <span className="font-body text-xs font-300 text-[hsl(var(--text-muted))]">{trade.chain}</span>
-              {trade.isDemo && (
-                <span className="font-body text-[9px] font-400 rounded bg-[hsl(var(--text-primary)/0.06)] px-1.5 py-0.5 text-[hsl(var(--text-muted))]">DEMO</span>
-              )}
-            </div>
-            <span
-              className={cn(
-                "mt-1 inline-flex rounded-md px-2 py-0.5 font-body text-[11px] font-400",
-                isOpen
-                  ? "border border-[hsl(var(--green-primary)/0.3)] bg-[hsl(var(--green-primary)/0.1)] text-primary"
-                  : "border border-[hsl(var(--red-action)/0.3)] bg-[hsl(var(--red-action)/0.1)] text-red-action"
-              )}
-            >
-              {isOpen ? "OPEN" : "CLOSED"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {isClosed && trade.finalPnl !== undefined && (
-              <PnlBadge pnl={trade.finalPnl} className="text-sm" />
-            )}
+    <div className="flex min-h-screen bg-[#0e1311]">
+      <AppSidebar activePage="trade-detail" />
+
+      <div className="flex flex-col flex-1 pb-40">
+        <div className="md:max-w-[720px] md:mx-auto w-full">
+
+          {/* Back Row */}
+          <div className="flex items-center justify-between pt-1.5 px-[22px] py-4">
             <button
-              onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(""); }}
-              className="flex h-8 w-8 items-center justify-center rounded-lg text-[hsl(var(--text-muted))] hover:text-red-destroy transition-colors active:scale-[0.95]"
+              onClick={() => navigate("/journal")}
+              className="bg-transparent text-[#8ec2dd] border border-[#222a25] py-[5px] px-2.5 font-mono text-[11px] rounded-[3px] min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="Back to journal"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              ← journal
             </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="space-y-2 px-5">
-        {isClosed && exitEvents.length > 0 && (
-          <TradeSummary exitEvents={exitEvents} entryTime={trade.entryTime} closedAt={trade.closedAt} />
-        )}
-
-        <Section title="Entry" defaultOpen>
-          <div className="space-y-0.5">
-            <Field label="Market Cap" value={trade.entryMarketCap} />
-            <Field label="Entry Price" value={trade.entryPrice} />
-            <Field label="Size" value={trade.positionSize} />
-            <Field label="Setup" value={trade.setupType} />
-            <Field label="Narrative" value={trade.narrativeType} />
-            <Field label="Indicators" value={trade.indicatorsUsed} />
-            <Field label="Session" value={trade.sessionType} />
-            <Field label="Time" value={new Date(trade.entryTime).toLocaleString()} />
+            <div className="flex items-center gap-2">
+              <Label>Entry №{String(tradeIdx + 1).padStart(2, "0")}</Label>
+              <button
+                onClick={() => { setShowDeleteModal(true); setDeleteConfirmText(""); }}
+                className="ml-2 text-[#7a8a75] hover:text-[#e89a8a] transition-colors p-1"
+                aria-label="Delete trade"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
 
-          {(confirmationSignals.length > 0 || confirmationOther) && (
-            <div className="mt-3">
-              <p className="section-label mb-1">Confirmation Signals</p>
-              <div className="flex flex-wrap gap-1">
-                {confirmationSignals.map((sig) => (
-                  <span key={sig} className="rounded-full bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[10px] font-400 text-primary">{sig}</span>
-                ))}
-                {confirmationOther && (
-                  <span className="rounded-full bg-[hsl(var(--green-primary)/0.1)] px-2 py-0.5 font-body text-[10px] font-400 text-primary border border-dashed border-[hsl(var(--green-primary)/0.3)]">{confirmationOther}</span>
+          {/* Hero */}
+          <section className="pt-7 px-[22px]">
+            <Label>{formatRelativeTime(trade.entryTime)} · {trade.chain}</Label>
+            <div className="flex items-end justify-between gap-3 mt-2">
+              <span className="font-sans text-[38px] font-medium text-[#d8e0d2] tracking-[-0.03em] leading-[0.95] truncate">
+                {trade.tokenName}
+              </span>
+              <Pnl
+                pnl={isClosed && trade.finalPnl !== undefined ? trade.finalPnl : null}
+                size="lg"
+              />
+            </div>
+            <p className="font-mono text-[11px] text-[#7a8a75] mt-1">
+              {isOpen
+                ? `open · entered ${trade.entryMarketCap ?? "—"}`
+                : [
+                    trade.exitPrice ? `exited $${trade.exitPrice}` : null,
+                    `entered ${trade.entryMarketCap ?? "—"}`,
+                  ].filter(Boolean).join(" · ")}
+            </p>
+            {/* Status badge */}
+            <div className="mt-2 inline-flex">
+              <Pill color={isOpen ? "#8ec2dd" : "#e89a8a"}>
+                {isOpen ? "OPEN" : "CLOSED"}
+              </Pill>
+              {trade.isDemo && <span className="ml-2"><Pill color="#7a8a75">DEMO</Pill></span>}
+            </div>
+          </section>
+
+          {/* Chart */}
+          <div className="pt-[22px] px-[22px]">
+            <Candles width={320} height={70} color="#a8d4ad" red="#e89a8a" />
+            {/* TODO: wire to real OHLC data when available */}
+          </div>
+
+          {/* Divider */}
+          <div className="h-px bg-[#222a25] my-6 mx-[22px]" />
+
+          {/* Voice Note */}
+          <section className="px-[22px]">
+            <div className="flex items-center gap-2 mb-3">
+              <Label>Voice note</Label>
+            </div>
+            <div className="mb-3.5 opacity-70">
+              <Waveform bars={36} color="#8ec2dd" height={20} width={2.5} gap={2.5} rounded active={false} />
+            </div>
+            {trade.entryTranscript ? (
+              <p className="font-sans text-[15px] text-[#d8e0d2] leading-[1.6] italic">
+                "{trade.entryTranscript}"
+              </p>
+            ) : (
+              <p className="font-mono text-[10.5px] text-[#7a8a75] italic">No transcript recorded.</p>
+            )}
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-[#222a25] my-6 mx-[22px]" />
+
+          {/* Lesson */}
+          <section className="px-[22px]">
+            <Label className="mb-2 block">Lesson</Label>
+            {trade.reflectionLesson ? (
+              <div className="py-3.5 px-4 border-l-2 border-[#8ec2dd] bg-[#161c19] font-sans text-[16px] text-[#d8e0d2] leading-[1.5] font-medium tracking-[-0.005em]">
+                {trade.reflectionLesson}
+              </div>
+            ) : (
+              <div className="py-3.5 px-4 border-l-2 border-[#222a25] bg-[#161c19]">
+                {savingLesson ? (
+                  <div className="flex gap-2">
+                    <textarea
+                      value={editLesson}
+                      onChange={(e) => setEditLesson(e.target.value)}
+                      placeholder="What did you learn?"
+                      rows={2}
+                      className="flex-1 font-sans text-[15px] text-[#d8e0d2] bg-transparent border-none outline-none resize-none leading-[1.5] placeholder:text-[#7a8a75]"
+                      style={{ caretColor: "#8ec2dd" }}
+                      autoFocus
+                    />
+                    <button
+                      onClick={handleSaveLesson}
+                      className="font-mono text-[11px] text-[#8ec2dd] border border-[#8ec2dd] rounded-[3px] px-2 py-1 self-end"
+                    >
+                      save
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setSavingLesson(true)}
+                    className="font-sans text-[15px] text-[#7a8a75] italic"
+                  >
+                    What did you learn?
+                  </button>
                 )}
               </div>
-            </div>
-          )}
+            )}
+          </section>
 
-          {trade.emotionalStateAtEntry.length > 0 && (
-            <div className="mt-3">
-              <p className="section-label mb-1">Emotional State</p>
-              <div className="flex flex-wrap gap-1">
-                {trade.emotionalStateAtEntry.map((e) => (
-                  <EmotionBadge key={e} emotion={e} />
-                ))}
+          {/* Divider */}
+          <div className="h-px bg-[#222a25] my-6 mx-[22px]" />
+
+          {/* Trade Log sections */}
+          <div className="px-[22px] space-y-0">
+            <Label className="block mb-4">Trade log</Label>
+
+            {isClosed && exitEvents.length > 0 && (
+              <div className="mb-4">
+                <TradeSummary exitEvents={exitEvents} entryTime={trade.entryTime} closedAt={trade.closedAt} />
               </div>
-            </div>
-          )}
+            )}
 
-          {trade.quickTags.length > 0 && (
-            <div className="mt-2 flex flex-wrap gap-1">
-              {trade.quickTags.map((tag) => (
-                <span key={tag} className="rounded-full bg-muted px-2 py-0.5 font-body text-[10px] font-300 text-muted-foreground">{tag}</span>
-              ))}
-            </div>
-          )}
+            {/* Entry details */}
+            <MistSection title="Entry" defaultOpen>
+              <div className="space-y-0.5">
+                <DetailField label="Market Cap" value={trade.entryMarketCap} />
+                <DetailField label="Entry Price" value={trade.entryPrice} />
+                <DetailField label="Size" value={trade.positionSize} />
+                <DetailField label="Setup" value={trade.setupType} />
+                <DetailField label="Narrative" value={trade.narrativeType} />
+                <DetailField label="Indicators" value={trade.indicatorsUsed} />
+                <DetailField label="Session" value={trade.sessionType} />
+                <DetailField label="Time" value={new Date(trade.entryTime).toLocaleString()} />
+              </div>
 
-          {trade.entryTranscript && (
-            <div className="mt-3">
-              <p className="section-label mb-1">Transcript</p>
-              <p className="rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">"{trade.entryTranscript}"</p>
-            </div>
-          )}
-
-          {trade.additionalNotes && (
-            <div className="mt-2">
-              <p className="section-label mb-1">Additional Notes</p>
-              <p className="rounded-xl bg-card p-3 font-body text-xs font-300 leading-relaxed border border-border">{trade.additionalNotes}</p>
-            </div>
-          )}
-        </Section>
-
-        <Section title={`Exit History (${exitEvents.length})`}>
-          <ExitHistory events={exitEvents} />
-        </Section>
-
-        <Section title={`Updates (${updateNotes.length})`} icon="⚡">
-          <UpdatesFeed updates={updateNotes} />
-        </Section>
-
-        <Section title={`Notes (${directNotes.length})`} icon="📝">
-          <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
-        </Section>
-
-        {trade.updates.length > 0 && (
-          <Section title={`Legacy Updates (${trade.updates.length})`}>
-            <div className="space-y-4">
-              {trade.updates.map((u) => (
-                <div key={u.id} className="border-l-2 border-border pl-3">
-                  <p className="font-body text-[10px] font-300 text-accent tabular-nums tracking-data">{new Date(u.timestamp).toLocaleString()}</p>
-                  <p className="mt-1 font-body text-xs font-300 leading-relaxed">{u.note}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1">
-                    {u.emotionalState.map((e) => (<EmotionBadge key={e} emotion={e} />))}
+              {confirmationSignals.length > 0 && (
+                <div className="mt-4">
+                  <Label className="mb-2 block">Signals</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {confirmationSignals.map((sig) => (
+                      <Pill key={sig} color="#8ec2dd">{sig}</Pill>
+                    ))}
+                    {trade.confirmationSignalOther && (
+                      <Pill color="#7a8a75">{trade.confirmationSignalOther}</Pill>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          </Section>
-        )}
+              )}
 
-        {trade.exitTime && (
-          <Section title="Exit">
-            <div className="space-y-0.5">
-              <Field label="Price" value={trade.exitPrice} />
-              <Field label="PnL" value={trade.finalPnl !== undefined ? `${trade.finalPnl > 0 ? "+" : ""}${trade.finalPnl.toFixed(1)}%` : undefined} />
-              <Field label="Method" value={trade.exitMethod} />
-              <Field label="Time" value={new Date(trade.exitTime).toLocaleString()} />
-            </div>
-            {trade.emotionalStateAtExit && trade.emotionalStateAtExit.length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-1">
-                {trade.emotionalStateAtExit.map((e) => (<EmotionBadge key={e} emotion={e} />))}
-              </div>
-            )}
-            {trade.exitTranscript && (
-              <p className="mt-3 rounded-none rounded-r-lg bg-[hsl(var(--blue-accent)/0.04)] border-l-2 border-l-[hsl(var(--blue-accent)/0.3)] py-3 px-4 font-body text-[13px] font-300 italic leading-relaxed text-accent">"{trade.exitTranscript}"</p>
-            )}
-          </Section>
-        )}
+              {trade.emotionalStateAtEntry.length > 0 && (
+                <div className="mt-4">
+                  <Label className="mb-2 block">State</Label>
+                  <div className="flex flex-wrap gap-1">
+                    {trade.emotionalStateAtEntry.map((e) => <EmotionBadge key={e} emotion={e} />)}
+                  </div>
+                </div>
+              )}
 
-        {trade.reflectionNote && (
-          <Section title="Reflection">
-            <p className="font-body text-xs font-300 leading-relaxed">{trade.reflectionNote}</p>
-            {trade.reflectionLesson && (
-              <div className="mt-2 rounded-xl bg-[hsl(var(--green-primary)/0.05)] p-3">
-                <p className="section-label mb-1">Lesson</p>
-                <p className="font-body text-xs font-300 leading-relaxed text-foreground">{trade.reflectionLesson}</p>
-              </div>
+              {trade.quickTags.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {trade.quickTags.map((tag) => (
+                    <Pill key={tag} color="#7a8a75">{tag}</Pill>
+                  ))}
+                </div>
+              )}
+
+              {trade.additionalNotes && (
+                <div className="mt-4">
+                  <Label className="mb-1 block">Notes</Label>
+                  <p className="font-sans text-[13px] text-[#d8e0d2] leading-[1.5]">{trade.additionalNotes}</p>
+                </div>
+              )}
+            </MistSection>
+
+            <MistSection title={`Exit history (${exitEvents.length})`}>
+              <ExitHistory events={exitEvents} />
+            </MistSection>
+
+            <MistSection title={`Updates (${updateNotes.length})`}>
+              <UpdatesFeed updates={updateNotes} />
+            </MistSection>
+
+            <MistSection title={`Notes (${directNotes.length})`}>
+              <NotesSection notes={tradeNotes} isOpen={isOpen} onAddNote={handleAddNote} />
+            </MistSection>
+
+            {trade.exitTime && (
+              <MistSection title="Exit">
+                <div className="space-y-0.5">
+                  <DetailField label="Price" value={trade.exitPrice} />
+                  <DetailField label="PnL" value={trade.finalPnl !== undefined ? `${trade.finalPnl > 0 ? "+" : ""}${trade.finalPnl.toFixed(2)}R` : undefined} />
+                  <DetailField label="Method" value={trade.exitMethod} />
+                  <DetailField label="Time" value={new Date(trade.exitTime).toLocaleString()} />
+                </div>
+                {trade.emotionalStateAtExit && trade.emotionalStateAtExit.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-1">
+                    {trade.emotionalStateAtExit.map((e) => <EmotionBadge key={e} emotion={e} />)}
+                  </div>
+                )}
+                {trade.exitTranscript && (
+                  <p className="mt-3 font-sans text-[14px] text-[#d8e0d2] italic leading-[1.5] border-l-2 border-[#8ec2dd] pl-3">
+                    "{trade.exitTranscript}"
+                  </p>
+                )}
+              </MistSection>
             )}
-            {trade.emotionalStateAtReflection && trade.emotionalStateAtReflection.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-1">
-                {trade.emotionalStateAtReflection.map((e) => (<EmotionBadge key={e} emotion={e} />))}
-              </div>
+
+            {trade.reflectionNote && (
+              <MistSection title="Reflection">
+                <p className="font-sans text-[13px] text-[#d8e0d2] leading-[1.5]">{trade.reflectionNote}</p>
+              </MistSection>
             )}
-          </Section>
-        )}
+
+            {/* Legacy updates */}
+            {trade.updates.length > 0 && (
+              <MistSection title={`Legacy updates (${trade.updates.length})`}>
+                <div className="space-y-4">
+                  {trade.updates.map((u) => (
+                    <div key={u.id} className="border-l-2 border-[#222a25] pl-3">
+                      <p className="font-mono text-[10px] text-[#7a8a75]">{new Date(u.timestamp).toLocaleString()}</p>
+                      <p className="mt-1 font-sans text-[13px] text-[#d8e0d2] leading-[1.5]">{u.note}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-1">
+                        {u.emotionalState.map((e) => <EmotionBadge key={e} emotion={e} />)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </MistSection>
+            )}
+          </div>
+        </div>
       </div>
 
+      {/* Open trade CTA buttons */}
       {isOpen && (
-        <div className="fixed bottom-20 left-0 right-0 z-30 flex gap-2 px-5">
-          <button onClick={() => setShowUpdateModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-secondary border border-[hsl(var(--border-default))] py-3 font-body text-xs font-400 text-foreground active:scale-[0.97] transition-colors hover:border-[hsl(var(--border-default)/1.5)]">
+        <div className="fixed bottom-6 left-[22px] right-[22px] md:left-[calc(220px+22px)] z-30 flex gap-3">
+          <button
+            onClick={() => setShowUpdateModal(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 py-3 bg-[#161c19] border border-[#222a25] rounded-[4px] font-mono text-[12px] text-[#d8e0d2] hover:border-[#8ec2dd] transition-colors"
+          >
             <Plus className="h-4 w-4" /> Update
           </button>
-          <button onClick={() => setShowExitModal(true)} className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-[hsl(var(--red-action)/0.15)] border border-[hsl(var(--red-action)/0.4)] py-3 font-body text-xs font-400 text-red-action active:scale-[0.97] transition-colors hover:bg-[hsl(var(--red-action)/0.25)]">
+          <button
+            onClick={() => setShowExitModal(true)}
+            className="flex flex-1 items-center justify-center gap-1.5 py-3 bg-[rgba(232,154,138,0.08)] border border-[rgba(232,154,138,0.3)] rounded-[4px] font-mono text-[12px] text-[#e89a8a] hover:bg-[rgba(232,154,138,0.15)] transition-colors"
+          >
             <LogOut className="h-4 w-4" /> Log Exit
           </button>
         </div>
       )}
 
-      <ExitModal open={showExitModal} onOpenChange={setShowExitModal} remainingPercent={remainingPercent} onSave={handleSaveExit} />
-      <UpdateModal open={showUpdateModal} onOpenChange={setShowUpdateModal} onSave={handleSaveUpdate} chain={trade.chain} />
+      <ExitModal
+        open={showExitModal}
+        onOpenChange={setShowExitModal}
+        remainingPercent={remainingPercent}
+        onSave={handleSaveExit}
+      />
+      <UpdateModal
+        open={showUpdateModal}
+        onOpenChange={setShowUpdateModal}
+        onSave={handleSaveUpdate}
+        chain={trade.chain}
+      />
 
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="max-w-sm bg-popover border-border">
+        <DialogContent className="max-w-sm bg-[#161c19] border-[#222a25]">
           <DialogHeader>
-            <DialogTitle className="font-display font-600">Delete this trade?</DialogTitle>
-            <DialogDescription className="font-body font-300">This will permanently delete this trade and all its exits, updates, and notes. This cannot be undone.</DialogDescription>
+            <DialogTitle className="font-sans font-medium text-[#d8e0d2]">Delete this trade?</DialogTitle>
+            <DialogDescription className="font-mono text-[11px] text-[#7a8a75]">
+              This permanently deletes this trade and all its data. Cannot be undone.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div>
-              <p className="font-body text-xs font-300 text-muted-foreground mb-1.5">Type <span className="font-400 text-foreground">DELETE</span> to confirm</p>
-              <Input value={deleteConfirmText} onChange={(e) => setDeleteConfirmText(e.target.value)} placeholder="DELETE" className="h-9 font-body text-sm font-mono" />
+              <p className="font-mono text-[10px] text-[#7a8a75] mb-1.5">
+                Type <span className="text-[#d8e0d2]">DELETE</span> to confirm
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="DELETE"
+                className="h-9 font-mono text-sm bg-[#0a0e0c] border-[#222a25] text-[#d8e0d2] focus-visible:ring-[#e89a8a] focus-visible:border-[#e89a8a]"
+              />
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-              <Button className="flex-1 bg-red-destroy text-foreground hover:bg-[hsl(var(--red-destroy)/0.8)]" disabled={deleteConfirmText !== "DELETE"} onClick={() => { deleteTrade(trade.id); setShowDeleteModal(false); toast.success("Trade deleted"); navigate("/journal"); }}>
-                Delete Trade
+              <Button
+                variant="outline"
+                className="flex-1 bg-transparent border-[#222a25] text-[#7a8a75] hover:bg-[#222a25] hover:text-[#d8e0d2]"
+                onClick={() => setShowDeleteModal(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1 bg-[#e89a8a] text-[#0e1311] hover:bg-[#e89a8a]/80"
+                disabled={deleteConfirmText !== "DELETE"}
+                onClick={() => {
+                  deleteTrade(trade.id);
+                  setShowDeleteModal(false);
+                  toast.success("Trade deleted");
+                  navigate("/journal");
+                }}
+              >
+                Delete
               </Button>
             </div>
           </div>

@@ -15,6 +15,7 @@ import {
   createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import { toast } from "sonner";
+import { getReferral } from "@/lib/referral-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import {
@@ -158,6 +159,7 @@ export default function Upgrade() {
           walletType: connectedWalletType,
           paymentCurrency: paymentMethod,
           expectedAmount: paymentMethod === "USDC" ? 99 : solAmount,
+          referral: getReferral(),
         },
       });
 

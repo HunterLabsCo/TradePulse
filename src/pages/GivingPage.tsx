@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { setPageMeta } from "@/lib/page-meta";
+import { C } from "@/components/marketing/theme";
 
 const ORGS = [
   {
@@ -29,83 +30,93 @@ export default function GivingPage() {
     });
   }, []);
 
+  const label = "mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em]";
+
   return (
     <MarketingLayout>
       <div className="mx-auto max-w-lg px-5 py-12">
-        <h1 className="font-display text-3xl font-bold text-foreground mb-4">Giving Back</h1>
+        <p className={label} style={{ color: C.primary }}>Giving Back</p>
+        <h1 className="mb-4 font-sans text-[2.5rem] font-bold leading-[1.1]" style={{ color: C.text, letterSpacing: "-0.03em" }}>
+          Giving Back
+        </h1>
 
-        <div className="border-l-2 border-primary pl-4 mb-10">
-          <p className="font-body text-sm leading-relaxed text-muted-foreground italic">
+        <div className="mb-10 border-l-2 pl-4" style={{ borderColor: C.primary }}>
+          <p className="font-sans text-sm italic leading-relaxed" style={{ color: C.textDim }}>
             50% of every TradePulse Pro upgrade is donated. Every dollar. Tracked publicly.
           </p>
         </div>
 
-        <p className="font-body text-sm leading-relaxed text-muted-foreground mb-8">
+        <p className="mb-8 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
           When you upgrade to TradePulse Pro, half of your purchase goes directly to three organizations in Connecticut that matter to the people who built this:
         </p>
 
-        <div className="space-y-4 mb-12">
+        <p className={label} style={{ color: C.textDim }}>Recipients</p>
+        <div className="mb-12 space-y-4">
           {ORGS.map(({ name, location, desc }) => (
-            <div key={name} className="rounded-2xl bg-card border border-border p-5">
-              <div className="mb-1 flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-primary shrink-0" />
-                <h3 className="font-display text-base font-bold text-foreground">{name}</h3>
+            <div key={name} className="rounded-[6px] border p-5" style={{ background: C.bgRaised, borderColor: C.border }}>
+              <div className="flex items-start gap-3">
+                <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: C.primary }} />
+                <div>
+                  <p className="font-sans text-base font-medium" style={{ color: C.text }}>{name}</p>
+                  <p className="font-mono text-[10px]" style={{ color: C.primary }}>{location}</p>
+                  <p className="mt-1 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>{desc}</p>
+                </div>
               </div>
-              <p className="font-mono-label text-[10px] text-primary mb-2 pl-4">{location}</p>
-              <p className="font-body text-sm leading-relaxed text-muted-foreground pl-4">{desc}</p>
             </div>
           ))}
         </div>
 
-        <hr className="border-border my-8" />
+        <hr className="my-8" style={{ borderColor: C.border }} />
 
-        <h2 className="font-display text-xl font-bold text-foreground mb-2">The Numbers</h2>
-        <p className="font-body text-xs text-muted-foreground mb-4 italic">
+        <p className={label} style={{ color: C.primary }}>The Numbers</p>
+        <h2 className="mb-2 font-sans text-2xl font-bold" style={{ color: C.text, letterSpacing: "-0.02em" }}>The Numbers</h2>
+        <p className="mb-4 font-sans text-xs italic" style={{ color: C.textDim }}>
           Updated monthly. Receipts available on request:{" "}
-          <a href="mailto:support@tradepulseapp.io" className="text-primary underline">support@tradepulseapp.io</a>
+          <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>
         </p>
-        <div className="overflow-x-auto mb-2">
-          <table className="w-full text-sm border-collapse">
+        <div className="mb-2 overflow-x-auto rounded-[6px] border p-5" style={{ background: C.bgRaised, borderColor: C.border }}>
+          <table className="w-full border-collapse text-sm">
             <thead>
-              <tr className="border-b border-border">
-                <th className="text-left py-2 pr-4 font-display text-xs font-bold text-foreground">Period</th>
-                <th className="text-left py-2 pr-4 font-display text-xs font-bold text-foreground">Pro Sales</th>
-                <th className="text-left py-2 font-display text-xs font-bold text-foreground">Donated</th>
+              <tr className="border-b" style={{ borderColor: C.border }}>
+                <th className="py-2 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: C.textDim }}>Period</th>
+                <th className="py-2 pr-4 text-left font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: C.textDim }}>Pro Sales</th>
+                <th className="py-2 text-left font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: C.textDim }}>Donated</th>
               </tr>
             </thead>
-            <tbody className="font-body text-muted-foreground">
-              <tr className="border-b border-border">
-                <td className="py-2 pr-4">May 2026</td>
-                <td className="py-2 pr-4">—</td>
-                <td className="py-2">—</td>
+            <tbody className="font-sans">
+              <tr className="border-b" style={{ borderColor: C.border }}>
+                <td className="py-2 pr-4" style={{ color: C.textDim }}>May 2026</td>
+                <td className="py-2 pr-4" style={{ color: C.textDim }}>—</td>
+                <td className="py-2" style={{ color: C.textDim }}>—</td>
               </tr>
-              <tr className="border-b border-border font-medium text-foreground">
-                <td className="py-2 pr-4">Total to date</td>
-                <td className="py-2 pr-4">—</td>
-                <td className="py-2">—</td>
+              <tr className="border-b font-medium" style={{ borderColor: C.border }}>
+                <td className="py-2 pr-4" style={{ color: C.text }}>Total to date</td>
+                <td className="py-2 pr-4" style={{ color: C.text }}>—</td>
+                <td className="py-2" style={{ color: C.text }}>—</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <p className="font-body text-xs text-muted-foreground italic mb-10">Last updated: May 14, 2026</p>
+        <p className="mb-10 font-sans text-xs italic" style={{ color: C.textDim }}>Last updated: May 14, 2026</p>
 
-        <hr className="border-border my-8" />
+        <hr className="my-8" style={{ borderColor: C.border }} />
 
-        <h2 className="font-display text-xl font-bold text-foreground mb-4">Why</h2>
-        <p className="font-body text-sm leading-relaxed text-muted-foreground mb-4">
+        <p className={label} style={{ color: C.textDim }}>Why</p>
+        <h2 className="mb-4 font-sans text-2xl font-bold" style={{ color: C.text, letterSpacing: "-0.02em" }}>Why</h2>
+        <p className="mb-4 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
           I grew up in a small town in Connecticut. The community helped my family when we needed it. Building TradePulse is a way to combine what I love — crypto markets, AI, and clean tools — with a chance to give back to the people who taught me you don't make it alone.
         </p>
-        <p className="font-body text-sm leading-relaxed text-muted-foreground mb-4">
+        <p className="mb-4 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
           It's not charity-washing. It's not a tax move. It's just where half the money goes.
         </p>
-        <p className="font-body text-sm font-medium text-foreground mb-8">— TheVeinGhost</p>
+        <p className="mb-8 font-sans text-sm font-medium" style={{ color: C.text }}>— TheVeinGhost</p>
 
-        <hr className="border-border my-8" />
+        <hr className="my-8" style={{ borderColor: C.border }} />
 
-        <div className="rounded-2xl bg-[hsl(var(--green-primary)/0.06)] border border-[hsl(var(--green-primary)/0.3)] p-5">
-          <h2 className="font-display text-base font-bold text-foreground mb-2">Want to verify?</h2>
-          <p className="font-body text-sm leading-relaxed text-muted-foreground">
-            Email <a href="mailto:support@tradepulseapp.io" className="text-primary underline">support@tradepulseapp.io</a> any time and I'll send you the most recent donation receipts. Transparency is the whole point.
+        <div className="rounded-[6px] border p-5" style={{ background: "rgba(142,194,221,0.04)", borderColor: "rgba(142,194,221,0.35)" }}>
+          <h2 className="mb-2 font-sans text-base font-medium" style={{ color: C.text }}>Want to verify?</h2>
+          <p className="font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
+            Email <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a> any time and I'll send you the most recent donation receipts. Transparency is the whole point.
           </p>
         </div>
       </div>

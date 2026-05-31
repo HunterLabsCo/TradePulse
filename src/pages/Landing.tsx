@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { getReferral, setReferral } from "@/lib/referral-utils";
 import {
   Mic, BookOpen, TrendingUp, Zap, Shield, BarChart2,
-  Menu, X, Check, ArrowRight, Clock, Smartphone, ChevronDown,
+  X, Check, ArrowRight, Clock, Smartphone, ChevronDown,
 } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
-import { Logo } from "@/components/design/Logo";
+import MarketingHeader from "@/components/marketing/MarketingHeader";
+import MarketingFooter from "@/components/marketing/MarketingFooter";
+import { C, ctaBtn, outlineBtn } from "@/components/marketing/theme";
 import { setPageMeta } from "@/lib/page-meta";
 
 // ── Constants ────────────────────────────────────────────────────────
@@ -68,21 +70,6 @@ const FAQS = [
   { q: "Is my trade data stored securely?", a: "Your trades are stored locally on your device. We use Supabase for Pro account management with industry-standard encryption." },
   { q: "What's included in the Pro plan?",  a: "Pro gives you unlimited trades, full analytics, priority AI voice parsing, and access to all future features — for a one-time $99 payment. No subscription, ever." },
 ];
-
-// ── Mist color constants ─────────────────────────────────────────────
-const C = {
-  bg:          "#0e1311",
-  bgRaised:    "#161c19",
-  bgSunk:      "#0a0e0c",
-  border:      "#222a25",
-  borderBright:"#36413a",
-  primary:     "#8ec2dd",
-  primaryDim:  "#5a7e95",
-  text:        "#d8e0d2",
-  textDim:     "#7a8a75",
-  win:         "#a8d4ad",
-  loss:        "#e89a8a",
-};
 
 // ── Inline SVG illustrations (Mist-themed) ──────────────────────────
 function WaveformIllustration() {
@@ -198,9 +185,6 @@ export default function Landing() {
     }
   }, []);
 
-  const ctaBtn = `flex items-center justify-center gap-2 font-sans font-medium text-[#0e1311] bg-[#8ec2dd] rounded-[6px] active:opacity-90 transition-opacity`;
-  const outlineBtn = `flex items-center justify-center gap-2 font-sans font-medium rounded-[6px] border border-[#8ec2dd] text-[#8ec2dd] hover:bg-[rgba(142,194,221,0.06)] transition-colors active:opacity-90`;
-
   return (
     <div className="min-h-screen" style={{ background: C.bg, color: C.text }}>
       <a
@@ -233,81 +217,7 @@ export default function Landing() {
       )}
 
       {/* ── Navbar ──────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b backdrop-blur-md" style={{ background: `${C.bg}e6`, borderColor: C.border }}>
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          <div className="flex items-center gap-2">
-            <Logo size={16} />
-          </div>
-
-          {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center gap-5">
-            {[
-              ["Features", "#features"],
-              ["How It Works", "#how-it-works"],
-              ["Pricing", "#pricing"],
-              ["FAQ", "#faq"],
-              ["Giving", "/giving"],
-              ["About", "/about"],
-            ].map(([label, href]) => (
-              <a key={href} href={href} className="font-mono text-[12px] transition-colors" style={{ color: C.textDim }} onMouseOver={e => (e.currentTarget.style.color = C.text)} onMouseOut={e => (e.currentTarget.style.color = C.textDim)}>
-                {label}
-              </a>
-            ))}
-            <a href="/upgrade" className="font-mono text-[12px]" style={{ color: C.textDim }}>
-              Sign In
-            </a>
-            <button
-              onClick={() => navigate("/app")}
-              className={`${ctaBtn} h-9 px-4 text-sm`}
-              style={{ boxShadow: "0 4px 16px -4px rgba(142,194,221,0.3)" }}
-            >
-              Start Free
-            </button>
-          </nav>
-
-          {/* Mobile hamburger */}
-          <button
-            onClick={() => setMenuOpen((v) => !v)}
-            className="lg:hidden flex h-9 w-9 items-center justify-center rounded-[4px] transition-colors"
-            style={{ color: C.textDim }}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
-        </div>
-
-        {/* Mobile dropdown */}
-        {menuOpen && (
-          <div className="lg:hidden border-t px-5 pb-5 pt-4" style={{ background: C.bg, borderColor: C.border }}>
-            <nav className="mb-4">
-              {[
-                ["Features", "#features"],
-                ["How It Works", "#how-it-works"],
-                ["Pricing", "#pricing"],
-                ["FAQ", "#faq"],
-                ["Giving", "/giving"],
-                ["About", "/about"],
-                ["Sign In", "/upgrade"],
-              ].map(([label, href]) => (
-                <a
-                  key={href}
-                  href={href}
-                  onClick={() => setMenuOpen(false)}
-                  className="flex items-center justify-between border-b py-3 font-sans text-sm transition-colors"
-                  style={{ borderColor: C.border, color: C.text }}
-                >
-                  {label}
-                </a>
-              ))}
-            </nav>
-            <button
-              onClick={() => { setMenuOpen(false); navigate("/app"); }}
-              className={`${ctaBtn} h-12 w-full text-sm`}
-            >
-              Start Free
-            </button>
-          </div>
-        )}
-      </header>
+      <MarketingHeader />
 
       <main id="main" tabIndex={-1}>
         {/* ── Hero ────────────────────────────────────── */}
@@ -661,46 +571,7 @@ export default function Landing() {
         </section>
 
         {/* ── Footer ─────────────────────────────────── */}
-        <footer className="border-t px-5 py-10" style={{ borderColor: C.border }}>
-          <div className="mx-auto max-w-lg">
-            <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 mb-8">
-              {/* Brand */}
-              <div>
-                <div className="mb-3">
-                  <Logo size={15} />
-                </div>
-                <p className="font-mono text-[11px]" style={{ color: C.textDim }}>Voice-powered trade journal.</p>
-                <p className="font-mono text-[11px]" style={{ color: C.textDim }}>© 2025–2026 TradePulse</p>
-              </div>
-
-              {/* Product */}
-              <div>
-                <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: C.textDim }}>Product</p>
-                <nav className="space-y-2">
-                  {[["Features", "#features"], ["How It Works", "#how-it-works"], ["Pricing", "#pricing"], ["FAQ", "#faq"]].map(([l, h]) => (
-                    <a key={h} href={h} className="block font-sans text-sm transition-colors" style={{ color: C.textDim }}>{l}</a>
-                  ))}
-                </nav>
-              </div>
-
-              {/* Company */}
-              <div>
-                <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: C.textDim }}>Company</p>
-                <nav className="space-y-2">
-                  {[["About", "/about"], ["Giving", "/giving"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Support", "mailto:support@tradepulseapp.io"]].map(([l, h]) => (
-                    <a key={h} href={h} className="block font-sans text-sm transition-colors" style={{ color: C.textDim }}>{l}</a>
-                  ))}
-                </nav>
-              </div>
-            </div>
-
-            <div className="border-t pt-6" style={{ borderColor: C.border }}>
-              <p className="font-mono text-[11px] leading-relaxed" style={{ color: C.textDim }}>
-                TradePulse is a journaling tool, not financial advice. Stats shown are illustrative. Trading crypto carries substantial risk of loss. Do your own research.
-              </p>
-            </div>
-          </div>
-        </footer>
+        <MarketingFooter />
       </main>
 
       {/* ── Demo modal ───────────────────────────────── */}

@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
+import { setPageMeta } from "@/lib/page-meta";
 
 export default function TermsPage() {
   useEffect(() => {
-    document.title = "Terms of Service — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "TradePulse Terms of Service. Review the terms governing your use of our voice-powered crypto trade journal.");
+    setPageMeta({
+      title: "Terms of Service — TradePulse",
+      description: "TradePulse Terms of Service. Review the terms governing your use of our voice-powered crypto trade journal.",
+      path: "/terms",
+    });
   }, []);
 
   return (

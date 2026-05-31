@@ -1,11 +1,14 @@
 import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
+import { setPageMeta } from "@/lib/page-meta";
 
 export default function PrivacyPage() {
   useEffect(() => {
-    document.title = "Privacy Policy — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "TradePulse Privacy Policy. We don't collect emails, don't sell data, and free-tier trades never leave your device.");
+    setPageMeta({
+      title: "Privacy Policy — TradePulse",
+      description: "TradePulse Privacy Policy. We don't collect emails, don't sell data, and free-tier trades never leave your device.",
+      path: "/privacy",
+    });
   }, []);
 
   return (

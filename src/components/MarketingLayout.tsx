@@ -18,6 +18,12 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-primary focus:px-4 focus:py-2 focus:font-display focus:text-sm focus:font-bold focus:text-primary-foreground"
+      >
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
         <div className="mx-auto flex max-w-lg items-center justify-between px-5 py-4">
           {/* Logo */}
@@ -82,7 +88,7 @@ export default function MarketingLayout({ children }: { children: ReactNode }) {
         )}
       </header>
 
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>{children}</main>
 
       {/* Footer */}
       <footer className="border-t border-border px-5 py-8 pb-safe-bottom">

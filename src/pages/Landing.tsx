@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { getReferral, setReferral } from "@/lib/referral-utils";
 import {
   Mic, BookOpen, TrendingUp, Zap, Shield, BarChart2,

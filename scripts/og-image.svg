@@ -1,0 +1,41 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d0d0d"/>
+      <stop offset="0.55" stop-color="#101512"/>
+      <stop offset="1" stop-color="#0a0f0c"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22e06b"/>
+      <stop offset="1" stop-color="#3da9fc"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#22e06b" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#22e06b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="980" cy="120" r="360" fill="url(#glow)"/>
+
+  <!-- pulse line motif -->
+  <polyline points="80,470 200,470 250,400 300,510 360,300 430,470 1120,470"
+            fill="none" stroke="url(#accent)" stroke-width="6"
+            stroke-linecap="round" stroke-linejoin="round" opacity="0.85"/>
+
+  <!-- wordmark -->
+  <g font-family="'DM Sans','Segoe UI',sans-serif">
+    <text x="80" y="250" font-size="110" font-weight="700" fill="#ffffff" letter-spacing="-2">
+      Trade<tspan fill="url(#accent)">Pulse</tspan>
+    </text>
+    <text x="84" y="340" font-size="40" font-weight="600" fill="#9aa3ad" letter-spacing="0">
+      Voice-first crypto trade journal
+    </text>
+  </g>
+
+  <!-- tagline -->
+  <text x="80" y="585" font-family="'DM Sans','Segoe UI',sans-serif"
+        font-size="46" font-weight="700" fill="#e8edf2" letter-spacing="-0.5">
+    Never Lose a Trade to Bad Timing.
+  </text>
+</svg>

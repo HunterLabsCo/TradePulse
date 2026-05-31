@@ -1,14 +1,17 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
+import { setPageMeta } from "@/lib/page-meta";
 
 export default function AboutPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "About — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "TradePulse is built and run independently by TheVeinGhost — an active crypto trader from small-town Connecticut. Built by a trader, for traders.");
+    setPageMeta({
+      title: "About — TradePulse",
+      description: "TradePulse is built and run independently by TheVeinGhost — an active crypto trader from small-town Connecticut. Built by a trader, for traders.",
+      path: "/about",
+    });
   }, []);
 
   return (

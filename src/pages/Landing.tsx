@@ -8,6 +8,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Logo } from "@/components/design/Logo";
+import { setPageMeta } from "@/lib/page-meta";
 
 // ── Constants ────────────────────────────────────────────────────────
 const DEMO_DESKTOP_VIDEO_ID = "AsiAb6l3ZTw";
@@ -178,6 +179,14 @@ export default function Landing() {
   const [demoOpen, setDemoOpen] = useState(false);
   const [showBanner, setShowBanner] = useState(true);
   const [referral, setReferralState] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPageMeta({
+      title: "TradePulse — Never Lose a Trade to Bad Timing",
+      description: "The voice-powered trade journal for active crypto traders. Log entries, exits, PnL, and mood across Solana, Ethereum, Base, Arbitrum, BNB, and Polygon in under 5 seconds. 20 free trades, no credit card.",
+      path: "/",
+    });
+  }, []);
 
   useEffect(() => {
     const ref = searchParams.get("ref");

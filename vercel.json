@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
+  "buildCommand": "npx playwright install chromium && npm run build",
   "outputDirectory": "dist",
   "headers": [
     {
@@ -44,7 +44,7 @@
   "rewrites": [
     {
       "source": "/((?!.*\\.[a-zA-Z0-9]+$).*)",
-      "destination": "/index.html"
+      "destination": "/app.html"
     }
   ]
 }

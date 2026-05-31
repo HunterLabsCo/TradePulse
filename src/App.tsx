@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { HelmetProvider } from "react-helmet-async";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -71,8 +72,9 @@ function PromoStatusChecker() {
 }
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <WalletProviderWrapper>
+  <HelmetProvider>
+    <QueryClientProvider client={queryClient}>
+      <WalletProviderWrapper>
       <TooltipProvider>
         <Toaster />
         <Sonner />
@@ -97,9 +99,10 @@ const App = () => (
           </Routes>
           <BottomNav />
         </BrowserRouter>
-      </TooltipProvider>
-    </WalletProviderWrapper>
-  </QueryClientProvider>
+        </TooltipProvider>
+      </WalletProviderWrapper>
+    </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

@@ -1,18 +1,17 @@
-import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
+import { Seo } from "@/components/Seo";
 
 export default function AboutPage() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    document.title = "About — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "TradePulse is built and run independently by TheVeinGhost — an active crypto trader from small-town Connecticut. Built by a trader, for traders.");
-  }, []);
-
   return (
     <MarketingLayout>
+      <Seo
+        path="/about"
+        title="About — TradePulse"
+        description="TradePulse is built and run independently by TheVeinGhost — an active crypto trader from small-town Connecticut. Built by a trader, for traders."
+      />
       <div className="mx-auto max-w-lg px-5 py-12">
         <h1 className="font-display text-3xl font-bold text-foreground mb-2">About TradePulse</h1>
         <p className="font-display text-lg text-primary mb-8">Built by a trader. For traders.</p>

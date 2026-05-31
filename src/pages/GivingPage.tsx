@@ -1,5 +1,5 @@
-import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
+import { Seo } from "@/components/Seo";
 
 const ORGS = [
   {
@@ -20,14 +20,13 @@ const ORGS = [
 ];
 
 export default function GivingPage() {
-  useEffect(() => {
-    document.title = "Giving Back — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "50% of every TradePulse Pro upgrade is donated to three Connecticut organizations. Every dollar tracked publicly.");
-  }, []);
-
   return (
     <MarketingLayout>
+      <Seo
+        path="/giving"
+        title="Giving Back — TradePulse"
+        description="50% of every TradePulse Pro upgrade is donated to three Connecticut organizations. Every dollar tracked publicly."
+      />
       <div className="mx-auto max-w-lg px-5 py-12">
         <h1 className="font-display text-3xl font-bold text-foreground mb-4">Giving Back</h1>
 

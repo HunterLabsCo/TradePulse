@@ -8,6 +8,7 @@ import {
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Logo } from "@/components/design/Logo";
+import { Seo } from "@/components/Seo";
 
 // ── Constants ────────────────────────────────────────────────────────
 const DEMO_DESKTOP_VIDEO_ID = "AsiAb6l3ZTw";
@@ -194,6 +195,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen" style={{ background: C.bg, color: C.text }}>
+      <Seo
+        path="/"
+        title="TradePulse — Never Lose a Trade to Bad Timing"
+        description="The voice-powered trade journal for active crypto traders. Log entries, exits, PnL, and mood across Solana, Ethereum, Base, Arbitrum, BNB, and Polygon in under 5 seconds. 20 free trades, no credit card."
+      />
 
       {/* ── Founding banner ─────────────────────────────── */}
       {showBanner && (

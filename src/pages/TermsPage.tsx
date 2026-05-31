@@ -1,15 +1,14 @@
-import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
+import { Seo } from "@/components/Seo";
 
 export default function TermsPage() {
-  useEffect(() => {
-    document.title = "Terms of Service — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "TradePulse Terms of Service. Review the terms governing your use of our voice-powered crypto trade journal.");
-  }, []);
-
   return (
     <MarketingLayout>
+      <Seo
+        path="/terms"
+        title="Terms of Service — TradePulse"
+        description="TradePulse Terms of Service. Review the terms governing your use of our voice-powered crypto trade journal."
+      />
       <div className="mx-auto max-w-lg px-5 py-12">
         <h1 className="font-display text-3xl font-bold text-foreground mb-2">Terms of Service</h1>
         <p className="font-body text-xs text-muted-foreground mb-1"><strong className="text-foreground">Last Updated:</strong> May 14, 2026</p>

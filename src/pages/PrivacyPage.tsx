@@ -1,15 +1,14 @@
-import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
+import { Seo } from "@/components/Seo";
 
 export default function PrivacyPage() {
-  useEffect(() => {
-    document.title = "Privacy Policy — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "TradePulse Privacy Policy. We don't collect emails, don't sell data, and free-tier trades never leave your device.");
-  }, []);
-
   return (
     <MarketingLayout>
+      <Seo
+        path="/privacy"
+        title="Privacy Policy — TradePulse"
+        description="TradePulse Privacy Policy. We don't collect emails, don't sell data, and free-tier trades never leave your device."
+      />
       <div className="mx-auto max-w-lg px-5 py-12">
         <h1 className="font-display text-3xl font-bold text-foreground mb-2">Privacy Policy</h1>
         <p className="font-body text-xs text-muted-foreground mb-1"><strong className="text-foreground">Last Updated:</strong> May 14, 2026</p>

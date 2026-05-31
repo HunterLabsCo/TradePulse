@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
+import { setPageMeta } from "@/lib/page-meta";
 
 const ORGS = [
   {
@@ -21,9 +22,11 @@ const ORGS = [
 
 export default function GivingPage() {
   useEffect(() => {
-    document.title = "Giving Back — TradePulse";
-    const desc = document.querySelector('meta[name="description"]');
-    if (desc) desc.setAttribute("content", "50% of every TradePulse Pro upgrade is donated to three Connecticut organizations. Every dollar tracked publicly.");
+    setPageMeta({
+      title: "Giving Back — TradePulse",
+      description: "50% of every TradePulse Pro upgrade is donated to three Connecticut organizations. Every dollar tracked publicly.",
+      path: "/giving",
+    });
   }, []);
 
   return (

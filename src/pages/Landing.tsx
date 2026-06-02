@@ -170,7 +170,7 @@ export default function Landing() {
   useEffect(() => {
     setPageMeta({
       title: "TradePulse — Never Lose a Trade to Bad Timing",
-      description: "The voice-powered trade journal for active crypto traders. Log entries, exits, PnL, and mood across Solana, Ethereum, Base, Arbitrum, BNB, and Polygon in under 5 seconds. 20 free trades, no credit card.",
+      description: "Voice-powered crypto trade journal. Log entries, exits, PnL, and mood across Solana, Ethereum, Base, and more in under 5 seconds. 20 free trades, no card.",
       path: "/",
     });
   }, []);

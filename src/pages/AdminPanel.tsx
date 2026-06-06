@@ -168,9 +168,9 @@ function SubscribersTab({ secret }: { secret: string }) {
   }
 
   async function resetPromoPassword(username: string) {
-    const newPass = prompt(`New password for "${username}" (min 6 chars):`);
-    if (!newPass || newPass.length < 6) {
-      if (newPass !== null) toast.error("Password must be at least 6 characters.");
+    const newPass = prompt(`New password for "${username}" (min 12 chars):`);
+    if (!newPass || newPass.length < 12) {
+      if (newPass !== null) toast.error("Password must be at least 12 characters.");
       return;
     }
     setPromoAction(username);
@@ -236,7 +236,7 @@ function SubscribersTab({ secret }: { secret: string }) {
           <div className="relative">
             <input
               type={showNewPassword ? "text" : "password"}
-              placeholder="Password (min 6 chars)"
+              placeholder="Password (min 12 chars)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary pr-16"
@@ -252,7 +252,7 @@ function SubscribersTab({ secret }: { secret: string }) {
           </div>
           <button
             type="submit"
-            disabled={addingPromo || !newUsername.trim() || newPassword.length < 6}
+            disabled={addingPromo || !newUsername.trim() || newPassword.length < 12}
             className="w-full rounded-xl bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
           >
             {addingPromo ? "Creating…" : "Create Promo Account"}

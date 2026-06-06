@@ -55,16 +55,30 @@ function PromoStatusChecker() {
 
   useEffect(() => {
     if (!promoSession) return;
-    supabase.functions
-      .invoke("promo-auth", { body: { action: "verify", token: promoSession } })
-      .then(({ data, error }) => {
-        if (error || !data?.valid) {
-          promoLogout();
-        } else {
-          setIsPro(true);
-        }
-      })
-      .catch(() => promoLogout());
+
+    const verify = () => {
+      supabase.functions
+        .invoke("promo-auth", { body: { action: "verify", token: promoSession } })
+        .then(({ data, error }) => {
+          // Only act on a definitive response. A transient error (network/5xx)
+          // must NOT log the user out — re-check on the next interval instead.
+          if (error || !data) return;
+          if (data.valid) {
+            setIsPro(true);
+          } else {
+            promoLogout();
+          }
+        })
+        .catch(() => {
+          /* transient failure — keep the session and retry next interval */
+        });
+    };
+
+    verify();
+    // Re-verify periodically so an expired or revoked token can't stay valid
+    // client-side while the app is left open for days.
+    const interval = setInterval(verify, 6 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [promoSession, setIsPro, promoLogout]);
 
   return null;

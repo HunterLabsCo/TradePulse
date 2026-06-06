@@ -22,6 +22,8 @@ export function createVoiceRecorder(options: {
   let recognition: any = null;
   let silenceTimer: ReturnType<typeof setTimeout> | null = null;
   let stopped = false;
+  let lastStartAt = 0;
+  let quickEndCount = 0;
 
   const clearSilenceTimer = () => {
     if (silenceTimer) {
@@ -75,6 +77,7 @@ export function createVoiceRecorder(options: {
           }
         }
         if (text.trim()) {
+          quickEndCount = 0;
           options.onText(text.trim());
           resetSilenceTimer();
         }
@@ -93,11 +96,24 @@ export function createVoiceRecorder(options: {
 
       recognition.onend = () => {
         // Restart if not manually stopped (browser may auto-stop)
-        if (!stopped && recognition) {
-          try { recognition.start(); } catch { stop(); }
+        if (stopped || !recognition) return;
+        // If recognition keeps ending immediately after starting, it isn't
+        // actually running (e.g. mic unavailable, no silence timer to halt it) —
+        // bail out instead of spinning in a tight restart loop.
+        if (Date.now() - lastStartAt < 1000) {
+          quickEndCount++;
+          if (quickEndCount >= 5) {
+            options.onError?.("Microphone unavailable — recording stopped.");
+            stop();
+            return;
+          }
+        } else {
+          quickEndCount = 0;
         }
+        try { lastStartAt = Date.now(); recognition.start(); } catch { stop(); }
       };
 
+      lastStartAt = Date.now();
       recognition.start();
       resetSilenceTimer();
     } catch (err: any) {

@@ -2,6 +2,19 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
+// Price is enforced SERVER-SIDE. The client-supplied amount is never trusted as
+// the verification target — otherwise a caller could claim a sub-cent price and
+// unlock Pro for ~$0.
+const LIFETIME_PRICE_USD = 99;
+// Allow a tiny shortfall under $99 to absorb wallet/rounding dust.
+const USDC_MIN = 98.9;
+// 2% slack on the SOL requirement to absorb price drift between quote and confirm.
+const SOL_TOLERANCE = 0.02;
+// Conservative fallback if the price feed is unreachable. Deliberately a LOW
+// price estimate so the required SOL amount errs HIGH (never underpaid).
+// Revisit if SOL trades durably below this.
+const SOL_PRICE_FALLBACK_USD = 120;
+
 const ALLOWED_ORIGINS = [
   "https://tradepulseapp.io",
   "https://www.tradepulseapp.io",
@@ -26,6 +39,27 @@ function isValidSolanaAddress(addr: string): boolean {
   return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
 }
 
+// Same source the client uses (subscription-utils.ts). On failure we fall back
+// to a conservative low price so the required SOL amount cannot be undercut.
+async function fetchSolPriceUsd(): Promise<number> {
+  try {
+    const res = await fetch(
+      "https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd"
+    );
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const price = data?.solana?.usd;
+    if (typeof price !== "number" || price <= 0) throw new Error("Invalid price data");
+    return price;
+  } catch (err) {
+    console.warn(
+      "CoinGecko price fetch failed, using fallback:",
+      err instanceof Error ? err.message : err
+    );
+    return SOL_PRICE_FALLBACK_USD;
+  }
+}
+
 function json(hdrs: Record<string, string>, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -45,10 +79,12 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { txSignature, walletAddress, walletType, paymentCurrency, expectedAmount } =
+    // expectedAmount is intentionally ignored for verification — the required
+    // price is enforced server-side below. It is read only for telemetry.
+    const { txSignature, walletAddress, walletType, paymentCurrency } =
       await req.json();
 
-    if (!txSignature || !walletAddress || !paymentCurrency || !expectedAmount) {
+    if (!txSignature || !walletAddress || !paymentCurrency) {
       return json(hdrs, { success: false, error: "Missing required parameters" }, 400);
     }
 
@@ -58,10 +94,6 @@ Deno.serve(async (req) => {
 
     if (!["SOL", "USDC"].includes(paymentCurrency)) {
       return json(hdrs, { success: false, error: "Invalid payment currency" }, 400);
-    }
-
-    if (typeof expectedAmount !== "number" || expectedAmount <= 0) {
-      return json(hdrs, { success: false, error: "Invalid expected amount" }, 400);
     }
 
     const heliusApiKey = Deno.env.get("HELIUS_API_KEY");
@@ -134,34 +166,35 @@ Deno.serve(async (req) => {
     }
 
     let verified = false;
+    let amountReceived = 0;
 
     if (paymentCurrency === "SOL") {
+      const solPrice = await fetchSolPriceUsd();
+      const requiredSol = (LIFETIME_PRICE_USD / solPrice) * (1 - SOL_TOLERANCE);
       const nativeTransfers: any[] = tx.nativeTransfers ?? [];
       for (const transfer of nativeTransfers) {
         if (transfer.toUserAccount !== receivingWallet) continue;
         const solReceived = transfer.amount / 1e9;
-        const tolerance = expectedAmount * 0.001;
-        if (Math.abs(solReceived - expectedAmount) <= tolerance) {
+        if (solReceived >= requiredSol) {
+          amountReceived = solReceived;
           verified = true;
           break;
         }
       }
-      if (!verified) console.warn("SOL payment verification failed");
+      if (!verified) console.warn("SOL payment verification failed (required >= ", requiredSol, " SOL)");
     } else if (paymentCurrency === "USDC") {
       const tokenTransfers: any[] = tx.tokenTransfers ?? [];
       for (const transfer of tokenTransfers) {
         if (transfer.mint !== USDC_MINT) continue;
         if (transfer.toUserAccount !== receivingWallet) continue;
         const usdcReceived = Number(transfer.tokenAmount);
-        // Same tolerance approach as SOL — validates against the server-received
-        // expectedAmount rather than a hardcoded floor
-        const tolerance = expectedAmount * 0.001;
-        if (Math.abs(usdcReceived - expectedAmount) <= tolerance) {
+        if (!isNaN(usdcReceived) && usdcReceived >= USDC_MIN) {
+          amountReceived = usdcReceived;
           verified = true;
           break;
         }
       }
-      if (!verified) console.warn("USDC payment verification failed");
+      if (!verified) console.warn("USDC payment verification failed (required >= ", USDC_MIN, " USDC)");
     }
 
     const { error: dbError } = await supabaseAdmin
@@ -172,7 +205,7 @@ Deno.serve(async (req) => {
           wallet_type: walletType,
           plan: "lifetime",
           payment_currency: paymentCurrency,
-          amount_paid: expectedAmount,
+          amount_paid: amountReceived,
           transaction_signature: txSignature,
           verified,
         },

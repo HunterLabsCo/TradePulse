@@ -10,8 +10,14 @@ export async function checkProStatus(walletAddress: string): Promise<{
     body: { walletAddress },
   });
 
-  if (error || !data) {
-    return { isPro: false, txSignature: null };
+  // A transient failure (network error, 429 rate-limit, 5xx) must NOT be read as
+  // "not pro" — that would silently downgrade a paying user mid-session. Throw so
+  // the caller can keep the last-known status instead of forcing isPro=false.
+  if (error) {
+    throw error;
+  }
+  if (!data) {
+    throw new Error("check-pro-status returned no data");
   }
 
   return {

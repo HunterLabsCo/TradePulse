@@ -100,7 +100,7 @@ export default function SettingsPage() {
     if (!promoSession) return;
     if (!currentPw || !newPw || !confirmPw) { toast.error("Fill in all password fields."); return; }
     if (newPw !== confirmPw) { toast.error("New passwords don't match."); return; }
-    if (newPw.length < 6) { toast.error("Password must be at least 6 characters."); return; }
+    if (newPw.length < 12) { toast.error("Password must be at least 12 characters."); return; }
     setSavingPw(true);
     try {
       const { data, error } = await supabase.functions.invoke("promo-auth", {

@@ -48,6 +48,36 @@ async function hashPassword(password: string): Promise<string> {
   return await argon2Hash(password, { memoryCost: 65536, timeCost: 3, parallelism: 1 });
 }
 
+// Brute-force throttle: block an IP after too many failed auth attempts.
+const FAILED_LIMIT = 10;
+const FAILED_WINDOW_S = 900; // 15 minutes
+
+function clientIp(req: Request): string {
+  const forwarded = req.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0].trim();
+  return req.headers.get("x-real-ip") ?? "unknown";
+}
+
+async function tooManyFailures(db: any, ip: string): Promise<boolean> {
+  const windowStart = new Date(Date.now() - FAILED_WINDOW_S * 1000).toISOString();
+  const { count } = await db
+    .from("admin_action_log")
+    .select("*", { count: "exact", head: true })
+    .eq("ip_address", ip)
+    .eq("authorized", false)
+    .gte("created_at", windowStart);
+  return (count ?? 0) >= FAILED_LIMIT;
+}
+
+async function logAdminAttempt(db: any, ip: string, action: string | null, authorized: boolean) {
+  // Audit logging must never break the request path.
+  try {
+    await db.from("admin_action_log").insert({ ip_address: ip, action, authorized });
+  } catch (e) {
+    console.error("admin audit log failed:", e instanceof Error ? e.message : e);
+  }
+}
+
 function json(hdrs: Record<string, string>, body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -71,18 +101,25 @@ Deno.serve(async (req) => {
     return json(hdrs, { success: false, error: "Admin not configured" }, 500);
   }
 
-  const providedSecret = req.headers.get("x-admin-secret") ?? "";
-  if (!await timingSafeStringEqual(providedSecret, adminSecret)) {
-    return json(hdrs, { success: false, error: "Unauthorized" }, 401);
-  }
-
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const db = createClient(supabaseUrl, supabaseServiceKey);
+  const ip = clientIp(req);
+
+  if (await tooManyFailures(db, ip)) {
+    return json(hdrs, { success: false, error: "Too many attempts" }, 429);
+  }
+
+  const providedSecret = req.headers.get("x-admin-secret") ?? "";
+  if (!await timingSafeStringEqual(providedSecret, adminSecret)) {
+    await logAdminAttempt(db, ip, null, false);
+    return json(hdrs, { success: false, error: "Unauthorized" }, 401);
+  }
 
   try {
     const body = await req.json();
     const { action } = body;
+    await logAdminAttempt(db, ip, typeof action === "string" ? action : null, true);
 
     // ── Subscribers ──────────────────────────────────────────────────────────
 

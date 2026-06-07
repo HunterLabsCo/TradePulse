@@ -1,1 +1,7 @@
 project_id = "qfdcqloylrofyeyedekk"
+
+[functions.parse-trade-transcript]
+verify_jwt = true
+
+[functions.elevenlabs-scribe-token]
+verify_jwt = true

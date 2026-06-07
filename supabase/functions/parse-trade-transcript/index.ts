@@ -44,42 +44,6 @@ function corsHeaders(req: Request): Record<string, string> | null {
   };
 }
 
-async function validateJWT(req: Request): Promise<boolean> {
-  const auth = req.headers.get("Authorization");
-  if (!auth?.startsWith("Bearer ")) return false;
-  const token = auth.slice(7);
-  const jwtSecret = Deno.env.get("SUPABASE_JWT_SECRET");
-  if (!jwtSecret) return false;
-  try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return false;
-    const key = await crypto.subtle.importKey(
-      "raw",
-      new TextEncoder().encode(jwtSecret),
-      { name: "HMAC", hash: "SHA-256" },
-      false,
-      ["verify"]
-    );
-    const sig = Uint8Array.from(
-      atob(parts[2].replace(/-/g, "+").replace(/_/g, "/")),
-      (c) => c.charCodeAt(0)
-    );
-    const valid = await crypto.subtle.verify(
-      "HMAC", key, sig,
-      new TextEncoder().encode(`${parts[0]}.${parts[1]}`)
-    );
-    if (!valid) return false;
-    // Validate expiration and issuer from the decoded payload
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")));
-    const now = Math.floor(Date.now() / 1000);
-    if (typeof payload.exp === "number" && payload.exp < now) return false;
-    if (payload.iss && payload.iss !== "supabase") return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 const SYSTEM_PROMPT = `You are a trade journal parser for crypto/memecoin traders. Given a raw voice transcript from a trader logging a trade entry, extract structured data using the parse_trade_entry tool.
 
 Rules:
@@ -177,13 +141,6 @@ serve(async (req) => {
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: hdrs });
-  }
-
-  if (!await validateJWT(req)) {
-    return new Response(JSON.stringify({ error: "Unauthorized" }), {
-      status: 401,
-      headers: { ...hdrs, "Content-Type": "application/json" },
-    });
   }
 
   try {

@@ -1,11 +1,9 @@
-import { Download, Trash2, Check, MessageSquare, Share2, Eye, EyeOff } from "lucide-react";
+import { Download, Trash2, Check, MessageSquare, Share2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { truncateAddress, FREE_TRADE_LIMIT } from "@/lib/subscription-utils";
 import { useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
@@ -27,7 +25,7 @@ export default function SettingsPage() {
   const trades = useTradeStore((s) => s.trades);
   const deleteAllTrades = useTradeStore((s) => s.deleteAllTrades);
   const getNonDemoTradeCount = useTradeStore((s) => s.getNonDemoTradeCount);
-  const { isPro, txSignature, promoSession, promoUsername, setPromoSession, promoLogout, connectedWallet } = useSubscriptionStore();
+  const { isPro, txSignature, connectedWallet } = useSubscriptionStore();
 
   // Settings toggles — backed by localStorage
   const [autoParse, setAutoParse] = useState(() => localStorage.getItem("tp_auto_parse") !== "false");
@@ -42,17 +40,10 @@ export default function SettingsPage() {
   }
 
   const [defaultChain, setDefaultChain] = useState("SOL");
-  const [currentPw, setCurrentPw] = useState("");
-  const [newPw, setNewPw] = useState("");
-  const [confirmPw, setConfirmPw] = useState("");
-  const [pwVisible, setPwVisible] = useState(false);
-  const [savingPw, setSavingPw] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
 
   const nonDemoCount = getNonDemoTradeCount();
-  const initials = promoUsername
-    ? promoUsername.slice(0, 2).toUpperCase()
-    : connectedWallet
+  const initials = connectedWallet
     ? connectedWallet.slice(0, 2).toUpperCase()
     : "DG";
 
@@ -96,27 +87,6 @@ export default function SettingsPage() {
       setTimeout(() => setShareCopied(false), 2000);
     }
   }
-  async function handleChangePassword() {
-    if (!promoSession) return;
-    if (!currentPw || !newPw || !confirmPw) { toast.error("Fill in all password fields."); return; }
-    if (newPw !== confirmPw) { toast.error("New passwords don't match."); return; }
-    if (newPw.length < 12) { toast.error("Password must be at least 12 characters."); return; }
-    setSavingPw(true);
-    try {
-      const { data, error } = await supabase.functions.invoke("promo-auth", {
-        body: { action: "change_password", token: promoSession, oldPassword: currentPw, newPassword: newPw },
-      });
-      if (error || !data?.success) { toast.error(data?.error || "Failed to change password."); return; }
-      setPromoSession(data.token, promoUsername || "");
-      setCurrentPw(""); setNewPw(""); setConfirmPw("");
-      toast.success("Password changed.");
-    } catch {
-      toast.error("Failed to change password.");
-    } finally {
-      setSavingPw(false);
-    }
-  }
-
   // ── Row helpers ──────────────────────────────────────────────────
   function ActionRow({ label, sublabel, actionLabel, onClick }: {
     label: string; sublabel?: string; actionLabel: string; onClick: () => void;
@@ -183,7 +153,7 @@ export default function SettingsPage() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-sans text-[16px] font-medium text-[#d8e0d2] tracking-[-0.01em] truncate">
-                {promoUsername ?? (connectedWallet ? shortenWallet(connectedWallet) : "Anon Trader")}
+                {connectedWallet ? shortenWallet(connectedWallet) : "Anon Trader"}
               </p>
               <p className="font-mono text-[10.5px] text-[#7a8a75] mt-0.5">
                 {connectedWallet ? `SOL · ${shortenWallet(connectedWallet)}` : "no wallet connected"}
@@ -315,61 +285,6 @@ export default function SettingsPage() {
               actionLabel={shareCopied ? "copied!" : "share →"}
               onClick={shareApp}
             />
-
-            {/* Promo password change */}
-            {promoSession && (
-              <div className="py-[14px] border-b border-[#222a25] space-y-2">
-                <p className="font-sans text-[14.5px] text-[#d8e0d2]">
-                  Change password
-                  {promoUsername && (
-                    <span className="ml-2 font-mono text-[10px] text-[#7a8a75]">({promoUsername})</span>
-                  )}
-                </p>
-                <div className="relative">
-                  <input
-                    type={pwVisible ? "text" : "password"}
-                    value={currentPw}
-                    onChange={(e) => setCurrentPw(e.target.value)}
-                    placeholder="Current password"
-                    className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 pr-10 outline-none focus:border-[#8ec2dd] placeholder:text-[#7a8a75]"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPwVisible((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7a8a75]"
-                  >
-                    {pwVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <input
-                  type={pwVisible ? "text" : "password"}
-                  value={newPw}
-                  onChange={(e) => setNewPw(e.target.value)}
-                  placeholder="New password"
-                  className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd] placeholder:text-[#7a8a75]"
-                />
-                <input
-                  type={pwVisible ? "text" : "password"}
-                  value={confirmPw}
-                  onChange={(e) => setConfirmPw(e.target.value)}
-                  placeholder="Confirm new password"
-                  className="w-full font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] rounded-[4px] px-3 py-2 outline-none focus:border-[#8ec2dd] placeholder:text-[#7a8a75]"
-                />
-                <button
-                  onClick={handleChangePassword}
-                  disabled={savingPw || !currentPw || !newPw || !confirmPw}
-                  className="w-full bg-[#8ec2dd] text-[#0e1311] py-2 rounded-[4px] font-sans text-[13px] font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {savingPw ? "Saving…" : "Save password"}
-                </button>
-                <button
-                  onClick={promoLogout}
-                  className="w-full text-center font-mono text-[11px] text-[#7a8a75] hover:text-[#d8e0d2] transition-colors py-1"
-                >
-                  Sign out of promo account
-                </button>
-              </div>
-            )}
 
             {/* Delete all */}
             <AlertDialog>

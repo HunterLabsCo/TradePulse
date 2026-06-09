@@ -1,14 +1,13 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProviderWrapper } from "@/components/WalletProvider";
 import { BottomNav } from "@/components/BottomNav";
-import { useEffect, type ReactNode } from "react";
+import { useEffect } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
-import { supabase } from "@/integrations/supabase/client";
 import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import NewTrade from "./pages/NewTrade";
@@ -43,47 +42,6 @@ function ProStatusChecker() {
   return null;
 }
 
-// Blocks promo-session users from reaching the admin panel
-function AdminGuard({ children }: { children: ReactNode }) {
-  const promoSession = useSubscriptionStore((s) => s.promoSession);
-  if (promoSession) return <Navigate to="/app" replace />;
-  return <>{children}</>;
-}
-
-function PromoStatusChecker() {
-  const { promoSession, setIsPro, promoLogout } = useSubscriptionStore();
-
-  useEffect(() => {
-    if (!promoSession) return;
-
-    const verify = () => {
-      supabase.functions
-        .invoke("promo-auth", { body: { action: "verify", token: promoSession } })
-        .then(({ data, error }) => {
-          // Only act on a definitive response. A transient error (network/5xx)
-          // must NOT log the user out — re-check on the next interval instead.
-          if (error || !data) return;
-          if (data.valid) {
-            setIsPro(true);
-          } else {
-            promoLogout();
-          }
-        })
-        .catch(() => {
-          /* transient failure — keep the session and retry next interval */
-        });
-    };
-
-    verify();
-    // Re-verify periodically so an expired or revoked token can't stay valid
-    // client-side while the app is left open for days.
-    const interval = setInterval(verify, 6 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [promoSession, setIsPro, promoLogout]);
-
-  return null;
-}
-
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <WalletProviderWrapper>
@@ -92,7 +50,6 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ProStatusChecker />
-          <PromoStatusChecker />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/app" element={<Index />} />
@@ -102,7 +59,7 @@ const App = () => (
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="/upgrade" element={<Upgrade />} />
             <Route path="/upgrade/success" element={<UpgradeSuccess />} />
-            <Route path="/admin" element={<AdminGuard><AdminPanel /></AdminGuard>} />
+            <Route path="/admin" element={<AdminPanel />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/about" element={<AboutPage />} />

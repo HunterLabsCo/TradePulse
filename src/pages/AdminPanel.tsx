@@ -58,11 +58,11 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+    <div className="flex min-h-screen items-center justify-center bg-[#0e1311] px-6">
       <div className="w-full max-w-sm space-y-6">
         <div className="text-center">
-          <div className="text-2xl font-bold text-foreground">Admin</div>
-          <div className="mt-1 text-sm text-muted-foreground">TradePulse control panel</div>
+          <div className="text-2xl font-bold font-display text-[#d8e0d2]">Admin</div>
+          <div className="mt-1 text-sm text-[#7a8a75]">TradePulse control panel</div>
         </div>
         <form onSubmit={handleSubmit} className="space-y-3">
           <input
@@ -70,13 +70,13 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
             placeholder="Admin password"
             value={value}
             onChange={(e) => setValue(e.target.value)}
-            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl border border-[#222a25] bg-[#161c19] px-4 py-3 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd]"
             autoFocus
           />
           <button
             type="submit"
             disabled={loading || !value.trim()}
-            className="w-full rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="w-full rounded-xl bg-[#8ec2dd] py-3 text-sm font-semibold text-[#0e1311] disabled:opacity-50"
           >
             {loading ? "Checking…" : "Enter"}
           </button>
@@ -221,16 +221,16 @@ function SubscribersTab({ secret }: { secret: string }) {
     <div className="space-y-6">
       {/* ── Promo Accounts ──────────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="text-xs font-medium text-primary uppercase tracking-wider">Promo Accounts</div>
+        <div className="text-xs font-medium font-display text-[#8ec2dd] uppercase tracking-wider">Promo Accounts</div>
 
         {/* Create promo user form */}
-        <form onSubmit={createPromoUser} className="rounded-2xl border border-dashed border-primary/30 bg-primary/5 p-4 space-y-3">
+        <form onSubmit={createPromoUser} className="rounded-2xl border border-dashed border-[#8ec2dd]/30 bg-[#8ec2dd]/5 p-4 space-y-3">
           <input
             type="text"
             placeholder="Username"
             value={newUsername}
             onChange={(e) => setNewUsername(e.target.value)}
-            className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="w-full rounded-xl border border-[#222a25] bg-[#0e1311] px-3 py-2 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd]"
             autoComplete="off"
           />
           <div className="relative">
@@ -239,13 +239,13 @@ function SubscribersTab({ secret }: { secret: string }) {
               placeholder="Password (min 12 chars)"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary pr-16"
+              className="w-full rounded-xl border border-[#222a25] bg-[#0e1311] px-3 py-2 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd] pr-16"
               autoComplete="new-password"
             />
             <button
               type="button"
               onClick={() => setShowNewPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-muted-foreground hover:text-foreground"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#7a8a75] hover:text-[#d8e0d2]"
             >
               {showNewPassword ? "Hide" : "Show"}
             </button>
@@ -253,7 +253,7 @@ function SubscribersTab({ secret }: { secret: string }) {
           <button
             type="submit"
             disabled={addingPromo || !newUsername.trim() || newPassword.length < 12}
-            className="w-full rounded-xl bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+            className="w-full rounded-xl bg-[#8ec2dd] py-2 text-sm font-semibold text-[#0e1311] disabled:opacity-50"
           >
             {addingPromo ? "Creating…" : "Create Promo Account"}
           </button>
@@ -261,31 +261,31 @@ function SubscribersTab({ secret }: { secret: string }) {
 
         {/* Promo users list */}
         {promoLoading ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">Loading…</div>
+          <div className="py-4 text-center text-sm text-[#7a8a75]">Loading…</div>
         ) : promoUsers.length === 0 ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">No promo accounts yet.</div>
+          <div className="py-4 text-center text-sm text-[#7a8a75]">No promo accounts yet.</div>
         ) : (
           <div className="space-y-2">
             {promoUsers.map((u) => (
-              <div key={u.id} className="rounded-2xl border border-border bg-card p-3 flex items-center justify-between gap-3">
+              <div key={u.id} className="rounded-2xl border border-[#222a25] bg-[#161c19] p-3 flex items-center justify-between gap-3">
                 <div>
-                  <div className="font-mono text-sm text-foreground">{u.username}</div>
+                  <div className="font-mono text-sm text-[#d8e0d2]">{u.username}</div>
                   {u.created_at && (
-                    <div className="text-[11px] text-muted-foreground">{new Date(u.created_at).toLocaleDateString()}</div>
+                    <div className="text-[11px] text-[#7a8a75]">{new Date(u.created_at).toLocaleDateString()}</div>
                   )}
                 </div>
                 <div className="flex gap-2">
                   <button
                     disabled={promoAction === u.username}
                     onClick={() => resetPromoPassword(u.username)}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium border border-border bg-card text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium border border-[#222a25] bg-[#161c19] text-[#7a8a75] hover:text-[#d8e0d2] disabled:opacity-50"
                   >
                     Reset PW
                   </button>
                   <button
                     disabled={promoAction === u.username}
                     onClick={() => deletePromoUser(u.username)}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 disabled:opacity-50"
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium bg-[#e89a8a]/10 border border-[#e89a8a]/20 text-[#e89a8a] hover:bg-[#e89a8a]/20 disabled:opacity-50"
                   >
                     Delete
                   </button>
@@ -298,51 +298,51 @@ function SubscribersTab({ secret }: { secret: string }) {
 
       {/* ── Wallet Subscribers ───────────────────────────────────────────────── */}
       <div className="space-y-3">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Wallet Subscribers</div>
+        <div className="text-xs font-medium font-display text-[#7a8a75] uppercase tracking-wider">Wallet Subscribers</div>
         <div className="flex items-center gap-3">
           <input
             type="text"
             placeholder="Search wallet…"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="flex-1 rounded-xl border border-[#222a25] bg-[#161c19] px-4 py-2.5 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd]"
           />
           <button
             onClick={loadSubscribers}
-            className="rounded-xl border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground"
+            className="rounded-xl border border-[#222a25] bg-[#161c19] px-4 py-2.5 text-sm text-[#7a8a75] hover:text-[#d8e0d2]"
           >
             Refresh
           </button>
         </div>
 
         {subsLoading ? (
-          <div className="py-4 text-center text-sm text-muted-foreground">Loading…</div>
+          <div className="py-4 text-center text-sm text-[#7a8a75]">Loading…</div>
         ) : (
           <>
-            <div className="text-xs text-muted-foreground">{filtered.length} subscriber{filtered.length !== 1 ? "s" : ""}</div>
+            <div className="text-xs text-[#7a8a75]">{filtered.length} subscriber{filtered.length !== 1 ? "s" : ""}</div>
             <div className="space-y-2">
               {filtered.length === 0 && (
-                <div className="py-8 text-center text-sm text-muted-foreground">No results.</div>
+                <div className="py-8 text-center text-sm text-[#7a8a75]">No results.</div>
               )}
               {filtered.map((s) => (
                 <div
                   key={s.id}
                   className={`rounded-2xl border p-4 space-y-3 ${
-                    s.banned ? "border-red-500/40 bg-red-500/5" : "border-border bg-card"
+                    s.banned ? "border-[#e89a8a]/40 bg-[#e89a8a]/5" : "border-[#222a25] bg-[#161c19]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs text-foreground break-all">{s.wallet_address}</span>
+                        <span className="font-mono text-xs text-[#d8e0d2] break-all">{s.wallet_address}</span>
                         {s.verified && (
-                          <span className="rounded-full bg-primary/20 px-2 py-0.5 text-[10px] font-semibold text-primary">PRO</span>
+                          <span className="rounded-full bg-[#8ec2dd]/20 px-2 py-0.5 text-[10px] font-semibold text-[#8ec2dd]">PRO</span>
                         )}
                         {s.banned && (
-                          <span className="rounded-full bg-red-500/20 px-2 py-0.5 text-[10px] font-semibold text-red-400">BANNED</span>
+                          <span className="rounded-full bg-[#e89a8a]/20 px-2 py-0.5 text-[10px] font-semibold text-[#e89a8a]">BANNED</span>
                         )}
                       </div>
-                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-[#7a8a75]">
                         {s.wallet_type && <span>{s.wallet_type}</span>}
                         {s.payment_currency && <span>{s.amount_paid} {s.payment_currency}</span>}
                         {s.created_at && <span>{new Date(s.created_at).toLocaleDateString()}</span>}
@@ -354,7 +354,7 @@ function SubscribersTab({ secret }: { secret: string }) {
                       disabled={updating === s.wallet_address}
                       onClick={() => patch(s.wallet_address, { verified: !s.verified })}
                       className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                        s.verified ? "bg-primary/15 text-primary hover:bg-primary/25" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+                        s.verified ? "bg-[#8ec2dd]/15 text-[#8ec2dd] hover:bg-[#8ec2dd]/25" : "bg-[#161c19] border border-[#222a25] text-[#7a8a75] hover:text-[#d8e0d2]"
                       }`}
                     >
                       {s.verified ? "Revoke Pro" : "Grant Pro"}
@@ -363,7 +363,7 @@ function SubscribersTab({ secret }: { secret: string }) {
                       disabled={updating === s.wallet_address}
                       onClick={() => patch(s.wallet_address, { banned: !s.banned })}
                       className={`rounded-lg px-3 py-1.5 text-xs font-medium transition-colors disabled:opacity-50 ${
-                        s.banned ? "bg-card border border-border text-muted-foreground hover:text-foreground" : "bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20"
+                        s.banned ? "bg-[#161c19] border border-[#222a25] text-[#7a8a75] hover:text-[#d8e0d2]" : "bg-[#e89a8a]/10 border border-[#e89a8a]/20 text-[#e89a8a] hover:bg-[#e89a8a]/20"
                       }`}
                     >
                       {s.banned ? "Unban" : "Ban"}
@@ -371,7 +371,7 @@ function SubscribersTab({ secret }: { secret: string }) {
                     <button
                       disabled={updating === s.wallet_address}
                       onClick={() => removeSubscriber(s.wallet_address)}
-                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-muted-foreground border border-border bg-card hover:text-red-400 hover:border-red-500/30 transition-colors disabled:opacity-50"
+                      className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#7a8a75] border border-[#222a25] bg-[#161c19] hover:text-[#e89a8a] hover:border-[#e89a8a]/30 transition-colors disabled:opacity-50"
                     >
                       Remove
                     </button>
@@ -380,7 +380,7 @@ function SubscribersTab({ secret }: { secret: string }) {
                         href={`https://solscan.io/tx/${s.transaction_signature}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground"
+                        className="rounded-lg border border-[#222a25] bg-[#161c19] px-3 py-1.5 text-xs font-medium text-[#7a8a75] hover:text-[#d8e0d2]"
                       >
                         View Tx
                       </a>
@@ -468,25 +468,25 @@ function FlagsTab({ secret }: { secret: string }) {
   }
 
   if (loading) {
-    return <div className="py-12 text-center text-sm text-muted-foreground">Loading…</div>;
+    return <div className="py-12 text-center text-sm text-[#7a8a75]">Loading…</div>;
   }
 
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         {flags.map((f) => (
-          <div key={f.key} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-4">
+          <div key={f.key} className="flex items-center gap-3 rounded-2xl border border-[#222a25] bg-[#161c19] p-4">
             <div className="flex-1 min-w-0">
-              <div className="font-mono text-sm text-foreground">{f.key}</div>
+              <div className="font-mono text-sm text-[#d8e0d2]">{f.key}</div>
               {f.description && (
-                <div className="mt-0.5 text-xs text-muted-foreground">{f.description}</div>
+                <div className="mt-0.5 text-xs text-[#7a8a75]">{f.description}</div>
               )}
             </div>
             <button
               disabled={toggling === f.key}
               onClick={() => toggle(f.key, f.enabled)}
               className={`relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors disabled:opacity-50 ${
-                f.enabled ? "bg-primary" : "bg-muted"
+                f.enabled ? "bg-[#8ec2dd]" : "bg-[#222a25]"
               }`}
             >
               <span
@@ -497,7 +497,7 @@ function FlagsTab({ secret }: { secret: string }) {
             </button>
             <button
               onClick={() => deleteFlag(f.key)}
-              className="ml-1 text-xs text-muted-foreground hover:text-red-400"
+              className="ml-1 text-xs text-[#7a8a75] hover:text-[#e89a8a]"
             >
               ✕
             </button>
@@ -506,26 +506,26 @@ function FlagsTab({ secret }: { secret: string }) {
       </div>
 
       {/* Add new flag */}
-      <form onSubmit={addFlag} className="rounded-2xl border border-dashed border-border p-4 space-y-3">
-        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Add flag</div>
+      <form onSubmit={addFlag} className="rounded-2xl border border-dashed border-[#222a25] p-4 space-y-3">
+        <div className="text-xs font-medium font-display text-[#7a8a75] uppercase tracking-wider">Add flag</div>
         <input
           type="text"
           placeholder="flag_key"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2 font-mono text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-xl border border-[#222a25] bg-[#0e1311] px-3 py-2 font-mono text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd]"
         />
         <input
           type="text"
           placeholder="Description (optional)"
           value={newDesc}
           onChange={(e) => setNewDesc(e.target.value)}
-          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full rounded-xl border border-[#222a25] bg-[#0e1311] px-3 py-2 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd]"
         />
         <button
           type="submit"
           disabled={adding || !newKey.trim()}
-          className="w-full rounded-xl bg-primary py-2 text-sm font-semibold text-primary-foreground disabled:opacity-50"
+          className="w-full rounded-xl bg-[#8ec2dd] py-2 text-sm font-semibold text-[#0e1311] disabled:opacity-50"
         >
           {adding ? "Adding…" : "Add Flag"}
         </button>
@@ -547,17 +547,17 @@ export default function AdminPanel() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-[#0e1311]">
       {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur-md pt-safe-top">
+      <header className="sticky top-0 z-10 border-b border-[#222a25] bg-[#0e1311]/90 backdrop-blur-md pt-safe-top">
         <div className="mx-auto max-w-2xl px-5 py-3 flex items-center justify-between">
           <div>
-            <div className="text-base font-bold text-foreground">Admin</div>
-            <div className="text-[11px] text-muted-foreground">TradePulse</div>
+            <div className="text-base font-bold font-display text-[#d8e0d2]">Admin</div>
+            <div className="text-[11px] text-[#7a8a75]">TradePulse</div>
           </div>
           <button
             onClick={() => setSecret(null)}
-            className="text-xs text-muted-foreground hover:text-foreground"
+            className="text-xs text-[#7a8a75] hover:text-[#d8e0d2]"
           >
             Sign out
           </button>
@@ -571,8 +571,8 @@ export default function AdminPanel() {
               onClick={() => setTab(t)}
               className={`rounded-lg px-4 py-1.5 text-sm font-medium capitalize transition-colors ${
                 tab === t
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-[#8ec2dd]/15 text-[#8ec2dd]"
+                  : "text-[#7a8a75] hover:text-[#d8e0d2]"
               }`}
             >
               {t === "subscribers" ? "Subscribers" : "Feature Flags"}

@@ -88,39 +88,12 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
 
 // ── Subscribers tab ───────────────────────────────────────────────────────────
 
-interface PromoUser {
-  id: string;
-  username: string;
-  created_at: string | null;
-}
-
 function SubscribersTab({ secret }: { secret: string }) {
-  // Promo users state
-  const [promoUsers, setPromoUsers] = useState<PromoUser[]>([]);
-  const [promoLoading, setPromoLoading] = useState(true);
-  const [newUsername, setNewUsername] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [addingPromo, setAddingPromo] = useState(false);
-  const [promoAction, setPromoAction] = useState<string | null>(null);
-
   // Wallet subscribers state
   const [subscribers, setSubscribers] = useState<Subscriber[]>([]);
   const [subsLoading, setSubsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [updating, setUpdating] = useState<string | null>(null);
-
-  const loadPromoUsers = useCallback(async () => {
-    setPromoLoading(true);
-    try {
-      const res = await adminCall(secret, { action: "list_promo_users" });
-      setPromoUsers(res.data ?? []);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setPromoLoading(false);
-    }
-  }, [secret]);
 
   const loadSubscribers = useCallback(async () => {
     setSubsLoading(true);
@@ -134,55 +107,7 @@ function SubscribersTab({ secret }: { secret: string }) {
     }
   }, [secret]);
 
-  useEffect(() => { loadPromoUsers(); loadSubscribers(); }, [loadPromoUsers, loadSubscribers]);
-
-  async function createPromoUser(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newUsername.trim() || !newPassword.trim()) return;
-    setAddingPromo(true);
-    try {
-      await adminCall(secret, { action: "create_promo_user", username: newUsername.trim(), password: newPassword });
-      setNewUsername("");
-      setNewPassword("");
-      await loadPromoUsers();
-      toast.success(`Promo account "${newUsername.trim()}" created.`);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setAddingPromo(false);
-    }
-  }
-
-  async function deletePromoUser(username: string) {
-    if (!confirm(`Delete promo account "${username}"? They will lose Pro access.`)) return;
-    setPromoAction(username);
-    try {
-      await adminCall(secret, { action: "delete_promo_user", username });
-      setPromoUsers((prev) => prev.filter((u) => u.username !== username));
-      toast.success("Promo account deleted.");
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setPromoAction(null);
-    }
-  }
-
-  async function resetPromoPassword(username: string) {
-    const newPass = prompt(`New password for "${username}" (min 12 chars):`);
-    if (!newPass || newPass.length < 12) {
-      if (newPass !== null) toast.error("Password must be at least 12 characters.");
-      return;
-    }
-    setPromoAction(username);
-    try {
-      await adminCall(secret, { action: "reset_promo_password", username, newPassword: newPass });
-      toast.success(`Password reset for "${username}".`);
-    } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setPromoAction(null);
-    }
-  }
+  useEffect(() => { loadSubscribers(); }, [loadSubscribers]);
 
   async function patch(wallet: string, updates: Partial<Subscriber>) {
     setUpdating(wallet);
@@ -219,83 +144,6 @@ function SubscribersTab({ secret }: { secret: string }) {
 
   return (
     <div className="space-y-6">
-      {/* ── Promo Accounts ──────────────────────────────────────────────────── */}
-      <div className="space-y-3">
-        <div className="text-xs font-medium font-display text-[#8ec2dd] uppercase tracking-wider">Promo Accounts</div>
-
-        {/* Create promo user form */}
-        <form onSubmit={createPromoUser} className="rounded-2xl border border-dashed border-[#8ec2dd]/30 bg-[#8ec2dd]/5 p-4 space-y-3">
-          <input
-            type="text"
-            placeholder="Username"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-            className="w-full rounded-xl border border-[#222a25] bg-[#0e1311] px-3 py-2 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd]"
-            autoComplete="off"
-          />
-          <div className="relative">
-            <input
-              type={showNewPassword ? "text" : "password"}
-              placeholder="Password (min 12 chars)"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full rounded-xl border border-[#222a25] bg-[#0e1311] px-3 py-2 text-sm text-[#d8e0d2] placeholder:text-[#7a8a75] focus:outline-none focus:ring-1 focus:ring-[#8ec2dd] pr-16"
-              autoComplete="new-password"
-            />
-            <button
-              type="button"
-              onClick={() => setShowNewPassword((v) => !v)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-[11px] text-[#7a8a75] hover:text-[#d8e0d2]"
-            >
-              {showNewPassword ? "Hide" : "Show"}
-            </button>
-          </div>
-          <button
-            type="submit"
-            disabled={addingPromo || !newUsername.trim() || newPassword.length < 12}
-            className="w-full rounded-xl bg-[#8ec2dd] py-2 text-sm font-semibold text-[#0e1311] disabled:opacity-50"
-          >
-            {addingPromo ? "Creating…" : "Create Promo Account"}
-          </button>
-        </form>
-
-        {/* Promo users list */}
-        {promoLoading ? (
-          <div className="py-4 text-center text-sm text-[#7a8a75]">Loading…</div>
-        ) : promoUsers.length === 0 ? (
-          <div className="py-4 text-center text-sm text-[#7a8a75]">No promo accounts yet.</div>
-        ) : (
-          <div className="space-y-2">
-            {promoUsers.map((u) => (
-              <div key={u.id} className="rounded-2xl border border-[#222a25] bg-[#161c19] p-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="font-mono text-sm text-[#d8e0d2]">{u.username}</div>
-                  {u.created_at && (
-                    <div className="text-[11px] text-[#7a8a75]">{new Date(u.created_at).toLocaleDateString()}</div>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    disabled={promoAction === u.username}
-                    onClick={() => resetPromoPassword(u.username)}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium border border-[#222a25] bg-[#161c19] text-[#7a8a75] hover:text-[#d8e0d2] disabled:opacity-50"
-                  >
-                    Reset PW
-                  </button>
-                  <button
-                    disabled={promoAction === u.username}
-                    onClick={() => deletePromoUser(u.username)}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium bg-[#e89a8a]/10 border border-[#e89a8a]/20 text-[#e89a8a] hover:bg-[#e89a8a]/20 disabled:opacity-50"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
       {/* ── Wallet Subscribers ───────────────────────────────────────────────── */}
       <div className="space-y-3">
         <div className="text-xs font-medium font-display text-[#7a8a75] uppercase tracking-wider">Wallet Subscribers</div>

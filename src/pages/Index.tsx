@@ -27,8 +27,7 @@ function shortenWallet(addr: string): string {
   return `${addr.slice(0, 4)}...${addr.slice(-4)}`;
 }
 
-function getInitials(wallet: string | null, username: string | null): string {
-  if (username) return username.slice(0, 2).toUpperCase();
+function getInitials(wallet: string | null): string {
   if (wallet) return wallet.slice(0, 2).toUpperCase();
   return "DG";
 }
@@ -55,7 +54,6 @@ export default function Index() {
   const nonDemoCount = useTradeStore((s) => s.getNonDemoTradeCount());
   const isPro = useSubscriptionStore((s) => s.isPro);
   const connectedWallet = useSubscriptionStore((s) => s.connectedWallet);
-  const promoUsername = useSubscriptionStore((s) => s.promoUsername);
 
   // ── Derived state ────────────────────────────────────────────────
   const openTrade = trades.find((t) => t.status === "open" && !t.isDemo) ?? null;
@@ -105,7 +103,7 @@ export default function Index() {
   });
 
   const minsLeft = minutesUntilEnd();
-  const initials = getInitials(connectedWallet, promoUsername);
+  const initials = getInitials(connectedWallet);
 
   // ── Sub-components ───────────────────────────────────────────────
   function Sidebar() {
@@ -158,7 +156,7 @@ export default function Index() {
           </div>
           <div className="flex flex-col min-w-0">
             <span className="font-sans text-[13px] font-medium text-[#d8e0d2] truncate">
-              {promoUsername ?? (connectedWallet ? shortenWallet(connectedWallet) : "Trader")}
+              {connectedWallet ? shortenWallet(connectedWallet) : "Trader"}
             </span>
             {isPro ? (
               <span className="font-mono text-[9.5px] text-[#a8d4ad]">

@@ -364,6 +364,7 @@ export default function Landing() {
                     src={`https://www.youtube.com/embed/${DEMO_MOBILE_VIDEO_ID}`}
                     style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", borderRadius: 8 }}
                     frameBorder="0"
+                    loading="lazy"
                     allow="fullscreen"
                     allowFullScreen
                     title="TradePulse Mobile Demo"

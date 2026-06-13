@@ -22,8 +22,9 @@ export default defineConfig(() => ({
         name: "TradePulse",
         short_name: "TradePulse",
         description: "Voice-first trade journal for crypto traders",
-        theme_color: "#0d0d0d",
-        background_color: "#0d0d0d",
+        categories: ["finance", "productivity"],
+        theme_color: "#0e1311",
+        background_color: "#0e1311",
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
@@ -38,6 +39,12 @@ export default defineConfig(() => ({
             sizes: "512x512",
             type: "image/png",
           },
+          {
+            src: "/pwa-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "any maskable",
+          },
         ],
       },
       workbox: {
@@ -48,6 +55,15 @@ export default defineConfig(() => ({
   ].filter(Boolean),
   build: {
     sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-solana": ["@solana/web3.js", "@solana/spl-token", "@solana/wallet-adapter-react"],
+          "vendor-supabase": ["@supabase/supabase-js"],
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
+        },
+      },
+    },
   },
   resolve: {
     alias: {

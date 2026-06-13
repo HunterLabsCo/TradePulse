@@ -192,10 +192,22 @@ async function main() {
   }
 
   if (ok === 0) {
+    const isDeploy =
+      process.env.VERCEL === "1" || process.env.CI === "true" || process.env.CI === "1";
+    const reason =
+      "No routes prerendered. The app likely failed to boot during the build" +
+      "\n[prerender]   (commonly missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY env vars).";
+    if (isDeploy) {
+      // On a real deploy (Vercel/CI) we must NOT ship a blank SPA shell to crawlers.
+      console.error(
+        `\n[prerender] ✗ ${reason}` +
+          "\n[prerender]   Failing the build so a non-indexable shell is never deployed.\n"
+      );
+      process.exit(1);
+    }
     console.warn(
-      "\n[prerender] ⚠ No routes prerendered. The app likely failed to boot during the build" +
-        "\n[prerender]   (commonly missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY env vars)." +
-        "\n[prerender]   SPA build is intact and will still work.\n"
+      `\n[prerender] ⚠ ${reason}` +
+        "\n[prerender]   SPA build is intact — continuing (local/non-deploy build).\n"
     );
   } else {
     console.log(`[prerender] Done. ${ok}/${ROUTES.length} public routes prerendered. App routes remain client-side.`);

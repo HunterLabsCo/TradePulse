@@ -4,23 +4,25 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProviderWrapper } from "@/components/WalletProvider";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
+// Eager: the marketing/legal surface that gets prerendered for SEO + first paint.
 import Landing from "./pages/Landing";
-import Index from "./pages/Index";
-import NewTrade from "./pages/NewTrade";
-import TradeDetail from "./pages/TradeDetail";
-import Journal from "./pages/Journal";
-import SettingsPage from "./pages/SettingsPage";
-import Upgrade from "./pages/Upgrade";
-import UpgradeSuccess from "./pages/UpgradeSuccess";
 import NotFound from "./pages/NotFound";
-import AdminPanel from "./pages/AdminPanel";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import AboutPage from "./pages/AboutPage";
 import GivingPage from "./pages/GivingPage";
+// Lazy: the interactive app shell (kept out of the landing-page bundle).
+const Index = lazy(() => import("./pages/Index"));
+const NewTrade = lazy(() => import("./pages/NewTrade"));
+const TradeDetail = lazy(() => import("./pages/TradeDetail"));
+const Journal = lazy(() => import("./pages/Journal"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const Upgrade = lazy(() => import("./pages/Upgrade"));
+const UpgradeSuccess = lazy(() => import("./pages/UpgradeSuccess"));
+const AdminPanel = lazy(() => import("./pages/AdminPanel"));
 
 const queryClient = new QueryClient();
 
@@ -49,22 +51,24 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <ProStatusChecker />
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/app" element={<Index />} />
-            <Route path="/new-trade" element={<NewTrade />} />
-            <Route path="/trade/:id" element={<TradeDetail />} />
-            <Route path="/journal" element={<Journal />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/upgrade" element={<Upgrade />} />
-            <Route path="/upgrade/success" element={<UpgradeSuccess />} />
-            <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/terms" element={<TermsPage />} />
-            <Route path="/privacy" element={<PrivacyPage />} />
-            <Route path="/about" element={<AboutPage />} />
-            <Route path="/giving" element={<GivingPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <Suspense fallback={<div className="min-h-screen bg-[#0e1311]" />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/app" element={<Index />} />
+              <Route path="/new-trade" element={<NewTrade />} />
+              <Route path="/trade/:id" element={<TradeDetail />} />
+              <Route path="/journal" element={<Journal />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/upgrade" element={<Upgrade />} />
+              <Route path="/upgrade/success" element={<UpgradeSuccess />} />
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/terms" element={<TermsPage />} />
+              <Route path="/privacy" element={<PrivacyPage />} />
+              <Route path="/about" element={<AboutPage />} />
+              <Route path="/giving" element={<GivingPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </WalletProviderWrapper>

@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ExitModal } from "@/components/trade/ExitModal";
 import { UpdateModal } from "@/components/trade/UpdateModal";
@@ -114,10 +114,11 @@ export default function TradeDetail() {
   const [editLesson, setEditLesson] = useState("");
   const [savingLesson, setSavingLesson] = useState(false);
 
-  if (!trade) {
-    navigate("/journal");
-    return null;
-  }
+  useEffect(() => {
+    if (!trade) navigate("/journal");
+  }, [trade, navigate]);
+
+  if (!trade) return null;
 
   const isOpen = trade.status === "open";
   const isClosed = trade.status === "closed";

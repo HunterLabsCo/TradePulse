@@ -20,8 +20,10 @@ import {
 } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { toast } from "sonner";
+import { uid } from "@/lib/utils";
 import { Label } from "@/components/design/Label";
 import { Pill } from "@/components/design/Pill";
+import { emotionColor } from "@/lib/emotion-utils";
 import { Kbd } from "@/components/design/Kbd";
 import { Waveform } from "@/components/design/Waveform";
 import { AppSidebar } from "@/components/design/AppSidebar";
@@ -58,15 +60,6 @@ const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "bored", label: "Bored" },
   { value: "pressured", label: "Pressured" },
 ];
-
-const POSITIVE_EMOTIONS = new Set(["confident", "calm", "focused", "patient", "in-the-zone", "disciplined", "sharp"]);
-const NEGATIVE_EMOTIONS = new Set(["anxious", "nervous", "rushed", "frustrated", "revenge-mindset", "greedy", "fearful", "overconfident", "fomo", "impulsive", "euphoric"]);
-
-function emotionColor(e: EmotionalState): { color: string; bg: string } {
-  if (POSITIVE_EMOTIONS.has(e)) return { color: "#a8d4ad", bg: "rgba(168,212,173,0.08)" };
-  if (NEGATIVE_EMOTIONS.has(e)) return { color: "#e89a8a", bg: "rgba(232,154,138,0.08)" };
-  return { color: "#8ec2dd", bg: "rgba(142,194,221,0.08)" };
-}
 
 const QUICK_TAGS = [
   "Interrupted", "Full session", "Pre-set orders", "Above MC ceiling", "Non-compliant",
@@ -350,14 +343,14 @@ export default function NewTrade() {
 
   // ── Save ───────────────────────────────────────────────────────────
   const handleSave = async () => {
-    if (!tokenName.trim()) return;
+    if (!tokenName.trim()) { toast.error("Add a token name before saving."); return; }
     const { isPro, connectedWallet } = useSubscriptionStore.getState();
     if (getNonDemoTradeCount() >= FREE_LIMIT && !isPro) { navigate("/upgrade"); return; }
 
     const finalSetup = setupType === "Custom" ? (customSetupType || "Custom") : setupType;
 
     const trade: Trade = {
-      id: crypto.randomUUID(),
+      id: uid(),
       userId: "local",
       tokenName: tokenName.trim(),
       chain,
@@ -388,6 +381,9 @@ export default function NewTrade() {
         });
         if (data?.error === "TRADE_LIMIT_REACHED") { navigate("/upgrade"); return; }
         if (!error && data?.id) trade.id = data.id;
+      } catch {
+        // Network/edge failure — keep the entry locally (local-first) so nothing is lost.
+        toast.error("Saved locally — couldn't sync to the cloud.");
       } finally {
         setIsSaving(false);
       }

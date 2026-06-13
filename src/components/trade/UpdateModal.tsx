@@ -7,11 +7,12 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-import { EmotionBadge } from "@/components/EmotionBadge";
-import { cn } from "@/lib/utils";
+import { cn, uid } from "@/lib/utils";
+import { Label } from "@/components/design/Label";
+import { Pill } from "@/components/design/Pill";
+import { emotionColor, emotionLabel } from "@/lib/emotion-utils";
 import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";
 import type { EmotionalState, TradeNote } from "@/lib/sample-data";
 
@@ -21,10 +22,6 @@ const EMOTIONS: EmotionalState[] = [
   "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
   "sharp", "detached", "tired",
 ];
-
-const chipBase = "rounded-full px-2.5 py-1 font-body text-[11px] font-300 transition-colors active:scale-[0.96]";
-const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
 
 interface UpdateModalProps {
   open: boolean;
@@ -80,7 +77,7 @@ export function UpdateModal({ open, onOpenChange, onSave, chain = "SOL" }: Updat
     if (!noteText.trim() && !sizeAdded.trim()) return;
     const trimmedSize = sizeAdded.trim();
     const note: TradeNote = {
-      id: crypto.randomUUID(),
+      id: uid(),
       text: noteText.trim() || (trimmedSize ? `Added ${trimmedSize} ${chain} to position` : ""),
       timestamp: new Date().toISOString(),
       duringSession: true,
@@ -100,10 +97,10 @@ export function UpdateModal({ open, onOpenChange, onSave, chain = "SOL" }: Updat
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh] bg-popover border-t border-border">
+      <DrawerContent className="max-h-[85vh] bg-[#0e1311] border-t border-[#222a25]">
         <DrawerHeader>
-          <DrawerTitle className="font-display font-600">Trade Update</DrawerTitle>
-          <DrawerDescription className="font-body font-300">Record a mid-trade journal entry</DrawerDescription>
+          <DrawerTitle className="font-sans font-medium text-[#d8e0d2]">Trade Update</DrawerTitle>
+          <DrawerDescription className="font-mono text-[11px] text-[#7a8a75]">Record a mid-trade journal entry</DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-6 space-y-5">
           {/* Voice Input */}
@@ -111,31 +108,30 @@ export function UpdateModal({ open, onOpenChange, onSave, chain = "SOL" }: Updat
             <button
               onClick={isRecording ? stopVoice : startVoice}
               className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-                isRecording
-                  ? "bg-destructive animate-pulse-red-glow"
-                  : "bg-primary animate-pulse-glow"
+                "flex h-16 w-16 items-center justify-center rounded-[14px] transition-all active:scale-[0.95]",
+                isRecording ? "bg-[#e89a8a]" : "bg-[#8ec2dd]"
               )}
+              aria-label={isRecording ? "Stop recording" : "Record update"}
             >
               {isRecording ? (
-                <MicOff className="h-7 w-7 text-foreground" />
+                <MicOff className="h-7 w-7 text-[#0e1311]" />
               ) : (
-                <Mic className="h-7 w-7 text-primary-foreground" />
+                <Mic className="h-7 w-7 text-[#0e1311]" />
               )}
             </button>
-            <p className="font-body text-xs font-300 text-muted-foreground">
+            <p className="font-mono text-[11px] text-[#7a8a75]">
               {isRecording ? "Recording — tap to stop" : "Tap to record your update"}
             </p>
           </div>
 
           {/* Added to Position */}
           <div className="space-y-1.5">
-            <label className="section-label">Added to Position — optional</label>
+            <Label className="block">Added to Position — optional</Label>
             <Input
               placeholder={`e.g. 0.5 ${chain}`}
               value={sizeAdded}
               onChange={(e) => setSizeAdded(e.target.value)}
-              className="bg-secondary border-border font-body font-300 focus-visible:ring-primary"
+              className="bg-[#161c19] border-[#222a25] text-[#d8e0d2] font-mono focus-visible:ring-0 focus-visible:border-[#8ec2dd]"
             />
           </div>
 
@@ -144,29 +140,39 @@ export function UpdateModal({ open, onOpenChange, onSave, chain = "SOL" }: Updat
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
             placeholder="What's happening with this trade right now..."
-            className="min-h-[80px] font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
+            className="min-h-[80px] font-mono text-sm bg-[#161c19] border-[#222a25] text-[#d8e0d2] focus-visible:ring-0 focus-visible:border-[#8ec2dd]"
           />
 
           {/* Emotional State */}
           <div>
-            <p className="section-label mb-2">Emotional State</p>
+            <Label className="mb-2 block">Emotional State</Label>
             <div className="flex flex-wrap gap-1.5">
-              {EMOTIONS.map((e) => (
-                <button
-                  key={e}
-                  onClick={() => toggleEmotion(e)}
-                  className={cn(chipBase, emotions.includes(e) ? chipOn : chipOff)}
-                >
-                  {e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ")}
-                </button>
-              ))}
+              {EMOTIONS.map((e) => {
+                const selected = emotions.includes(e);
+                const ec = emotionColor(e);
+                return (
+                  <button
+                    key={e}
+                    onClick={() => toggleEmotion(e)}
+                    className="transition-opacity active:opacity-70 min-h-[36px]"
+                  >
+                    <Pill color={selected ? ec.color : "#7a8a75"} bg={selected ? ec.bg : undefined}>
+                      {emotionLabel(e)}
+                    </Pill>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Save */}
-          <Button onClick={handleSave} disabled={!canSave} className="w-full font-display font-600">
+          <button
+            onClick={handleSave}
+            disabled={!canSave}
+            className="w-full flex items-center justify-center bg-[#8ec2dd] text-[#0e1311] py-3.5 px-5 rounded-[4px] font-sans font-medium text-[15px] disabled:opacity-40 disabled:cursor-not-allowed"
+          >
             Save Update
-          </Button>
+          </button>
         </div>
       </DrawerContent>
     </Drawer>

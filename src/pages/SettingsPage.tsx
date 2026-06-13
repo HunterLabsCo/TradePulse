@@ -14,6 +14,7 @@ import { Pill } from "@/components/design/Pill";
 import { ToggleRow } from "@/components/design/ToggleRow";
 import { SettingsGroup } from "@/components/design/SettingsGroup";
 import { AppSidebar } from "@/components/design/AppSidebar";
+import { MobileTabBar } from "@/components/design/MobileTabBar";
 
 function shortenWallet(addr: string): string {
   if (!addr || addr.length < 8) return addr;
@@ -111,29 +112,7 @@ export default function SettingsPage() {
     <div className="flex min-h-screen bg-[#0e1311]">
       <AppSidebar activePage="settings" />
 
-      {/* Mobile tab bar */}
-      <nav className="md:hidden fixed left-0 right-0 bottom-0 bg-[#161c19] border-t border-[#222a25] py-3 px-5 pb-[26px] flex justify-around z-50">
-        {[
-          { label: "home", path: "/app" },
-          { label: "journal", path: "/journal" },
-          { label: "settings", path: "/settings" },
-        ].map(({ label, path }) => {
-          const active = label === "settings";
-          return (
-            <button
-              key={label}
-              onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-1 font-mono min-w-[44px] min-h-[44px] justify-center ${
-                active ? "text-[#8ec2dd]" : "text-[#7a8a75]"
-              }`}
-              aria-current={active ? "page" : undefined}
-            >
-              <span className={`w-[5px] h-[5px] rounded-[3px] ${active ? "bg-[#8ec2dd]" : "bg-transparent border border-[#7a8a75]"}`} />
-              <span className="text-[11px] font-medium tracking-[0.04em]">{label}</span>
-            </button>
-          );
-        })}
-      </nav>
+      <MobileTabBar active="settings" />
 
       <div className="flex flex-col flex-1 pb-[100px]">
         <div className="md:max-w-[640px] md:mx-auto w-full">

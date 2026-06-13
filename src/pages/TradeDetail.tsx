@@ -21,6 +21,7 @@ import { Pnl } from "@/components/design/Pnl";
 import { Candles } from "@/components/design/Candles";
 import { Waveform } from "@/components/design/Waveform";
 import { AppSidebar } from "@/components/design/AppSidebar";
+import { MobileTabBar } from "@/components/design/MobileTabBar";
 
 function formatRelativeTime(ts: string): string {
   const diff = Date.now() - new Date(ts).getTime();
@@ -182,6 +183,8 @@ export default function TradeDetail() {
   return (
     <div className="flex min-h-screen bg-[#0e1311]">
       <AppSidebar activePage="trade-detail" />
+
+      <MobileTabBar />
 
       <div className="flex flex-col flex-1 pb-40">
         <div className="md:max-w-[720px] md:mx-auto w-full">
@@ -428,9 +431,9 @@ export default function TradeDetail() {
         </div>
       </div>
 
-      {/* Open trade CTA buttons */}
+      {/* Open trade CTA buttons — lifted above the mobile tab bar */}
       {isOpen && (
-        <div className="fixed bottom-6 left-[22px] right-[22px] md:left-[calc(220px+22px)] z-30 flex gap-3">
+        <div className="fixed bottom-[96px] md:bottom-6 left-[22px] right-[22px] md:left-[calc(220px+22px)] z-30 flex gap-3">
           <button
             onClick={() => setShowUpdateModal(true)}
             className="flex flex-1 items-center justify-center gap-1.5 py-3 bg-[#161c19] border border-[#222a25] rounded-[4px] font-mono text-[12px] text-[#d8e0d2] hover:border-[#8ec2dd] transition-colors"

@@ -4,7 +4,6 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProviderWrapper } from "@/components/WalletProvider";
-import { BottomNav } from "@/components/BottomNav";
 import { useEffect } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
@@ -66,7 +65,6 @@ const App = () => (
             <Route path="/giving" element={<GivingPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <BottomNav />
         </BrowserRouter>
       </TooltipProvider>
     </WalletProviderWrapper>

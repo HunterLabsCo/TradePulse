@@ -10,6 +10,7 @@ import { Sparkline } from "@/components/design/Sparkline";
 import { Candles } from "@/components/design/Candles";
 import { TradeRow } from "@/components/design/TradeRow";
 import { TradeRowFull } from "@/components/design/TradeRowFull";
+import { MobileTabBar } from "@/components/design/MobileTabBar";
 
 const FREE_LIMIT = 20;
 
@@ -126,8 +127,6 @@ export default function Index() {
           {[
             { label: "Home", path: "/app", active: true },
             { label: "Journal", path: "/journal", active: false },
-            { label: "Lessons", path: "/journal", active: false }, // TODO: dedicated route
-            { label: "Setups", path: "/journal", active: false },  // TODO: dedicated route
             { label: "Settings", path: "/settings", active: false },
           ].map(({ label, path, active }) => (
             <button
@@ -168,37 +167,6 @@ export default function Index() {
           </div>
         </div>
       </aside>
-    );
-  }
-
-  function TabBar() {
-    return (
-      <nav className="md:hidden fixed left-0 right-0 bottom-0 bg-[#161c19] border-t border-[#222a25] py-3 px-5 pb-[26px] flex justify-around z-50">
-        {[
-          { label: "home", path: "/app" },
-          { label: "journal", path: "/journal" },
-          { label: "settings", path: "/settings" },
-        ].map(({ label, path }) => {
-          const active = label === "home";
-          return (
-            <button
-              key={label}
-              onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-1 font-mono min-w-[44px] min-h-[44px] justify-center ${
-                active ? "text-[#8ec2dd]" : "text-[#7a8a75]"
-              }`}
-              aria-current={active ? "page" : undefined}
-            >
-              <span
-                className={`w-[5px] h-[5px] rounded-[3px] ${
-                  active ? "bg-[#8ec2dd]" : "bg-transparent border border-[#7a8a75]"
-                }`}
-              />
-              <span className="text-[11px] font-medium tracking-[0.04em]">{label}</span>
-            </button>
-          );
-        })}
-      </nav>
     );
   }
 
@@ -331,7 +299,7 @@ export default function Index() {
           )}
         </section>
 
-        <TabBar />
+        <MobileTabBar active="home" />
       </div>
 
       {/* ── DESKTOP LAYOUT ────────────────────────────────────────── */}
@@ -498,10 +466,6 @@ export default function Index() {
                   ? `${openCount} open ${openCount === 1 ? "position" : "positions"} to review. Voice it out, then close the day.`
                   : "No open positions. Review your day and close it out."}
               </p>
-              {/* TODO: open shutdown ritual modal */}
-              <button className="mt-4 bg-transparent text-[#8ec2dd] border border-[#8ec2dd] py-[9px] px-4 font-sans text-[13px] font-medium rounded-[4px]">
-                Begin ritual →
-              </button>
             </div>
           </div>
         </div>

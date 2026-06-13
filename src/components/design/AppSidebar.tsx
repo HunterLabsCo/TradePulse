@@ -35,8 +35,6 @@ export function AppSidebar({ activePage }: AppSidebarProps) {
   const navItems = [
     { label: "Home", path: "/app", key: "home" },
     { label: "Journal", path: "/journal", key: "journal" },
-    { label: "Lessons", path: "/journal", key: "lessons" },   // TODO: dedicated route
-    { label: "Setups", path: "/journal", key: "setups" },     // TODO: dedicated route
     { label: "Settings", path: "/settings", key: "settings" },
   ];
 

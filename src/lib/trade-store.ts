@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { Trade, SAMPLE_TRADES } from "./sample-data";
+import { Trade } from "./sample-data";
 
 interface TradeStore {
   trades: Trade[];

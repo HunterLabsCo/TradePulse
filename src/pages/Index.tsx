@@ -126,8 +126,6 @@ export default function Index() {
           {[
             { label: "Home", path: "/app", active: true },
             { label: "Journal", path: "/journal", active: false },
-            { label: "Lessons", path: "/journal", active: false }, // TODO: dedicated route
-            { label: "Setups", path: "/journal", active: false },  // TODO: dedicated route
             { label: "Settings", path: "/settings", active: false },
           ].map(({ label, path, active }) => (
             <button
@@ -498,10 +496,6 @@ export default function Index() {
                   ? `${openCount} open ${openCount === 1 ? "position" : "positions"} to review. Voice it out, then close the day.`
                   : "No open positions. Review your day and close it out."}
               </p>
-              {/* TODO: open shutdown ritual modal */}
-              <button className="mt-4 bg-transparent text-[#8ec2dd] border border-[#8ec2dd] py-[9px] px-4 font-sans text-[13px] font-medium rounded-[4px]">
-                Begin ritual →
-              </button>
             </div>
           </div>
         </div>

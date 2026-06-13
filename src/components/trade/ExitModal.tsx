@@ -7,10 +7,11 @@ import {
   DrawerTitle,
   DrawerDescription,
 } from "@/components/ui/drawer";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { cn } from "@/lib/utils";
+import { cn, uid } from "@/lib/utils";
+import { Pill } from "@/components/design/Pill";
+import { emotionColor, emotionLabel } from "@/lib/emotion-utils";
 import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";
 import type { ExitType, ExitEvent, EmotionalState } from "@/lib/sample-data";
 
@@ -27,38 +28,6 @@ const EMOTIONS: EmotionalState[] = [
   "hesitant", "disciplined", "impulsive", "frustrated",
   "rushed", "greedy", "fearful", "euphoric", "bored", "pressured",
 ];
-
-const chipBase = "rounded-full px-3 py-2 font-body text-xs font-300 transition-colors active:scale-[0.97]";
-const chipOff = "bg-transparent border border-[hsl(var(--border-default))] text-muted-foreground";
-const chipOn = "bg-primary border border-primary text-primary-foreground font-400";
-const chipStopLoss = "bg-red-action border border-red-action text-foreground font-400";
-
-const EMOTION_CHIP_COLORS: Record<string, string> = {
-  confident: "bg-emerald-500/25 text-emerald-300 border-emerald-500/60",
-  calm: "bg-teal-500/25 text-teal-300 border-teal-500/60",
-  focused: "bg-sky-500/25 text-sky-300 border-sky-500/60",
-  "in-the-zone": "bg-emerald-400/25 text-emerald-200 border-emerald-400/60",
-  disciplined: "bg-emerald-600/25 text-emerald-300 border-emerald-600/60",
-  sharp: "bg-sky-600/25 text-sky-200 border-sky-600/60",
-  anxious: "bg-amber-500/25 text-amber-300 border-amber-500/60",
-  nervous: "bg-orange-500/25 text-orange-300 border-orange-500/60",
-  rushed: "bg-red-500/25 text-red-300 border-red-500/60",
-  frustrated: "bg-red-600/25 text-red-300 border-red-600/60",
-  "revenge-mindset": "bg-rose-600/25 text-rose-300 border-rose-600/60",
-  greedy: "bg-yellow-500/25 text-yellow-300 border-yellow-500/60",
-  fearful: "bg-violet-500/25 text-violet-300 border-violet-500/60",
-  overconfident: "bg-amber-600/25 text-amber-300 border-amber-600/60",
-  hesitant: "bg-slate-400/25 text-slate-300 border-slate-400/60",
-  impulsive: "bg-rose-500/25 text-rose-300 border-rose-500/60",
-  euphoric: "bg-pink-500/25 text-pink-300 border-pink-500/60",
-  fomo: "bg-orange-600/25 text-orange-200 border-orange-600/60",
-  distracted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
-  interrupted: "bg-indigo-500/25 text-indigo-300 border-indigo-500/60",
-  uncertain: "bg-indigo-400/25 text-indigo-300 border-indigo-400/60",
-  patient: "bg-cyan-500/25 text-cyan-300 border-cyan-500/60",
-  bored: "bg-indigo-400/25 text-indigo-200 border-indigo-400/60",
-  pressured: "bg-amber-500/25 text-amber-200 border-amber-500/60",
-};
 
 function parseExitTypeFromText(text: string): ExitType | null {
   const lower = text.toLowerCase();
@@ -253,7 +222,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
   const handleSave = () => {
     if (!exitType || percentClosed === null || pnlPercent === null) return;
     const event: ExitEvent = {
-      id: crypto.randomUUID(),
+      id: uid(),
       exitType,
       percentClosed,
       pnlPercent,
@@ -280,74 +249,77 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
-      <DrawerContent className="max-h-[85vh] bg-popover border-t border-border">
+      <DrawerContent className="max-h-[85vh] bg-[#0e1311] border-t border-[#222a25]">
         <DrawerHeader>
-          <DrawerTitle className="font-display font-600">Log Exit</DrawerTitle>
-          <DrawerDescription className="font-body font-300">Record an exit for this trade</DrawerDescription>
+          <DrawerTitle className="font-sans font-medium text-[#d8e0d2]">Log Exit</DrawerTitle>
+          <DrawerDescription className="font-mono text-[11px] text-[#7a8a75]">Record an exit for this trade</DrawerDescription>
         </DrawerHeader>
         <div className="overflow-y-auto px-4 pb-6 space-y-5">
           {/* Voice Pre-Fill */}
-          <div className="flex flex-col items-center gap-2 py-2 rounded-xl">
+          <div className="flex flex-col items-center gap-2 py-2">
             <button
               onClick={isPreFilling ? stopPreFill : startPreFill}
               className={cn(
-                "flex h-16 w-16 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-                isPreFilling
-                  ? "bg-destructive animate-pulse-red-glow"
-                  : "bg-primary animate-pulse-glow"
+                "flex h-16 w-16 items-center justify-center rounded-[14px] transition-all active:scale-[0.95]",
+                isPreFilling ? "bg-[#e89a8a]" : "bg-[#8ec2dd]"
               )}
+              aria-label={isPreFilling ? "Stop voice" : "Describe exit by voice"}
             >
               {isPreFilling ? (
-                <MicOff className="h-7 w-7 text-foreground" />
+                <MicOff className="h-7 w-7 text-[#0e1311]" />
               ) : (
-                <Mic className="h-7 w-7 text-primary-foreground" />
+                <Mic className="h-7 w-7 text-[#0e1311]" />
               )}
             </button>
-            <p className="font-body text-xs font-300 text-muted-foreground">
+            <p className="font-mono text-[11px] text-[#7a8a75]">
               {isPreFilling ? "Listening — tap to stop" : "Tap to describe your exit by voice"}
             </p>
           </div>
 
           {/* Exit Type */}
           <div>
-            <p className="section-label mb-2">Exit Type</p>
+            <Label className="mb-2 block">Exit Type</Label>
             <div className="flex flex-wrap gap-1.5">
-              {EXIT_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => setExitType(t.value)}
-                  className={cn(
-                    chipBase,
-                    exitType === t.value
-                      ? (t.value === "stop-loss" ? chipStopLoss : chipOn)
-                      : chipOff
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
+              {EXIT_TYPES.map((t) => {
+                const selected = exitType === t.value;
+                const color = t.value === "stop-loss" ? "#e89a8a" : "#8ec2dd";
+                return (
+                  <button
+                    key={t.value}
+                    onClick={() => setExitType(t.value)}
+                    className="transition-opacity active:opacity-70 min-h-[36px]"
+                  >
+                    <Pill color={selected ? color : "#7a8a75"} bg={selected ? `${color}14` : undefined}>
+                      {t.label}
+                    </Pill>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* % Position Closed */}
           <div>
-            <p className="section-label mb-1">% Position Closed</p>
-            <p className="font-body text-[11px] font-300 text-muted-foreground mb-2">Remaining position: {remainingPercent}%</p>
+            <Label className="mb-1 block">% Position Closed</Label>
+            <p className="font-mono text-[11px] text-[#7a8a75] mb-2">Remaining position: {remainingPercent}%</p>
             <div className="flex flex-wrap gap-1.5">
-              {percentPresets.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => { setPercentClosed(v); setShowCustomPercent(false); setCustomPercent(""); setPercentError(""); }}
-                  className={cn(chipBase, percentClosed === v && !showCustomPercent ? chipOn : chipOff)}
-                >
-                  {v}%
-                </button>
-              ))}
+              {percentPresets.map((v) => {
+                const selected = percentClosed === v && !showCustomPercent;
+                return (
+                  <button
+                    key={v}
+                    onClick={() => { setPercentClosed(v); setShowCustomPercent(false); setCustomPercent(""); setPercentError(""); }}
+                    className="transition-opacity active:opacity-70 min-h-[36px]"
+                  >
+                    <Pill color={selected ? "#8ec2dd" : "#7a8a75"} bg={selected ? "rgba(142,194,221,0.08)" : undefined}>{v}%</Pill>
+                  </button>
+                );
+              })}
               <button
                 onClick={() => { setShowCustomPercent(true); setPercentClosed(null); }}
-                className={cn(chipBase, showCustomPercent ? chipOn : chipOff)}
+                className="transition-opacity active:opacity-70 min-h-[36px]"
               >
-                Custom
+                <Pill color={showCustomPercent ? "#8ec2dd" : "#7a8a75"} bg={showCustomPercent ? "rgba(142,194,221,0.08)" : undefined}>Custom</Pill>
               </button>
             </div>
             {showCustomPercent && (
@@ -357,12 +329,12 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                   placeholder={`Max ${remainingPercent}%`}
                   value={customPercent}
                   onChange={(e) => handleCustomPercentChange(e.target.value)}
-                  className="h-9 font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
+                  className="h-9 font-mono text-sm bg-[#161c19] border-[#222a25] text-[#d8e0d2] focus-visible:ring-0 focus-visible:border-[#8ec2dd]"
                   max={remainingPercent}
                   min={1}
                 />
                 {percentError && (
-                  <p className="font-body text-[11px] font-300 text-destructive mt-1">{percentError}</p>
+                  <p className="font-mono text-[11px] text-[#e89a8a] mt-1">{percentError}</p>
                 )}
               </div>
             )}
@@ -370,22 +342,28 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
           {/* P&L */}
           <div>
-            <p className="section-label mb-2">P&L at This Exit</p>
+            <Label className="mb-2 block">P&L at This Exit</Label>
             <div className="flex flex-wrap gap-1.5">
-              {pnlPresets.map((v) => (
-                <button
-                  key={v}
-                  onClick={() => { setPnlPercent(v); setShowCustomPnl(false); setCustomPnl(""); }}
-                  className={cn(chipBase, pnlPercent === v && !showCustomPnl ? chipOn : chipOff)}
-                >
-                  {v > 0 ? `+${v}%` : `${v}%`}
-                </button>
-              ))}
+              {pnlPresets.map((v) => {
+                const selected = pnlPercent === v && !showCustomPnl;
+                const color = v < 0 ? "#e89a8a" : "#a8d4ad";
+                return (
+                  <button
+                    key={v}
+                    onClick={() => { setPnlPercent(v); setShowCustomPnl(false); setCustomPnl(""); }}
+                    className="transition-opacity active:opacity-70 min-h-[36px]"
+                  >
+                    <Pill color={selected ? color : "#7a8a75"} bg={selected ? `${color}14` : undefined}>
+                      {v > 0 ? `+${v}%` : `${v}%`}
+                    </Pill>
+                  </button>
+                );
+              })}
               <button
                 onClick={() => { setShowCustomPnl(true); setPnlPercent(null); }}
-                className={cn(chipBase, showCustomPnl ? chipOn : chipOff)}
+                className="transition-opacity active:opacity-70 min-h-[36px]"
               >
-                Custom
+                <Pill color={showCustomPnl ? "#8ec2dd" : "#7a8a75"} bg={showCustomPnl ? "rgba(142,194,221,0.08)" : undefined}>Custom</Pill>
               </button>
             </div>
             {showCustomPnl && (
@@ -399,7 +377,7 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                     const num = parseFloat(e.target.value);
                     if (!isNaN(num)) setPnlPercent(num);
                   }}
-                  className="h-9 font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
+                  className="h-9 font-mono text-sm bg-[#161c19] border-[#222a25] text-[#d8e0d2] focus-visible:ring-0 focus-visible:border-[#8ec2dd]"
                 />
               </div>
             )}
@@ -407,48 +385,48 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
 
           {/* Emotions */}
           <div>
-            <p className="section-label mb-2">Emotional State</p>
+            <Label className="mb-2 block">Emotional State</Label>
             <div className="flex flex-wrap gap-1.5">
-              {EMOTIONS.map((e) => (
-                <button
-                  key={e}
-                  onClick={() => toggleEmotion(e)}
-                  className={cn(
-                    chipBase, "border",
-                    emotions.includes(e)
-                      ? (EMOTION_CHIP_COLORS[e] ?? chipOn)
-                      : chipOff
-                  )}
-                >
-                  {e.charAt(0).toUpperCase() + e.slice(1).replace(/-/g, " ")}
-                </button>
-              ))}
+              {EMOTIONS.map((e) => {
+                const selected = emotions.includes(e);
+                const ec = emotionColor(e);
+                return (
+                  <button
+                    key={e}
+                    onClick={() => toggleEmotion(e)}
+                    className="transition-opacity active:opacity-70 min-h-[36px]"
+                  >
+                    <Pill color={selected ? ec.color : "#7a8a75"} bg={selected ? ec.bg : undefined}>
+                      {emotionLabel(e)}
+                    </Pill>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Quick Note */}
           <div>
-            <p className="section-label mb-2">Quick Note</p>
-            <div className="flex gap-2 mb-2">
+            <Label className="mb-2 block">Quick Note</Label>
+            <div className="flex items-center gap-2 mb-2">
               <button
                 onClick={isRecording ? stopVoice : startVoice}
                 className={cn(
-                  "flex h-11 w-11 items-center justify-center rounded-full transition-all active:scale-[0.95]",
-                  isRecording ? "bg-destructive animate-pulse-red-glow" : "bg-primary animate-pulse-glow"
+                  "flex h-11 w-11 items-center justify-center rounded-[10px] transition-all active:scale-[0.95]",
+                  isRecording ? "bg-[#e89a8a]" : "bg-[#8ec2dd]"
                 )}
+                aria-label={isRecording ? "Stop recording" : "Add voice note"}
               >
-                {isRecording ? <MicOff className="h-5 w-5 text-foreground" /> : <Mic className="h-5 w-5 text-primary-foreground" />}
+                {isRecording ? <MicOff className="h-5 w-5 text-[#0e1311]" /> : <Mic className="h-5 w-5 text-[#0e1311]" />}
               </button>
-              <Button
-                variant={showTextInput ? "secondary" : "outline"}
-                size="sm"
+              <button
                 onClick={() => setShowTextInput(!showTextInput)}
-                className="gap-1.5 h-11 font-body font-400"
+                className="flex items-center gap-1.5 h-11 px-3 rounded-[4px] font-mono text-[12px] text-[#d8e0d2] bg-[#161c19] border border-[#222a25] hover:border-[#8ec2dd] transition-colors"
               >
                 <PenLine className="h-4 w-4" /> Text
-              </Button>
+              </button>
             </div>
-            <p className="font-body text-[10px] font-300 text-muted-foreground mb-2">
+            <p className="font-mono text-[10px] text-[#7a8a75] mb-2">
               {isRecording ? "Recording — tap to stop" : "Tap mic to add voice note"}
             </p>
             {(showTextInput || noteText) && (
@@ -456,19 +434,19 @@ export function ExitModal({ open, onOpenChange, remainingPercent, onSave }: Exit
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
                 placeholder="Exit thoughts..."
-                className="min-h-[60px] font-body text-sm font-300 bg-secondary border-border focus-visible:ring-primary"
+                className="min-h-[60px] font-mono text-sm bg-[#161c19] border-[#222a25] text-[#d8e0d2] focus-visible:ring-0 focus-visible:border-[#8ec2dd]"
               />
             )}
           </div>
 
           {/* Save */}
-          <Button
+          <button
             onClick={handleSave}
             disabled={!isValid}
-            className="w-full font-display font-600"
+            className="w-full flex items-center justify-center bg-[#8ec2dd] text-[#0e1311] py-3.5 px-5 rounded-[4px] font-sans font-medium text-[15px] disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Save Exit
-          </Button>
+          </button>
         </div>
       </DrawerContent>
     </Drawer>

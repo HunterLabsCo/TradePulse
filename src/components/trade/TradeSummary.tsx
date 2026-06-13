@@ -27,24 +27,24 @@ export function TradeSummary({ exitEvents, entryTime, closedAt }: TradeSummaryPr
   }
 
   return (
-    <div className="rounded-xl bg-card border border-border p-4 space-y-2">
-      <p className="section-label">Summary</p>
+    <div className="rounded-[4px] bg-[#161c19] border border-[#222a25] p-4 space-y-2">
+      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-[#7a8a75]">Summary</p>
       <div className="flex items-center gap-3">
         <span
-          className={`font-display text-lg font-600 tabular-nums tracking-data ${
-            totalPnl >= 0 ? "text-primary" : "text-red-action"
+          className={`font-sans text-lg font-medium tabular-nums tracking-[0.02em] ${
+            totalPnl >= 0 ? "text-[#a8d4ad]" : "text-[#e89a8a]"
           }`}
         >
           {totalPnl > 0 ? "+" : ""}{totalPnl.toFixed(1)}%
         </span>
         {!fullyAccounted && (
-          <span className="flex items-center gap-1 font-body text-[10px] font-400 text-amber-400">
+          <span className="flex items-center gap-1 font-mono text-[10px] text-[#e3b341]">
             <AlertTriangle className="h-3 w-3" />
             Position not fully accounted for
           </span>
         )}
       </div>
-      <div className="flex gap-4 font-body text-[11px] font-300 text-muted-foreground">
+      <div className="flex gap-4 font-mono text-[11px] text-[#7a8a75]">
         <span>{exitEvents.length} exit{exitEvents.length !== 1 ? "s" : ""}</span>
         {duration && <span>{duration}</span>}
       </div>

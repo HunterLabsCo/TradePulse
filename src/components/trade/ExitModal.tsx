@@ -10,6 +10,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, uid } from "@/lib/utils";
+import { Label } from "@/components/design/Label";
 import { Pill } from "@/components/design/Pill";
 import { emotionColor, emotionLabel } from "@/lib/emotion-utils";
 import { createVoiceRecorder, detectEmotionsFromText } from "@/lib/voice-utils";

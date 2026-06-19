@@ -15,6 +15,11 @@ interface Props {
   children: ReactNode;
 }
 
+// @solana/wallet-adapter-react bundles a nested @types/react@19 (whose ReactNode
+// includes bigint), which trips TS2786 against the app's React 18 JSX types.
+// Cast through the known-good FC shape to keep a single, accurate component type.
+const Connection = ConnectionProvider as FC<{ endpoint: string; children: ReactNode }>;
+
 export const WalletProviderWrapper: FC<Props> = ({ children }) => {
   const endpoint = useMemo(() => clusterApiUrl("mainnet-beta"), []);
 
@@ -28,10 +33,10 @@ export const WalletProviderWrapper: FC<Props> = ({ children }) => {
   );
 
   return (
-    <ConnectionProvider endpoint={endpoint}>
+    <Connection endpoint={endpoint}>
       <SolanaWalletProvider wallets={wallets} autoConnect>
         <WalletModalProvider>{children}</WalletModalProvider>
       </SolanaWalletProvider>
-    </ConnectionProvider>
+    </Connection>
   );
 };

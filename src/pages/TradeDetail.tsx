@@ -18,7 +18,6 @@ import type { ExitEvent, TradeNote, EmotionalState } from "@/lib/sample-data";
 import { Label } from "@/components/design/Label";
 import { Pill } from "@/components/design/Pill";
 import { Pnl } from "@/components/design/Pnl";
-import { Candles } from "@/components/design/Candles";
 import { Waveform } from "@/components/design/Waveform";
 import { AppSidebar } from "@/components/design/AppSidebar";
 import { MobileTabBar } from "@/components/design/MobileTabBar";
@@ -239,12 +238,6 @@ export default function TradeDetail() {
               {trade.isDemo && <span className="ml-2"><Pill color="#7a8a75">DEMO</Pill></span>}
             </div>
           </section>
-
-          {/* Chart */}
-          <div className="pt-[22px] px-[22px]">
-            <Candles width={320} height={70} color="#a8d4ad" red="#e89a8a" />
-            {/* TODO: wire to real OHLC data when available */}
-          </div>
 
           {/* Divider */}
           <div className="h-px bg-[#222a25] my-6 mx-[22px]" />

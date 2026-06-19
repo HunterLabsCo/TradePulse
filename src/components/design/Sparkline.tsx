@@ -7,10 +7,8 @@ interface SparklineProps {
   fill?: string;
   strokeWidth?: number;
   dots?: boolean;
-  data?: number[];
+  data: number[];
 }
-
-const DEFAULT_DATA = [0, 1.4, -0.3, 2.1, 1.6, 3.2, 2.4, -0.8, 1.1, 2.7, 4.5];
 
 export function Sparkline({
   width = 100,
@@ -19,13 +17,14 @@ export function Sparkline({
   fill = 'none',
   strokeWidth = 1.5,
   dots = false,
-  data = DEFAULT_DATA,
+  data,
 }: SparklineProps) {
   const min = Math.min(...data);
   const max = Math.max(...data);
+  const range = max - min || 1;
   const pts = data.map((d, i) => {
-    const x = (i / (data.length - 1)) * (width - 4) + 2;
-    const y = height - 2 - ((d - min) / (max - min)) * (height - 4);
+    const x = data.length > 1 ? (i / (data.length - 1)) * (width - 4) + 2 : width / 2;
+    const y = height - 2 - ((d - min) / range) * (height - 4);
     return [x, y] as [number, number];
   });
   const path = pts

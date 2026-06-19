@@ -7,7 +7,6 @@ import { Waveform } from "@/components/design/Waveform";
 import { Kbd } from "@/components/design/Kbd";
 import { Pnl } from "@/components/design/Pnl";
 import { Sparkline } from "@/components/design/Sparkline";
-import { Candles } from "@/components/design/Candles";
 import { TradeRow } from "@/components/design/TradeRow";
 import { TradeRowFull } from "@/components/design/TradeRowFull";
 import { MobileTabBar } from "@/components/design/MobileTabBar";
@@ -91,6 +90,38 @@ export default function Index() {
     }
     return count;
   })();
+
+  // 30-day cumulative-R sparkline series (one point per day, ending today)
+  const WINDOW_DAYS = 30;
+  const DAY_MS = 86_400_000;
+  const startOfToday = new Date();
+  startOfToday.setHours(0, 0, 0, 0);
+  const windowStart = new Date(
+    startOfToday.getTime() - (WINDOW_DAYS - 1) * DAY_MS
+  );
+
+  const dailyR = new Array(WINDOW_DAYS).fill(0);
+  let windowTradeCount = 0;
+  for (const t of realClosedTrades) {
+    const d = new Date(t.closedAt ?? t.entryTime);
+    d.setHours(0, 0, 0, 0);
+    const idx = Math.round((d.getTime() - windowStart.getTime()) / DAY_MS);
+    if (idx >= 0 && idx < WINDOW_DAYS) {
+      dailyR[idx] += t.finalPnl ?? 0;
+      windowTradeCount++;
+    }
+  }
+  let cumR = 0;
+  const sparkSeries = dailyR.map((r) => (cumR += r));
+  const sparkHasVariation =
+    Math.max(...sparkSeries) - Math.min(...sparkSeries) !== 0;
+  const showSparkline = windowTradeCount >= 2 && sparkHasVariation;
+
+  const fmtDay = (d: Date) =>
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const sparkStartLabel = fmtDay(windowStart);
+  const sparkMidLabel = fmtDay(new Date(startOfToday.getTime() - 15 * DAY_MS));
+  const sparkEndLabel = fmtDay(startOfToday);
 
   const handleCTA = () => {
     if (nonDemoCount >= FREE_LIMIT && !isPro) navigate("/upgrade");
@@ -396,9 +427,6 @@ export default function Index() {
                   </div>
                   <Pnl pnl={null} size="lg" />
                 </div>
-                <div className="mt-3.5">
-                  <Candles width={580} height={48} color="#a8d4ad" red="#e89a8a" />
-                </div>
               </div>
             )}
 
@@ -435,20 +463,28 @@ export default function Index() {
             {/* 30-day sparkline */}
             <div>
               <Label className="mb-3 block">30-day net · R</Label>
-              {/* TODO: wire to real 30-day R series from trade-store */}
-              <Sparkline
-                width={420}
-                height={110}
-                stroke="#8ec2dd"
-                strokeWidth={1.6}
-                fill="rgba(142,194,221,0.09)"
-                dots
-              />
-              <div className="flex justify-between font-mono text-[10px] text-[#7a8a75] mt-2">
-                <span>Apr 30</span>
-                <span>May 15</span>
-                <span>May 30</span>
-              </div>
+              {showSparkline ? (
+                <>
+                  <Sparkline
+                    width={420}
+                    height={110}
+                    stroke="#8ec2dd"
+                    strokeWidth={1.6}
+                    fill="rgba(142,194,221,0.09)"
+                    dots
+                    data={sparkSeries}
+                  />
+                  <div className="flex justify-between font-mono text-[10px] text-[#7a8a75] mt-2">
+                    <span>{sparkStartLabel}</span>
+                    <span>{sparkMidLabel}</span>
+                    <span>{sparkEndLabel}</span>
+                  </div>
+                </>
+              ) : (
+                <p className="font-mono text-[10.5px] text-[#7a8a75]">
+                  Not enough data yet — log a few trades
+                </p>
+              )}
             </div>
 
             <div className="h-px bg-[#222a25]" />

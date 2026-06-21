@@ -1,4 +1,4 @@
-project_id = "qfdcqloylrofyeyedekk"
+project_id = "apikgxsvftycuqleclsl"
 
 [functions.parse-trade-transcript]
 verify_jwt = true

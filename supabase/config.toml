@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.elevenlabs-scribe-token]
 verify_jwt = true
+
+[functions.get-trades]
+verify_jwt = true

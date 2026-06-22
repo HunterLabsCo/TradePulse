@@ -7,6 +7,7 @@ import { WalletProviderWrapper } from "@/components/WalletProvider";
 import { useEffect, lazy, Suspense } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
+import { hydrateTradesFromCloud } from "@/lib/sync";
 // Eager: the marketing/legal surface that gets prerendered for SEO + first paint.
 import Landing from "./pages/Landing";
 import NotFound from "./pages/NotFound";
@@ -43,7 +44,15 @@ function ProStatusChecker() {
   return null;
 }
 
-const App = () => (
+const App = () => {
+  // Fire-and-forget cloud hydration once on startup. The persisted trade store
+  // rehydrates synchronously from localStorage before this effect runs, so the
+  // merge is purely additive on top of the local source of truth.
+  useEffect(() => {
+    hydrateTradesFromCloud();
+  }, []);
+
+  return (
   <QueryClientProvider client={queryClient}>
     <WalletProviderWrapper>
       <TooltipProvider>
@@ -73,6 +82,7 @@ const App = () => (
       </TooltipProvider>
     </WalletProviderWrapper>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

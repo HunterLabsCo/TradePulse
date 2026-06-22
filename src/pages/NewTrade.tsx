@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { supabase } from "@/integrations/supabase/client";
+import { getOwnerId } from "@/lib/owner-id";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
 import {
   createVoiceRecorder,
@@ -373,23 +374,28 @@ export default function NewTrade() {
       isDemo: false,
     };
 
+    addTrade(trade);
+
+    const syncBody = { ownerId: getOwnerId(), walletAddress: connectedWallet ?? null, tradeData: trade };
+
     if (connectedWallet) {
       setIsSaving(true);
       try {
-        const { data, error } = await supabase.functions.invoke("create-trade", {
-          body: { walletAddress: connectedWallet, tradeData: trade },
-        });
-        if (data?.error === "TRADE_LIMIT_REACHED") { navigate("/upgrade"); return; }
-        if (!error && data?.id) trade.id = data.id;
-      } catch {
-        // Network/edge failure — keep the entry locally (local-first) so nothing is lost.
-        toast.error("Saved locally — couldn't sync to the cloud.");
+        const { data, error } = await supabase.functions.invoke("create-trade", { body: syncBody });
+        if (!error && data?.error === "TRADE_LIMIT_REACHED") { setIsSaving(false); navigate("/upgrade"); return; }
+        if (error) console.warn("create-trade sync failed", error);
+      } catch (e) {
+        console.warn("create-trade sync failed", e);
       } finally {
         setIsSaving(false);
       }
+    } else {
+      supabase.functions.invoke("create-trade", { body: syncBody }).then(
+        ({ error }) => { if (error) console.warn("create-trade sync failed", error); },
+        (e) => console.warn("create-trade sync failed", e),
+      );
     }
 
-    addTrade(trade);
     navigate(`/trade/${trade.id}`);
   };
 

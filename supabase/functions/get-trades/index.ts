@@ -85,28 +85,50 @@ Deno.serve(async (req) => {
     }
 
     // Match rows owned by the anonymous device id OR (if connected) the wallet.
+    // Match rows owned by the anonymous device id OR (if connected) the wallet.
+    // Run separate parameterized .eq() queries and merge in JS — never
+    // interpolate user input into a filter expression, since the service-role
+    // key bypasses RLS and an injected filter term could leak other users' rows.
     // A single row can match on both, so dedupe by client_id below.
-    const filters = [owner ? `owner_id.eq.${owner}` : null, wallet ? `wallet_address.eq.${wallet}` : null]
-      .filter((f): f is string => f !== null)
-      .join(",");
+    const rows: Array<{ client_id: unknown; trade_data: unknown; created_at: unknown }> = [];
 
-    const { data: rows, error: selectError } = await db
-      .from("trades")
-      .select("client_id, trade_data, created_at")
-      .or(filters)
-      .order("created_at", { ascending: true });
+    if (owner) {
+      const { data, error: ownerError } = await db
+        .from("trades")
+        .select("client_id, trade_data, created_at")
+        .eq("owner_id", owner)
+        .order("created_at", { ascending: true });
 
-    if (selectError) {
-      console.error("get-trades select error:", selectError.message);
-      return new Response(
-        JSON.stringify({ error: "SERVER_ERROR", message: "Failed to load trades" }),
-        { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
-      );
+      if (ownerError) {
+        console.error("get-trades select error:", ownerError.message);
+        return new Response(
+          JSON.stringify({ error: "SERVER_ERROR", message: "Failed to load trades" }),
+          { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
+        );
+      }
+      rows.push(...(data ?? []));
+    }
+
+    if (wallet) {
+      const { data, error: walletError } = await db
+        .from("trades")
+        .select("client_id, trade_data, created_at")
+        .eq("wallet_address", wallet)
+        .order("created_at", { ascending: true });
+
+      if (walletError) {
+        console.error("get-trades select error:", walletError.message);
+        return new Response(
+          JSON.stringify({ error: "SERVER_ERROR", message: "Failed to load trades" }),
+          { status: 500, headers: { ...hdrs, "Content-Type": "application/json" } }
+        );
+      }
+      rows.push(...(data ?? []));
     }
 
     const seen = new Set<string>();
     const trades: unknown[] = [];
-    for (const row of rows ?? []) {
+    for (const row of rows) {
       const id = typeof row.client_id === "string" ? row.client_id : null;
       if (id && seen.has(id)) continue;
       if (id) seen.add(id);

@@ -8,6 +8,7 @@ interface TradeStore {
   updateTrade: (id: string, updates: Partial<Trade>) => void;
   deleteTrade: (id: string) => void;
   deleteAllTrades: () => void;
+  mergeServerTrades: (serverTrades: Trade[]) => void;
   getTradeById: (id: string) => Trade | undefined;
   getTradeCount: () => number;
   getNonDemoTradeCount: () => number;
@@ -30,6 +31,17 @@ export const useTradeStore = create<TradeStore>()(
       deleteTrade: (id) =>
         set((s) => ({ trades: s.trades.filter((t) => t.id !== id) })),
       deleteAllTrades: () => set({ trades: [] }),
+      mergeServerTrades: (serverTrades) =>
+        set((s) => {
+          const existingIds = new Set(s.trades.map((t) => t.id));
+          const additions = serverTrades.filter(
+            (t) => !t.isDemo && !existingIds.has(t.id)
+          );
+          if (additions.length === 0) return s;
+          const merged = [...s.trades, ...additions];
+          merged.sort((a, b) => b.entryTime.localeCompare(a.entryTime));
+          return { trades: merged };
+        }),
       getTradeById: (id) => get().trades.find((t) => t.id === id),
       getTradeCount: () => get().trades.length,
       getNonDemoTradeCount: () =>

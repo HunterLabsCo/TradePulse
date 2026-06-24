@@ -119,17 +119,20 @@ Deno.serve(async (req) => {
       .maybeSingle();
     const isUpdate = !!existingRow;
 
-    // The free-trade limit only applies to wallet users (the only ones who can
-    // currently upgrade to Pro) creating a NEW trade. Anonymous owners are not
-    // limited yet (no upgrade path exists), and edits are never limited.
-    if (wallet && !isUpdate) {
-      const { data: subscriber } = await db
-        .from("subscribers")
-        .select("verified, banned")
-        .eq("wallet_address", wallet)
-        .maybeSingle();
-
-      const isPro = subscriber?.verified === true && subscriber?.banned !== true;
+    // The free-trade limit applies to every owner creating a NEW trade (counted
+    // by owner_id). Edits are never limited. Only wallet users can be Pro and
+    // thus exempt; anonymous owners are always subject to the limit.
+    if (!isUpdate) {
+      // Only wallet users can be Pro; anonymous owners are never Pro and are always subject to the limit.
+      let isPro = false;
+      if (wallet) {
+        const { data: subscriber } = await db
+          .from("subscribers")
+          .select("verified, banned")
+          .eq("wallet_address", wallet)
+          .maybeSingle();
+        isPro = subscriber?.verified === true && subscriber?.banned !== true;
+      }
 
       if (!isPro) {
         const { count, error: countError } = await db

@@ -29,6 +29,17 @@ import { Kbd } from "@/components/design/Kbd";
 import { Waveform } from "@/components/design/Waveform";
 import { AppSidebar } from "@/components/design/AppSidebar";
 
+async function isTradeLimitError(error: any): Promise<boolean> {
+  try {
+    const res = error?.context;
+    if (!res || res.status !== 403) return false;
+    const body = await res.clone().json().catch(() => null);
+    return body?.error === "TRADE_LIMIT_REACHED";
+  } catch {
+    return false;
+  }
+}
+
 // ── Constants ────────────────────────────────────────────────────────
 const FREE_LIMIT = 20;
 
@@ -108,7 +119,7 @@ function saveCustomTag(tag: string) {
 // ── Component ─────────────────────────────────────────────────────────
 export default function NewTrade() {
   const navigate = useNavigate();
-  const { addTrade, getNonDemoTradeCount } = useTradeStore();
+  const { addTrade, getNonDemoTradeCount, deleteTrade } = useTradeStore();
 
   // ── Voice state ──
   const [isRecording, setIsRecording] = useState(false);
@@ -378,22 +389,24 @@ export default function NewTrade() {
 
     const syncBody = { ownerId: getOwnerId(), walletAddress: connectedWallet ?? null, tradeData: trade };
 
-    if (connectedWallet) {
-      setIsSaving(true);
-      try {
-        const { data, error } = await supabase.functions.invoke("create-trade", { body: syncBody });
-        if (!error && data?.error === "TRADE_LIMIT_REACHED") { setIsSaving(false); navigate("/upgrade"); return; }
-        if (error) console.warn("create-trade sync failed", error);
-      } catch (e) {
-        console.warn("create-trade sync failed", e);
-      } finally {
-        setIsSaving(false);
+    setIsSaving(true);
+    try {
+      const { error } = await supabase.functions.invoke("create-trade", { body: syncBody });
+      if (error) {
+        if (await isTradeLimitError(error)) {
+          // Over the free limit: roll back the optimistic local add and send to upgrade.
+          deleteTrade(trade.id);
+          setIsSaving(false);
+          navigate("/upgrade");
+          return;
+        }
+        // Any other error is a non-fatal sync failure — keep the local (offline-first) trade.
+        console.warn("create-trade sync failed", error);
       }
-    } else {
-      supabase.functions.invoke("create-trade", { body: syncBody }).then(
-        ({ error }) => { if (error) console.warn("create-trade sync failed", error); },
-        (e) => console.warn("create-trade sync failed", e),
-      );
+    } catch (e) {
+      console.warn("create-trade sync failed", e);
+    } finally {
+      setIsSaving(false);
     }
 
     navigate(`/trade/${trade.id}`);

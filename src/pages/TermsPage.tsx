@@ -25,8 +25,8 @@ export default function TermsPage() {
         <h1 className="mb-2 font-sans text-[2.5rem] font-bold leading-[1.1]" style={{ color: C.text, letterSpacing: "-0.03em" }}>
           Terms of Service
         </h1>
-        <p className="mb-1 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Last Updated:</strong> May 14, 2026</p>
-        <p className="mb-8 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Effective Date:</strong> May 14, 2026</p>
+        <p className="mb-1 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Last Updated:</strong> June 24, 2026</p>
+        <p className="mb-8 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Effective Date:</strong> June 24, 2026</p>
         <p className="mb-8 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
           These Terms of Service ("Terms") govern your access to and use of TradePulse (the "Service"), operated by TheVeinGhost ("we," "us," or "our"). By accessing or using TradePulse, you agree to be bound by these Terms.
         </p>
@@ -98,7 +98,7 @@ export default function TermsPage() {
 
           <h2 className={h2} style={h2Style}>8. Voice Data and AI Processing</h2>
           <p className={p} style={{ color: C.textDim }}>
-            When you use voice logging, your audio is transmitted to third-party AI service providers — currently <strong style={strong}>ElevenLabs</strong> (for speech transcription) and <strong style={strong}>Anthropic</strong> (for parsing transcribed text into structured trade data). We do not retain voice recordings on our servers after parsing. Our service providers may transiently retain transmitted data per their own policies; we have selected providers that, to our knowledge, do not train on user-submitted data through their commercial APIs.
+            When you use voice logging, transcription is performed by your browser's built-in speech recognition (the Web Speech API). Depending on your browser and device, your browser may transmit your audio to its vendor — for example <strong style={strong}>Google</strong> (Chrome) or <strong style={strong}>Apple</strong> (Safari) — for processing, subject to that vendor's own privacy policy. Your audio is never transmitted to or stored on our servers. The resulting text transcript is then sent to <strong style={strong}>Anthropic</strong> (for parsing into structured trade data); to our knowledge, Anthropic does not train on user-submitted data through its commercial API.
           </p>
           <p className={p} style={{ color: C.textDim }}>
             See our <a href="/privacy" className="underline" style={{ color: C.primary }}>Privacy Policy</a> for full details.

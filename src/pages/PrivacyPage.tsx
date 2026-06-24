@@ -26,8 +26,8 @@ export default function PrivacyPage() {
         <h1 className="mb-2 font-sans text-[2.5rem] font-bold leading-[1.1]" style={{ color: C.text, letterSpacing: "-0.03em" }}>
           Privacy Policy
         </h1>
-        <p className="mb-1 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Last Updated:</strong> May 14, 2026</p>
-        <p className="mb-8 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Effective Date:</strong> May 14, 2026</p>
+        <p className="mb-1 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Last Updated:</strong> June 24, 2026</p>
+        <p className="mb-8 font-sans text-xs" style={{ color: C.textDim }}><strong style={strong}>Effective Date:</strong> June 24, 2026</p>
         <p className="mb-8 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
           We respect your privacy. This Privacy Policy describes how TradePulse ("we," "us") collects, uses, and protects information when you use our Service.
         </p>
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
           <ul className="space-y-2 font-sans text-sm" style={{ color: C.textDim }}>
             <li><strong style={strong}>Free tier:</strong> Your trades are stored locally in your browser. We don't see them. We don't collect your email. We don't know who you are.</li>
             <li><strong style={strong}>Pro tier:</strong> Your wallet address is used to verify payment. Optional cloud sync of trade data is stored in Supabase, encrypted in transit.</li>
-            <li><strong style={strong}>Voice:</strong> Audio you record is sent to ElevenLabs (for transcription) and Anthropic (for parsing). We don't keep recordings.</li>
+            <li><strong style={strong}>Voice:</strong> Transcription happens in your browser using its built-in speech recognition (the Web Speech API), which may send your audio to your browser's vendor — for example Google (Chrome) or Apple (Safari). We never receive or store your audio. Only the resulting text is sent to Anthropic to structure it into trade fields.</li>
             <li><strong style={strong}>Analytics:</strong> We use Vercel Analytics for anonymous, aggregate usage data. No personal profiling.</li>
             <li><strong style={strong}>We never sell your data.</strong></li>
           </ul>
@@ -52,7 +52,7 @@ export default function PrivacyPage() {
           <h3 className={h3} style={{ color: C.text }}>a. Free-tier users</h3>
           <ul className={ul} style={{ color: C.textDim }}>
             <li><strong style={strong}>Trade entries you enter or speak:</strong> Stored locally on your device (browser localStorage / IndexedDB). Never transmitted to our servers.</li>
-            <li><strong style={strong}>Voice audio:</strong> Transmitted to our AI service providers (see Section 3) for transcription and parsing. Not stored by us.</li>
+            <li><strong style={strong}>Voice audio:</strong> Transcribed by your browser's built-in speech recognition (the Web Speech API). Depending on your browser and device, your browser may send the audio to its vendor (e.g. Google or Apple) for processing — this happens within your browser and the audio is never sent to or stored by us. Only the resulting text transcript is sent to our parsing provider (see Section 3).</li>
           </ul>
 
           <h3 className={h3} style={{ color: C.text }}>b. Pro-tier users</h3>
@@ -90,7 +90,7 @@ export default function PrivacyPage() {
               </thead>
               <tbody className="font-sans">
                 {[
-                  ["ElevenLabs", "Speech-to-text transcription", "Voice audio (transient)"],
+                  ["Your browser's vendor (e.g. Google / Apple)", "Speech-to-text via your browser's built-in Web Speech API", "Voice audio (handled by your browser; never sent to us)"],
                   ["Anthropic (Claude)", "Parsing transcribed text into structured trade fields", "Text transcripts (transient)"],
                   ["Supabase", "Pro account management; optional cloud sync", "Wallet address; encrypted trade data"],
                   ["Vercel", "Hosting, analytics, edge functions", "Standard HTTP request data; anonymous usage"],
@@ -138,7 +138,7 @@ export default function PrivacyPage() {
           <ul className={ul} style={{ color: C.textDim }}>
             <li><strong style={strong}>Free-tier trade data:</strong> Held on your device until you delete it.</li>
             <li><strong style={strong}>Pro-tier wallet + trade data:</strong> Retained while your account is active. Deleted within 30 days of a verified deletion request.</li>
-            <li><strong style={strong}>Voice recordings:</strong> Not retained by us. Processed transiently and discarded.</li>
+            <li><strong style={strong}>Voice recordings:</strong> Never received or stored by us. Audio is processed by your browser's speech recognition and is not transmitted to our servers.</li>
             <li><strong style={strong}>Analytics:</strong> Retained per Vercel's standard policy (typically 30 days for anonymous logs).</li>
           </ul>
 

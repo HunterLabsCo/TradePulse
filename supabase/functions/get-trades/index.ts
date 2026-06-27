@@ -127,7 +127,6 @@ Deno.serve(async (req) => {
     }
 
     // Match rows owned by the anonymous device id OR (if connected) the wallet.
-    // Match rows owned by the anonymous device id OR (if connected) the wallet.
     // Run separate parameterized .eq() queries and merge in JS — never
     // interpolate user input into a filter expression, since the service-role
     // key bypasses RLS and an injected filter term could leak other users' rows.

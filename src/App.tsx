@@ -4,9 +4,11 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProviderWrapper } from "@/components/WalletProvider";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { useEffect, lazy, Suspense } from "react";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { checkProStatus } from "@/lib/subscription-utils";
+import { clearWalletSigner, setWalletSigner } from "@/lib/wallet-auth";
 import { hydrateTradesFromCloud } from "@/lib/sync";
 // Eager: the marketing/legal surface that gets prerendered for SEO + first paint.
 import Landing from "./pages/Landing";
@@ -44,6 +46,22 @@ function ProStatusChecker() {
   return null;
 }
 
+// Exposes the connected wallet's signMessage to the non-React sync path so it can
+// prove wallet ownership to the create-trade / get-trades edge functions.
+function WalletAuthBridge() {
+  const { publicKey, signMessage } = useWallet();
+
+  useEffect(() => {
+    if (publicKey && signMessage) {
+      setWalletSigner(publicKey.toBase58(), signMessage);
+    } else {
+      clearWalletSigner();
+    }
+  }, [publicKey, signMessage]);
+
+  return null;
+}
+
 const App = () => {
   // Fire-and-forget cloud hydration once on startup. The persisted trade store
   // rehydrates synchronously from localStorage before this effect runs, so the
@@ -60,6 +78,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <ProStatusChecker />
+          <WalletAuthBridge />
           <Suspense fallback={<div className="min-h-screen bg-[#0e1311]" />}>
             <Routes>
               <Route path="/" element={<Landing />} />

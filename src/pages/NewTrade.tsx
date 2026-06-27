@@ -4,6 +4,7 @@ import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { supabase } from "@/integrations/supabase/client";
 import { getOwnerId } from "@/lib/owner-id";
+import { buildSyncWalletFields } from "@/lib/wallet-auth";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
 import {
   createVoiceRecorder,
@@ -413,7 +414,10 @@ export default function NewTrade() {
 
     addTrade(trade);
 
-    const syncBody = { ownerId: getOwnerId(), walletAddress: connectedWallet ?? null, tradeData: trade };
+    // Sign a fresh ownership proof for the wallet path; on rejection/failure this
+    // is {} and the trade syncs under the anonymous owner-only path.
+    const walletFields = await buildSyncWalletFields(connectedWallet);
+    const syncBody = { ownerId: getOwnerId(), ...walletFields, tradeData: trade };
 
     setIsSaving(true);
     try {

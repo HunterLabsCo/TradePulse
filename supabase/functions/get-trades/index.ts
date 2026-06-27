@@ -1,4 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import nacl from "https://esm.sh/tweetnacl@1.0.3";
+import bs58 from "https://esm.sh/bs58@6.0.0";
 
 const ALLOWED_ORIGINS = [
   "https://tradepulseapp.io",
@@ -43,6 +45,27 @@ function corsHeaders(req: Request): Record<string, string> | null {
   };
 }
 
+const FIVE_MIN_MS = 5 * 60 * 1000;
+
+// Proof of wallet ownership for the service-role (RLS-bypassed) wallet path:
+// the client must sign `TradePulse sync\nwallet:<pubkey>\nts:<unixMillis>` with
+// the wallet's private key. Returns true only if the ed25519 signature, the
+// exact message, and a fresh ts all check out for the claimed wallet.
+function verifyWalletSignature(wallet: string, message: unknown, signature: unknown, ts: unknown): boolean {
+  if (typeof message !== "string" || typeof signature !== "string" || typeof ts !== "number") return false;
+  if (!Number.isFinite(ts) || Math.abs(Date.now() - ts) > FIVE_MIN_MS) return false;
+  const expected = `TradePulse sync\nwallet:${wallet}\nts:${ts}`;
+  if (message !== expected) return false;
+  try {
+    const pub = bs58.decode(wallet);
+    const sig = bs58.decode(signature);
+    if (pub.length !== 32 || sig.length !== 64) return false;
+    return nacl.sign.detached.verify(new TextEncoder().encode(message), sig, pub);
+  } catch {
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   const hdrs = corsHeaders(req);
 
@@ -56,7 +79,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { ownerId, walletAddress } = body;
+    const { ownerId, walletAddress, message, signature, ts } = body;
 
     const owner: string | null =
       (typeof ownerId === "string" && ownerId.trim()) ? ownerId.trim() : null;
@@ -81,6 +104,16 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "RATE_LIMITED", message: "Too many requests" }),
         { status: 429, headers: { ...hdrs, "Content-Type": "application/json", "Retry-After": String(RATE_WINDOW_S) } }
+      );
+    }
+
+    // The service-role key bypasses RLS, so a client-supplied wallet must prove
+    // ownership before we read any wallet-keyed row. No walletAddress = the
+    // anonymous owner_id path, which stays unauthenticated and unchanged.
+    if (wallet && !verifyWalletSignature(wallet, message, signature, ts)) {
+      return new Response(
+        JSON.stringify({ error: "UNAUTHORIZED", message: "Invalid or missing wallet signature" }),
+        { status: 401, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 

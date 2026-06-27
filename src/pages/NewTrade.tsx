@@ -4,6 +4,7 @@ import { useTradeStore } from "@/lib/trade-store";
 import { useSubscriptionStore } from "@/lib/subscription-store";
 import { supabase } from "@/integrations/supabase/client";
 import { getOwnerId } from "@/lib/owner-id";
+import { buildWalletAuth } from "@/lib/wallet-signer";
 import type { EmotionalState, SessionType, Trade } from "@/lib/sample-data";
 import {
   createVoiceRecorder,
@@ -413,7 +414,14 @@ export default function NewTrade() {
 
     addTrade(trade);
 
-    const syncBody = { ownerId: getOwnerId(), walletAddress: connectedWallet ?? null, tradeData: trade };
+    // Writing under a wallet requires proving ownership of it. If signing fails
+    // or is unavailable, fall back to the anonymous owner_id path (the trade
+    // still saves locally and under owner_id).
+    let syncBody: Record<string, unknown> = { ownerId: getOwnerId(), walletAddress: null, tradeData: trade };
+    if (connectedWallet) {
+      const auth = await buildWalletAuth(connectedWallet);
+      if (auth) syncBody = { ownerId: getOwnerId(), walletAddress: connectedWallet, tradeData: trade, ...auth };
+    }
 
     setIsSaving(true);
     try {

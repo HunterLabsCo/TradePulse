@@ -41,4 +41,55 @@ describe("buildWalletAuth", () => {
     expect(auth!.signature).toBe(bs58.encode(fixedSig));
     expect(new TextDecoder().decode(signedBytes!)).toBe(auth!.message);
   });
+
+  it("signs only once for a burst of calls and reuses the cached auth", async () => {
+    let calls = 0;
+    registerWalletSigner(() => {
+      calls += 1;
+      return Promise.resolve(new Uint8Array(64).fill(3));
+    });
+
+    const results = await Promise.all([
+      buildWalletAuth("WALLET"),
+      buildWalletAuth("WALLET"),
+      buildWalletAuth("WALLET"),
+      buildWalletAuth("WALLET"),
+      buildWalletAuth("WALLET"),
+    ]);
+
+    expect(calls).toBe(1);
+    for (const r of results) {
+      expect(r).toEqual(results[0]);
+    }
+  });
+
+  it("re-signs after the signer is re-registered (disconnect/change clears cache)", async () => {
+    let calls = 0;
+    const signer = () => {
+      calls += 1;
+      return Promise.resolve(new Uint8Array(64).fill(5));
+    };
+
+    registerWalletSigner(signer);
+    await buildWalletAuth("WALLET");
+    expect(calls).toBe(1);
+
+    registerWalletSigner(signer);
+    await buildWalletAuth("WALLET");
+    expect(calls).toBe(2);
+  });
+
+  it("caches per wallet so distinct wallets each sign", async () => {
+    let calls = 0;
+    registerWalletSigner(() => {
+      calls += 1;
+      return Promise.resolve(new Uint8Array(64).fill(9));
+    });
+
+    await buildWalletAuth("WALLET_A");
+    await buildWalletAuth("WALLET_B");
+    await buildWalletAuth("WALLET_A");
+
+    expect(calls).toBe(2);
+  });
 });

@@ -43,6 +43,25 @@ async function isTradeLimitError(error: any): Promise<boolean> {
 // ── Constants ────────────────────────────────────────────────────────
 const FREE_LIMIT = 20;
 
+// Known browser Web Speech mis-hears → likely intended ticker. Keyed lowercase, matched
+// against the WHOLE token name only. Starter set; refine as real mis-hears surface.
+const TICKER_MISHEARS: Record<string, string> = {
+  bank: "BONK", bonky: "BONK",
+  soul: "SOL", sole: "SOL", saul: "SOL",
+  with: "WIF", whiff: "WIF", wiff: "WIF",
+  peppy: "PEPE", pepay: "PEPE",
+  "pop cat": "POPCAT",
+  "moo deng": "MOODENG", moodeng: "MOODENG",
+  "fart coin": "FARTCOIN",
+  gigga: "GIGA",
+};
+
+function suggestTicker(name: string): string | null {
+  const key = name.trim().toLowerCase();
+  const hit = TICKER_MISHEARS[key];
+  return hit && hit.toLowerCase() !== key ? hit : null;
+}
+
 const EMOTIONS: { value: EmotionalState; label: string }[] = [
   { value: "confident", label: "Confident" },
   { value: "calm", label: "Calm" },
@@ -137,6 +156,8 @@ export default function NewTrade() {
 
   // ── Form state ──
   const [tokenName, setTokenName] = useState("");
+  const [tokenConfirmed, setTokenConfirmed] = useState(false);
+  const [tickerSuggestion, setTickerSuggestion] = useState<string | null>(null);
   const [chain, setChain] = useState("SOL");
   const [entryMarketCap, setEntryMarketCap] = useState("");
   const [positionSize, setPositionSize] = useState("");
@@ -274,7 +295,11 @@ export default function NewTrade() {
       }
 
       const p = data.parsed;
-      if (p.tokenName) setTokenName(p.tokenName);
+      if (p.tokenName) {
+        setTokenName(p.tokenName);
+        setTokenConfirmed(false);                     // AI-filled → must be confirmed
+        setTickerSuggestion(suggestTicker(p.tokenName));
+      }
       if (p.chain) setChain(p.chain);
       if (p.entryMarketCap) setEntryMarketCap(p.entryMarketCap);
       if (p.positionSize) setPositionSize(p.positionSize);
@@ -356,6 +381,7 @@ export default function NewTrade() {
   // ── Save ───────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!tokenName.trim()) { toast.error("Add a token name before saving."); return; }
+    if (!tokenConfirmed) { toast.error("Confirm your ticker before saving."); return; }
     const { isPro, connectedWallet } = useSubscriptionStore.getState();
     if (getNonDemoTradeCount() >= FREE_LIMIT && !isPro) { navigate("/upgrade"); return; }
 
@@ -589,11 +615,34 @@ export default function NewTrade() {
                 <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Token</p>
                 <input
                   value={tokenName}
-                  onChange={(e) => setTokenName(e.target.value)}
+                  onChange={(e) => { setTokenName(e.target.value); setTokenConfirmed(true); setTickerSuggestion(null); }}
                   placeholder="—"
                   className="mt-1 font-sans text-[22px] font-medium text-[#8ec2dd] tracking-[-0.01em] leading-[1.1] bg-transparent border-none outline-none w-full"
                   style={{ caretColor: "#8ec2dd" }}
                 />
+                {tokenName && !tokenConfirmed && (
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    {tickerSuggestion && (
+                      <button
+                        type="button"
+                        onClick={() => { setTokenName(tickerSuggestion); setTokenConfirmed(true); setTickerSuggestion(null); }}
+                        className="font-mono text-[10.5px] text-[#e89a8a] border border-[#e89a8a]/40 rounded-[3px] px-2 py-1 min-h-[32px]"
+                      >
+                        Heard "{tokenName}" — did you mean {tickerSuggestion}?
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setTokenConfirmed(true)}
+                      className="font-mono text-[10.5px] text-[#8ec2dd] border border-[#8ec2dd]/40 rounded-[3px] px-2 py-1 min-h-[32px]"
+                    >
+                      ✓ Confirm ticker
+                    </button>
+                  </div>
+                )}
+                {tokenName && tokenConfirmed && (
+                  <p className="mt-1 font-mono text-[9.5px] text-[#a8d4ad]">✓ ticker confirmed</p>
+                )}
               </div>
               <div>
                 <p className="font-mono text-[9.5px] text-[#7a8a75] tracking-[0.1em] uppercase">Chain</p>
@@ -858,7 +907,7 @@ export default function NewTrade() {
       <div className="fixed left-[22px] right-[22px] bottom-[22px] md:left-[calc(220px+22px)]">
         <button
           onClick={handleSave}
-          disabled={!tokenName.trim() || isParsing || isSaving}
+          disabled={!tokenName.trim() || !tokenConfirmed || isParsing || isSaving}
           className="w-full flex items-center justify-center gap-2.5 bg-[#8ec2dd] text-[#0e1311] py-3.5 px-5 rounded-[4px] font-sans font-medium text-[15px] disabled:opacity-40 disabled:cursor-not-allowed"
           style={tokenName.trim() ? { boxShadow: "0 8px 32px -8px rgba(142,194,221,0.33)" } : {}}
         >

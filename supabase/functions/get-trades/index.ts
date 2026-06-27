@@ -1,4 +1,6 @@
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import nacl from "https://esm.sh/tweetnacl@1.0.3";
+import bs58 from "https://esm.sh/bs58@5.0.0";
 
 const ALLOWED_ORIGINS = [
   "https://tradepulseapp.io",
@@ -32,6 +34,37 @@ async function checkRateLimit(db: SupabaseClient, ip: string): Promise<boolean> 
   return true;
 }
 
+// Anti-replay freshness window for the signed sync message.
+const SIGNATURE_FRESHNESS_MS = 5 * 60 * 1000;
+
+// Prove the caller controls `walletAddress` before any wallet-keyed DB access.
+// The client signs `TradePulse sync\nwallet:<pubkey>\nts:<unixMillis>` with the
+// wallet's ed25519 key; we require a fresh ts, an exact message binding, and a
+// valid signature. Any failure means we must not trust the wallet address.
+function verifyWalletSignature(
+  walletAddress: string,
+  message: unknown,
+  signature: unknown,
+  ts: unknown,
+): boolean {
+  if (typeof message !== "string" || typeof signature !== "string") return false;
+  if (typeof ts !== "number" || !Number.isFinite(ts)) return false;
+  if (Math.abs(Date.now() - ts) > SIGNATURE_FRESHNESS_MS) return false;
+
+  const expected = `TradePulse sync\nwallet:${walletAddress}\nts:${ts}`;
+  if (message !== expected) return false;
+
+  try {
+    const pubkeyBytes = bs58.decode(walletAddress);
+    const sigBytes = bs58.decode(signature);
+    if (pubkeyBytes.length !== 32 || sigBytes.length !== 64) return false;
+    const msgBytes = new TextEncoder().encode(message);
+    return nacl.sign.detached.verify(msgBytes, sigBytes, pubkeyBytes);
+  } catch {
+    return false;
+  }
+}
+
 function corsHeaders(req: Request): Record<string, string> | null {
   const origin = req.headers.get("Origin");
   if (!origin) return {};
@@ -56,7 +89,7 @@ Deno.serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { ownerId, walletAddress } = body;
+    const { ownerId, walletAddress, message, signature, ts } = body;
 
     const owner: string | null =
       (typeof ownerId === "string" && ownerId.trim()) ? ownerId.trim() : null;
@@ -68,6 +101,15 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "MISSING_OWNER", message: "ownerId or walletAddress is required" }),
         { status: 400, headers: { ...hdrs, "Content-Type": "application/json" } }
+      );
+    }
+
+    // A wallet address is public, so reading its trades requires proof of
+    // ownership. The anonymous owner_id path needs no signature and is unchanged.
+    if (wallet && !verifyWalletSignature(wallet, message, signature, ts)) {
+      return new Response(
+        JSON.stringify({ error: "UNAUTHORIZED", message: "Invalid or missing wallet signature" }),
+        { status: 401, headers: { ...hdrs, "Content-Type": "application/json" } }
       );
     }
 

@@ -69,7 +69,7 @@ export default function GivingPage() {
         <h2 className="mb-2 font-sans text-2xl font-bold" style={{ color: C.text, letterSpacing: "-0.02em" }}>The Numbers</h2>
         <p className="mb-4 font-sans text-xs italic" style={{ color: C.textDim }}>
           Updated monthly. Receipts available on request:{" "}
-          <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>
+          <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a>
         </p>
         <div className="mb-2 overflow-x-auto rounded-[6px] border p-5" style={{ background: C.bgRaised, borderColor: C.border }}>
           <table className="w-full border-collapse text-sm">
@@ -113,7 +113,7 @@ export default function GivingPage() {
         <div className="rounded-[6px] border p-5" style={{ background: "rgba(142,194,221,0.04)", borderColor: "rgba(142,194,221,0.35)" }}>
           <h2 className="mb-2 font-sans text-base font-medium" style={{ color: C.text }}>Want to verify?</h2>
           <p className="font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
-            Email <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a> any time and I'll send you the most recent donation receipts. Transparency is the whole point.
+            Email <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a> any time and I'll send you the most recent donation receipts. Transparency is the whole point.
           </p>
         </div>
       </div>

@@ -128,7 +128,7 @@ export default function PrivacyPage() {
             <li><strong style={strong}>Objection / Restriction:</strong> Object to or restrict certain processing.</li>
           </ul>
           <p className={p} style={{ color: C.textDim }}>
-            To exercise these rights, email <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>. We will respond within 30 days.
+            To exercise these rights, email <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a>. We will respond within 30 days.
           </p>
 
           <h2 className={h2} style={h2Style}>6. Data Retention</h2>
@@ -162,7 +162,7 @@ export default function PrivacyPage() {
           <h2 className={h2} style={h2Style}>11. Contact</h2>
           <p className={p} style={{ color: C.textDim }}>
             Questions, data requests, or concerns:{" "}
-            <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>
+            <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a>
           </p>
           <p className={p} style={{ color: C.textDim }}>
             TradePulse is operated independently by TheVeinGhost.

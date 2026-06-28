@@ -71,7 +71,7 @@ export default function AboutPage() {
         </p>
         <p className="mb-8 font-sans text-sm leading-relaxed" style={{ color: C.textDim }}>
           If you're using TradePulse and have feedback, ideas, or just want to yell at me about a bug:{" "}
-          <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>
+          <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a>
         </p>
 
         <p className="mb-8 font-sans text-sm font-medium" style={{ color: C.text }}>— TheVeinGhost</p>

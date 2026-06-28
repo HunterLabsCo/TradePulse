@@ -11,6 +11,7 @@ import MarketingHeader from "@/components/marketing/MarketingHeader";
 import MarketingFooter from "@/components/marketing/MarketingFooter";
 import { C, ctaBtn, outlineBtn } from "@/components/marketing/theme";
 import { setPageMeta } from "@/lib/page-meta";
+import { ROUTE_META } from "@/prerender/route-meta";
 
 // ── Constants ────────────────────────────────────────────────────────
 const DEMO_DESKTOP_VIDEO_ID = "AsiAb6l3ZTw";
@@ -168,11 +169,7 @@ export default function Landing() {
   const [referral, setReferralState] = useState<string | null>(null);
 
   useEffect(() => {
-    setPageMeta({
-      title: "TradePulse — Never Lose a Trade to Bad Timing",
-      description: "The voice-powered trade journal for active crypto traders. Log entries, exits, PnL, and mood across Solana, Ethereum, Base, Arbitrum, BNB, and Polygon in under 5 seconds. 20 free trades, no credit card.",
-      path: "/",
-    });
+    setPageMeta({ ...ROUTE_META["/"], path: "/" });
   }, []);
 
   useEffect(() => {

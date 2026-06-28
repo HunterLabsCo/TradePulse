@@ -1,95 +1,76 @@
 /**
- * Build-time prerendering for PUBLIC marketing routes only.
+ * Build-time prerendering for PUBLIC marketing routes only — browserless.
  *
- * Serves the freshly built SPA from dist/ and snapshots each public route in
- * headless Chromium (via Playwright, already a devDependency). The rendered
- * HTML — real page text + per-page title/description/canonical set by
- * src/lib/page-meta.ts — is written back into dist/ as static files.
+ * Builds an SSR bundle of the marketing pages (vite build --ssr) and renders
+ * each public route with react-dom/server, then bakes the real page markup and
+ * per-route SEO meta (title/description/canonical/OG) into static HTML files in
+ * dist/. No headless browser is involved, so this runs anywhere Node runs
+ * (local, CI, Vercel's build image).
  *
  * App routes (/app, /journal, /new-trade, etc.) are deliberately NOT listed
- * here, so they are never prerendered and keep working as a normal SPA.
+ * here, so they are never prerendered and keep working as a normal SPA via the
+ * dist/app.html fallback.
  *
- * If a browser can't be launched (e.g. a CI box without Chromium installed),
- * the script logs a loud warning and exits 0 so the SPA build still ships.
+ * The build FAILS (exit 1) on EVERY environment if any route fails to render or
+ * yields an empty #root — a blank, non-indexable shell must never deploy.
  */
-import { createServer } from "node:http";
-import { readFile, writeFile, mkdir, stat } from "node:fs/promises";
-import { existsSync, readdirSync } from "node:fs";
-import { join, dirname, extname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { execSync } from "node:child_process";
+import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { join, dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const DIST = resolve(__dirname, "..", "dist");
-const HOST = "127.0.0.1";
-const PORT = 4182;
+const ROOT = resolve(__dirname, "..");
+const DIST = join(ROOT, "dist");
+const SSR_OUT = join(ROOT, "dist-ssr");
 
-// Public routes to prerender. Keep this list in sync with the public routes in
-// src/App.tsx. Do NOT add app routes here.
+// Public routes to prerender. Keep in sync with the public routes in
+// src/App.tsx and the PAGES map in src/prerender/entry-server.tsx. Do NOT add
+// app routes here.
 const ROUTES = ["/", "/about", "/giving", "/privacy", "/terms"];
 
-const MIME = {
-  ".html": "text/html; charset=utf-8",
-  ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8",
-  ".css": "text/css; charset=utf-8",
-  ".json": "application/json; charset=utf-8",
-  ".svg": "image/svg+xml",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".webp": "image/webp",
-  ".ico": "image/x-icon",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".txt": "text/plain; charset=utf-8",
-  ".xml": "application/xml; charset=utf-8",
-};
+const SITE_ORIGIN = "https://www.tradepulseapp.io";
 
-// Minimal static server with SPA fallback so client-side routes resolve to the
-// app shell exactly like production would.
-function startServer(shellHtml) {
-  const server = createServer(async (req, res) => {
-    try {
-      const urlPath = decodeURIComponent((req.url || "/").split("?")[0]);
-      let filePath = join(DIST, urlPath);
-
-      if (existsSync(filePath) && (await stat(filePath)).isDirectory()) {
-        filePath = join(filePath, "index.html");
-      }
-
-      if (extname(filePath) && existsSync(filePath)) {
-        const body = await readFile(filePath);
-        res.writeHead(200, { "Content-Type": MIME[extname(filePath)] || "application/octet-stream" });
-        res.end(body);
-        return;
-      }
-
-      // SPA fallback: serve the app shell for any non-file route.
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(shellHtml);
-    } catch (err) {
-      res.writeHead(500);
-      res.end(String(err));
-    }
-  });
-  return new Promise((res) => server.listen(PORT, HOST, () => res(server)));
+function escapeAttr(value) {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-// Locates a Chromium executable already on disk (any build version) so a
-// version mismatch between Playwright and a pre-baked browser cache doesn't
-// block prerendering.
-function findInstalledChromium() {
-  const base = process.env.PLAYWRIGHT_BROWSERS_PATH;
-  if (!base || !existsSync(base)) return null;
-  const candidates = [];
-  for (const entry of readdirSync(base)) {
-    if (!entry.startsWith("chromium")) continue;
-    candidates.push(
-      join(base, entry, "chrome-linux", "chrome"),
-      join(base, entry, "chrome-linux", "headless_shell")
-    );
+function escapeHtml(value) {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Replace the content="" of a meta tag matched by its name/property attribute.
+function replaceMeta(html, matchAttr, value) {
+  const re = new RegExp(`(<meta\\s+${matchAttr}\\s+content=")[^"]*(")`, "i");
+  if (!re.test(html)) {
+    throw new Error(`shell is missing <meta ${matchAttr} ...>`);
   }
-  return candidates.find((p) => existsSync(p)) || null;
+  return html.replace(re, `$1${escapeAttr(value)}$2`);
+}
+
+function injectMeta(shell, { title, description, canonical }) {
+  let html = shell;
+
+  if (!/<title>[\s\S]*?<\/title>/i.test(html)) throw new Error("shell is missing <title>");
+  html = html.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(title)}</title>`);
+
+  html = replaceMeta(html, 'name="description"', description);
+  html = replaceMeta(html, 'property="og:title"', title);
+  html = replaceMeta(html, 'property="og:description"', description);
+  html = replaceMeta(html, 'property="og:url"', canonical);
+  html = replaceMeta(html, 'name="twitter:title"', title);
+  html = replaceMeta(html, 'name="twitter:description"', description);
+
+  const canonicalRe = /(<link\s+rel="canonical"\s+href=")[^"]*(")/i;
+  if (!canonicalRe.test(html)) throw new Error('shell is missing <link rel="canonical">');
+  html = html.replace(canonicalRe, `$1${escapeAttr(canonical)}$2`);
+
+  return html;
 }
 
 async function main() {
@@ -98,120 +79,72 @@ async function main() {
     process.exit(1);
   }
 
-  // The freshly built index.html is the empty SPA shell. Preserve it as the
-  // app-route fallback (app.html) BEFORE we overwrite index.html with the
+  // Build the SSR bundle of the marketing pages. With "type": "module" in
+  // package.json, the emitted dist-ssr/entry-server.js is ESM and importable.
+  console.log("[prerender] Building SSR bundle (build:ssr)…");
+  execSync("npm run build:ssr", { cwd: ROOT, stdio: "inherit" });
+
+  const entryPath = join(SSR_OUT, "entry-server.js");
+  if (!existsSync(entryPath)) {
+    console.error(`[prerender] SSR bundle not found at ${entryPath}.`);
+    process.exit(1);
+  }
+  const { render } = await import(pathToFileURL(entryPath).href);
+
+  // The freshly built index.html is the empty SPA shell. Preserve it UNCHANGED
+  // as the app-route fallback (app.html) BEFORE we overwrite index.html with the
   // prerendered home page, so logged-in routes never serve home markup.
-  const shellHtml = await readFile(join(DIST, "index.html"), "utf8");
-  await writeFile(join(DIST, "app.html"), shellHtml, "utf8");
+  const shell = await readFile(join(DIST, "index.html"), "utf8");
+  await writeFile(join(DIST, "app.html"), shell, "utf8");
 
-  let chromium;
-  try {
-    ({ chromium } = await import("playwright"));
-  } catch {
-    try {
-      ({ chromium } = await import("@playwright/test"));
-    } catch {
-      console.warn("\n[prerender] ⚠ Playwright not available — skipping prerender. SPA build is intact.\n");
-      return;
-    }
-  }
-
-  let browser;
-  try {
-    browser = await chromium.launch();
-  } catch (firstErr) {
-    // Version-matched browser missing (common in pre-baked CI images). Fall
-    // back to any Chromium already present in PLAYWRIGHT_BROWSERS_PATH.
-    const execPath = findInstalledChromium();
-    if (execPath) {
-      try {
-        browser = await chromium.launch({ executablePath: execPath });
-        console.log(`[prerender] Using existing Chromium at ${execPath}`);
-      } catch (err) {
-        browser = null;
-        firstErr = err;
-      }
-    }
-    if (!browser) {
-      console.warn(
-        "\n[prerender] ⚠ Could not launch a browser — skipping prerender. SPA build is intact." +
-          "\n[prerender]   To enable prerendering, install Chromium: npx playwright install chromium" +
-          `\n[prerender]   (${firstErr.message})\n`
-      );
-      return;
-    }
-  }
-
-  const server = await startServer(shellHtml);
-  const page = await browser.newPage();
-
-  // External requests (fonts, analytics) aren't needed to capture the DOM and
-  // can hang the snapshot — abort anything not served by our local server.
-  await page.route("**/*", (route) => {
-    const url = route.request().url();
-    if (url.startsWith(`http://${HOST}:${PORT}`)) route.continue();
-    else route.abort();
-  });
-
+  const failures = [];
   let ok = 0;
-  try {
-    for (const routePath of ROUTES) {
-      const url = `http://${HOST}:${PORT}${routePath}`;
-      try {
-        await page.goto(url, { waitUntil: "load", timeout: 30000 });
 
-        // Wait until React has rendered real content into #root.
-        await page.waitForFunction(
-          () => {
-            const root = document.getElementById("root");
-            return !!root && root.innerText.trim().length > 150;
-          },
-          { timeout: 30000 }
-        );
-
-        const html = "<!doctype html>\n" + (await page.evaluate(() => document.documentElement.outerHTML));
-
-        const outFile =
-          routePath === "/"
-            ? join(DIST, "index.html")
-            : join(DIST, routePath.replace(/^\//, ""), "index.html");
-
-        await mkdir(dirname(outFile), { recursive: true });
-        await writeFile(outFile, html, "utf8");
-
-        const title = await page.title();
-        console.log(`[prerender] ✓ ${routePath.padEnd(9)} → ${outFile.replace(DIST + "/", "dist/")}  (“${title}”)`);
-        ok++;
-      } catch (err) {
-        console.warn(`[prerender] ⚠ ${routePath} did not render (${err.message.split("\n")[0]}) — leaving SPA shell.`);
+  for (const routePath of ROUTES) {
+    try {
+      const { html, meta } = await render(routePath);
+      if (!html || html.trim().length === 0) {
+        throw new Error("render produced an empty #root");
       }
+      if (!meta || !meta.title || !meta.description) {
+        throw new Error("missing route meta (title/description)");
+      }
+
+      const canonical = `${SITE_ORIGIN}${routePath}`;
+      let out = shell.replace('<div id="root"></div>', `<div id="root">${html}</div>`);
+      if (out === shell) {
+        throw new Error('shell is missing <div id="root"></div>');
+      }
+      out = injectMeta(out, { title: meta.title, description: meta.description, canonical });
+
+      const outFile =
+        routePath === "/"
+          ? join(DIST, "index.html")
+          : join(DIST, routePath.replace(/^\//, ""), "index.html");
+      await mkdir(dirname(outFile), { recursive: true });
+      await writeFile(outFile, out, "utf8");
+
+      console.log(
+        `[prerender] ✓ ${routePath.padEnd(9)} → ${outFile.replace(DIST + "/", "dist/")}  ("${meta.title}")`
+      );
+      ok++;
+    } catch (err) {
+      failures.push(`${routePath}: ${err.message}`);
+      console.error(`[prerender] ✗ ${routePath} failed — ${err.message}`);
     }
-  } finally {
-    await browser.close();
-    server.close();
   }
 
-  if (ok === 0) {
-    const isDeploy =
-      process.env.VERCEL === "1" || process.env.CI === "true" || process.env.CI === "1";
-    const reason =
-      "No routes prerendered. The app likely failed to boot during the build" +
-      "\n[prerender]   (commonly missing VITE_SUPABASE_URL / VITE_SUPABASE_PUBLISHABLE_KEY env vars).";
-    if (isDeploy) {
-      // On a real deploy (Vercel/CI) we must NOT ship a blank SPA shell to crawlers.
-      console.error(
-        `\n[prerender] ✗ ${reason}` +
-          "\n[prerender]   Failing the build so a non-indexable shell is never deployed.\n"
-      );
-      process.exit(1);
-    }
-    console.warn(
-      `\n[prerender] ⚠ ${reason}` +
-        "\n[prerender]   SPA build is intact — continuing (local/non-deploy build).\n"
+  if (failures.length > 0) {
+    console.error(
+      `\n[prerender] ✗ ${failures.length}/${ROUTES.length} route(s) failed to prerender.` +
+        "\n[prerender]   Failing the build so a non-indexable shell is never deployed.\n"
     );
-  } else {
-    console.log(`[prerender] Done. ${ok}/${ROUTES.length} public routes prerendered. App routes remain client-side.`);
+    process.exit(1);
   }
+
+  console.log(
+    `[prerender] Done. ${ok}/${ROUTES.length} public routes prerendered. App routes remain client-side.`
+  );
 }
 
 main().catch((err) => {

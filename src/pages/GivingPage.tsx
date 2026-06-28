@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { setPageMeta } from "@/lib/page-meta";
+import { ROUTE_META } from "@/prerender/route-meta";
 import { C } from "@/components/marketing/theme";
 
 const ORGS = [
@@ -23,11 +24,7 @@ const ORGS = [
 
 export default function GivingPage() {
   useEffect(() => {
-    setPageMeta({
-      title: "Giving Back — TradePulse",
-      description: "50% of every TradePulse Pro upgrade is donated to three Connecticut organizations. Every dollar tracked publicly.",
-      path: "/giving",
-    });
+    setPageMeta({ ...ROUTE_META["/giving"], path: "/giving" });
   }, []);
 
   const label = "mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em]";

@@ -70,7 +70,7 @@ export default function TermsPage() {
           </p>
           <p className={p} style={{ color: C.textDim }}>
             <strong style={strong}>Refunds.</strong> We offer a <strong style={strong}>14-day money-back guarantee.</strong> To request a refund, email{" "}
-            <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>{" "}
+            <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a>{" "}
             within 14 days of your purchase from the same wallet address used to purchase. Refunds are issued in the cryptocurrency originally used, returned to the originating wallet.
           </p>
           <p className={p} style={{ color: C.textDim }}>
@@ -142,7 +142,7 @@ export default function TermsPage() {
           <h2 className={h2} style={h2Style}>15. Contact</h2>
           <p className={p} style={{ color: C.textDim }}>
             Questions, refund requests, or legal notices:{" "}
-            <a href="mailto:support@tradepulseapp.io" className="underline" style={{ color: C.primary }}>support@tradepulseapp.io</a>
+            <a href="mailto:rickybob99999@gmail.com" className="underline" style={{ color: C.primary }}>rickybob99999@gmail.com</a>
           </p>
         </section>
 

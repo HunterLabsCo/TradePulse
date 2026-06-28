@@ -29,7 +29,7 @@ export default function MarketingFooter() {
           <div>
             <p className="mb-3 font-mono text-[10px] font-medium uppercase tracking-widest" style={{ color: C.textDim }}>Company</p>
             <nav className="space-y-2">
-              {[["About", "/about"], ["Giving", "/giving"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Support", "mailto:support@tradepulseapp.io"]].map(([l, h]) => (
+              {[["About", "/about"], ["Giving", "/giving"], ["Privacy", "/privacy"], ["Terms", "/terms"], ["Support", "mailto:rickybob99999@gmail.com"]].map(([l, h]) => (
                 <a key={h} href={h} className="block font-sans text-sm transition-colors" style={{ color: C.textDim }}>{l}</a>
               ))}
             </nav>

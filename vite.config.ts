@@ -4,7 +4,7 @@ import path from "path";
 import { VitePWA } from "vite-plugin-pwa";
 import { nodePolyfills } from "vite-plugin-node-polyfills";
 
-export default defineConfig(() => ({
+export default defineConfig(({ isSsrBuild }) => ({
   server: {
     host: "::",
     port: 8080,
@@ -15,7 +15,10 @@ export default defineConfig(() => ({
   plugins: [
     react(),
     nodePolyfills(),
-    VitePWA({
+    // Skip service-worker generation for the SSR (prerender) build; the normal
+    // client build still emits dist/sw.js exactly as before.
+    !isSsrBuild &&
+      VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["placeholder.svg"],
       manifest: {
@@ -56,13 +59,17 @@ export default defineConfig(() => ({
   build: {
     sourcemap: false,
     rollupOptions: {
-      output: {
-        manualChunks: {
-          "vendor-solana": ["@solana/web3.js", "@solana/spl-token", "@solana/wallet-adapter-react"],
-          "vendor-supabase": ["@supabase/supabase-js"],
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-        },
-      },
+      // manualChunks is meaningless for the single-entry SSR build and triggers
+      // a rollup warning there, so only apply it to the client build.
+      output: isSsrBuild
+        ? {}
+        : {
+            manualChunks: {
+              "vendor-solana": ["@solana/web3.js", "@solana/spl-token", "@solana/wallet-adapter-react"],
+              "vendor-supabase": ["@supabase/supabase-js"],
+              "vendor-react": ["react", "react-dom", "react-router-dom"],
+            },
+          },
     },
   },
   resolve: {

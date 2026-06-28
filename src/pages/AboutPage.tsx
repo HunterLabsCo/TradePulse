@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import MarketingLayout from "@/components/MarketingLayout";
 import { setPageMeta } from "@/lib/page-meta";
+import { ROUTE_META } from "@/prerender/route-meta";
 import { C } from "@/components/marketing/theme";
 
 export default function AboutPage() {
@@ -9,11 +10,7 @@ export default function AboutPage() {
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
-    setPageMeta({
-      title: "About — TradePulse",
-      description: "TradePulse is built and run independently by TheVeinGhost — an active crypto trader from small-town Connecticut. Built by a trader, for traders.",
-      path: "/about",
-    });
+    setPageMeta({ ...ROUTE_META["/about"], path: "/about" });
   }, []);
 
   const label = "mb-3 font-mono text-[10px] font-medium uppercase tracking-[0.14em]";

@@ -1,15 +1,12 @@
 import { useEffect } from "react";
 import MarketingLayout from "@/components/MarketingLayout";
 import { setPageMeta } from "@/lib/page-meta";
+import { ROUTE_META } from "@/prerender/route-meta";
 import { C } from "@/components/marketing/theme";
 
 export default function PrivacyPage() {
   useEffect(() => {
-    setPageMeta({
-      title: "Privacy Policy — TradePulse",
-      description: "TradePulse Privacy Policy. We don't collect emails, don't sell data, and free-tier trades never leave your device.",
-      path: "/privacy",
-    });
+    setPageMeta({ ...ROUTE_META["/privacy"], path: "/privacy" });
   }, []);
 
   const h2 = "mt-10 mb-3 font-sans text-2xl font-bold";

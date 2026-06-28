@@ -1,0 +1,28 @@
+# TradePulse
+
+> TradePulse is the voice-powered trade journal for active crypto traders. Speak your trade —
+> token, entry, exit, chain, PnL, and mood — and AI logs it in under 5 seconds. Built for
+> on-chain Solana/Ethereum/memecoin traders whose DEX trades don't come from a broker API.
+> $99 one-time (lifetime), no subscription; 20 free trades, no account or credit card required.
+
+## What it is
+- Voice-first: tap the mic, speak naturally, AI parses every field. No forms, no typing.
+- Multi-chain: Solana, Ethereum, Base, Arbitrum, BNB/BSC, Polygon.
+- Tracks entries, exits, PnL, win rate, time-of-day, and trading mood/psychology.
+- Free tier stores trades locally on your device; optional cloud sync for Pro.
+- Pricing: $99 one-time lifetime ($99 founding price, rising to $149 after the first 10
+  customers). Paid in SOL or USDC. No subscription. 14-day money-back guarantee.
+- Privacy: voice is transcribed by your browser's Web Speech API; audio never touches our
+  servers; only the text transcript is sent to Anthropic for parsing.
+- Independent indie project by TheVeinGhost, a trader in Connecticut. 50% of every Pro
+  upgrade is donated to three Connecticut organizations.
+
+## Key pages
+- Home: https://www.tradepulseapp.io/
+- About: https://www.tradepulseapp.io/about
+- Giving (50% of Pro donated): https://www.tradepulseapp.io/giving
+- Privacy Policy: https://www.tradepulseapp.io/privacy
+- Terms of Service: https://www.tradepulseapp.io/terms
+
+## Contact
+- Support: support@tradepulseapp.io
